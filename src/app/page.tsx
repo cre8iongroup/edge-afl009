@@ -24,10 +24,6 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await login(email, password);
-      toast({
-        title: 'Login Successful',
-        description: 'Welcome back!',
-      });
       router.push('/dashboard');
     } catch (error) {
       toast({
@@ -54,7 +50,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="user@example.com"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

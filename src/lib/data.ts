@@ -155,7 +155,7 @@ export const submissionFormConfig = {
     { 
       value: 'Early Career',
       label: 'Early Career',
-      description: 'Professionals with 0–5 years of experience Professionals building workplace confidence and navigating early promotions.'
+      description: 'Professionals with 0–5 years of experience Professionals building workplace confidence and navigating early promotions'
     },
     { 
       value: 'Mid-Career',
