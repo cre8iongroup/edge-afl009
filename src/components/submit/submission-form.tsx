@@ -112,22 +112,7 @@ export default function SubmissionForm() {
                         <SelectContent>
                           {submissionFormConfig.pillars.map(pillar => (
                             <SelectItem key={pillar.value} value={pillar.value}>
-                                <div className="flex items-center gap-2">
-                                    {pillar.label}
-                                    <Tooltip>
-                                        <TooltipTrigger onClick={(e) => e.stopPropagation()}><TooltipIcon/></TooltipTrigger>
-                                        <TooltipContent side="right" align="start">
-                                            <div className="max-w-xs space-y-2">
-                                                <p className="font-bold">{pillar.label}</p>
-                                                <p>{pillar.description}</p>
-                                                <p className="font-semibold">Example Themes:</p>
-                                                <ul className="list-disc pl-4">
-                                                    {pillar.examples.map(ex => <li key={ex}>{ex}</li>)}
-                                                </ul>
-                                            </div>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </div>
+                                {pillar.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -159,19 +144,7 @@ export default function SubmissionForm() {
                         <SelectContent>
                           {submissionFormConfig.formats.map(format => (
                              <SelectItem key={format.value} value={format.value}>
-                                <div className="flex items-center gap-2">
-                                    {format.label}
-                                    <Tooltip>
-                                        <TooltipTrigger onClick={(e) => e.stopPropagation()}><TooltipIcon/></TooltipTrigger>
-                                        <TooltipContent side="right" align="start">
-                                            <div className="max-w-xs space-y-2">
-                                                <p className="font-bold">{format.label}</p>
-                                                <p>{format.description}</p>
-                                                <p><span className="font-semibold">Key Features:</span> {format.features}</p>
-                                            </div>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </div>
+                                {format.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -203,18 +176,7 @@ export default function SubmissionForm() {
                         <SelectContent>
                           {submissionFormConfig.audiences.map(audience => (
                              <SelectItem key={audience.value} value={audience.value}>
-                                 <div className="flex items-center gap-2">
-                                    {audience.label}
-                                     <Tooltip>
-                                        <TooltipTrigger onClick={(e) => e.stopPropagation()}><TooltipIcon/></TooltipTrigger>
-                                        <TooltipContent side="right" align="start">
-                                            <div className="max-w-xs space-y-2">
-                                                <p className="font-bold">{audience.label}</p>
-                                                <p>{audience.description}</p>
-                                            </div>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                 </div>
+                                {audience.label}
                              </SelectItem>
                           ))}
                         </SelectContent>
@@ -365,7 +327,7 @@ export default function SubmissionForm() {
                 )}
               />
               <div className="flex justify-end">
-                <Button type="submit">Submit Proposal</Button>
+                <Button type="submit">Submit Session for Approval</Button>
               </div>
             </form>
           </Form>
