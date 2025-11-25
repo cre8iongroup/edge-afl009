@@ -15,13 +15,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
@@ -88,104 +82,130 @@ export default function SubmissionForm() {
         <TooltipProvider>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-                <FormField
-                  control={form.control}
-                  name="pillar"
-                  render={({ field }) => (
-                    <FormItem>
-                       <div className="flex items-center gap-2">
-                        <FormLabel>ALPFA Pillar</FormLabel>
-                        <Tooltip>
-                            <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
-                            <TooltipContent side="top" align="start">
-                                <p className="max-w-xs">{submissionFormConfig.tooltips.pillar}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a pillar" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {submissionFormConfig.pillars.map(pillar => (
-                            <SelectItem key={pillar.value} value={pillar.value}>
-                                {pillar.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="format"
-                  render={({ field }) => (
-                    <FormItem>
-                        <div className="flex items-center gap-2">
-                            <FormLabel>Session Format</FormLabel>
-                             <Tooltip>
-                                <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
-                                <TooltipContent side="top" align="start">
-                                    <p className="max-w-xs">{submissionFormConfig.tooltips.format}</p>
+              <FormField
+                control={form.control}
+                name="pillar"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel className="text-base">ALPFA Pillar</FormLabel>
+                    <FormDescription>Choose the one pillar that best aligns with your content.</FormDescription>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col space-y-2"
+                      >
+                        {submissionFormConfig.pillars.map((pillar) => (
+                          <FormItem key={pillar.value} className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value={pillar.value} />
+                            </FormControl>
+                            <FormLabel className="font-normal flex items-center gap-2">
+                              {pillar.label}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button"><TooltipIcon /></button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="font-bold">{pillar.description}</p>
+                                  {pillar.examples && pillar.examples.length > 0 && (
+                                    <div className="mt-2">
+                                      <p className="text-sm font-semibold">Example Themes:</p>
+                                      <ul className="list-disc list-inside text-xs">
+                                        {pillar.examples.map((ex) => <li key={ex}>{ex}</li>)}
+                                      </ul>
+                                    </div>
+                                  )}
                                 </TooltipContent>
-                            </Tooltip>
-                        </div>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a format" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {submissionFormConfig.formats.map(format => (
-                             <SelectItem key={format.value} value={format.value}>
-                                {format.label}
-                             </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="audience"
-                  render={({ field }) => (
-                    <FormItem>
-                        <div className="flex items-center gap-2">
-                            <FormLabel>Intended Audience</FormLabel>
-                            <Tooltip>
-                                <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
-                                <TooltipContent side="top" align="start">
-                                    <p className="max-w-xs">{submissionFormConfig.tooltips.audience}</p>
+                              </Tooltip>
+                            </FormLabel>
+                          </FormItem>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="format"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel className="text-base">Session Format</FormLabel>
+                     <FormDescription>Select the format that best describes your session's structure and participant experience.</FormDescription>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col space-y-2"
+                      >
+                        {submissionFormConfig.formats.map((format) => (
+                          <FormItem key={format.value} className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value={format.value} />
+                            </FormControl>
+                            <FormLabel className="font-normal flex items-center gap-2">
+                              {format.label}
+                               <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button"><TooltipIcon /></button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="font-bold">{format.label}</p>
+                                  <p className="text-sm">{format.description}</p>
+                                  <p className="text-sm mt-2"><span className="font-semibold">Key Feature:</span> {format.features}</p>
                                 </TooltipContent>
-                            </Tooltip>
-                        </div>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select an audience" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {submissionFormConfig.audiences.map(audience => (
-                             <SelectItem key={audience.value} value={audience.value}>
-                                {audience.label}
-                             </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                              </Tooltip>
+                            </FormLabel>
+                          </FormItem>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="audience"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel className="text-base">Intended Audience</FormLabel>
+                     <FormDescription>Indicate who you designed content for. ALPFA will use your intended audience to guide placement and categorization.</FormDescription>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col space-y-2"
+                      >
+                        {submissionFormConfig.audiences.map((audience) => (
+                          <FormItem key={audience.value} className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value={audience.value} />
+                            </FormControl>
+                            <FormLabel className="font-normal flex items-center gap-2">
+                              {audience.label}
+                               <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button"><TooltipIcon /></button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                     <p className="font-bold">{audience.label}</p>
+                                     <p className="text-sm">{audience.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </FormLabel>
+                          </FormItem>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
@@ -193,11 +213,11 @@ export default function SubmissionForm() {
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center gap-2">
-                        <FormLabel>Session Title</FormLabel>
+                        <FormLabel className="text-base">Session Title</FormLabel>
                         <Tooltip>
-                            <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
-                            <TooltipContent side="top" align="start">
-                                <p className="max-w-xs">{submissionFormConfig.tooltips.title}</p>
+                            <TooltipTrigger asChild><button type="button"><TooltipIcon /></button></TooltipTrigger>
+                            <TooltipContent>
+                                <p className="max-w-xs">{submissionFormConfig.tooltips.title_description}</p>
                             </TooltipContent>
                         </Tooltip>
                     </div>
@@ -214,9 +234,9 @@ export default function SubmissionForm() {
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center gap-2">
-                        <FormLabel>Session Description</FormLabel>
+                        <FormLabel className="text-base">Session Description</FormLabel>
                         <Tooltip>
-                            <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
+                            <TooltipTrigger asChild><button type="button"><TooltipIcon /></button></TooltipTrigger>
                             <TooltipContent side="top" align="start">
                                 <div className="max-w-sm space-y-2">
                                     <p className="font-bold">Your description should clearly explain what the session covers, what participants will experience, and how the content aligns with your selected pillar. Session descriptions must:</p>
@@ -251,8 +271,8 @@ export default function SubmissionForm() {
                       <div className="flex items-center gap-2">
                         <FormLabel className="text-base">Session Objectives</FormLabel>
                         <Tooltip>
-                            <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
-                            <TooltipContent side="top" align="start">
+                            <TooltipTrigger asChild><button type="button"><TooltipIcon /></button></TooltipTrigger>
+                            <TooltipContent>
                                 <p className="max-w-xs">{submissionFormConfig.tooltips.objectives}</p>
                             </TooltipContent>
                         </Tooltip>
@@ -270,19 +290,27 @@ export default function SubmissionForm() {
                           return (
                             <FormItem
                               key={item.id}
-                              className="flex flex-row items-center space-x-3 space-y-0"
+                              className="flex flex-row items-center space-x-3 space-y-0 mb-2"
                             >
                               <FormControl>
                                 <Checkbox
                                   checked={field.value?.includes(item.id)}
                                   onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...field.value, item.id])
-                                      : field.onChange(
-                                          field.value?.filter(
-                                            (value) => value !== item.id
-                                          )
+                                    const currentValues = field.value || [];
+                                    if (checked) {
+                                      if (currentValues.length < 3) {
+                                        field.onChange([...currentValues, item.id]);
+                                      } else {
+                                        // This part prevents checking, but we should also inform the user.
+                                        // The schema validation will catch this on submit.
+                                      }
+                                    } else {
+                                      field.onChange(
+                                        currentValues.filter(
+                                          (value) => value !== item.id
                                         )
+                                      );
+                                    }
                                   }}
                                 />
                               </FormControl>
@@ -308,13 +336,13 @@ export default function SubmissionForm() {
                         checked={field.value}
                         onCheckedChange={field.onChange}
                       />
-    </FormControl>
+                    </FormControl>
                     <div className="space-y-1 leading-none">
                        <div className="flex items-center gap-2">
                         <FormLabel>Request CPE Credit (Optional)</FormLabel>
                          <Tooltip>
-                            <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
-                            <TooltipContent side="top" align="start">
+                            <TooltipTrigger asChild><button type="button"><TooltipIcon /></button></TooltipTrigger>
+                            <TooltipContent>
                                 <p className="max-w-sm">{submissionFormConfig.tooltips.cpe}</p>
                             </TooltipContent>
                         </Tooltip>
@@ -327,7 +355,7 @@ export default function SubmissionForm() {
                 )}
               />
               <div className="flex justify-end">
-                <Button type="submit" className="bg-accent hover:bg-accent/90">Submit Session for Approval</Button>
+                <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground">Submit Session for Approval</Button>
               </div>
             </form>
           </Form>
