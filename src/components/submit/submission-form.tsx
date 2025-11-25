@@ -28,6 +28,7 @@ import { HelpCircle } from 'lucide-react';
 import { submissionFormConfig } from '@/lib/data';
 import type { Submission } from '@/lib/types';
 import { useEffect } from 'react';
+import { Label } from '../ui/label';
 
 const formSchema = z.object({
   pillar: z.string().min(1, 'Please select a pillar.'),
@@ -393,7 +394,7 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
                 )}
               />
               <div className="flex justify-end">
-                <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground">Submit Session for Approval</Button>
+                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">Submit Session for Approval</Button>
               </div>
             </form>
           </Form>
