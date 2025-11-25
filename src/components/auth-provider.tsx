@@ -2,12 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { User } from '@/lib/types';
-import { users } from '@/lib/data';
+import { users as initialUsers } from '@/lib/data';
 
 interface AuthContextType {
   user: User | null;
+  users: User[];
   login: (email: string, pass: string) => void;
   logout: () => void;
+  register: (newUser: User) => void;
   switchUser: (userId: string) => void;
   loading: boolean;
 }
@@ -16,12 +18,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>(initialUsers);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('alpfa-user');
+    const storedUsers = localStorage.getItem('alpfa-users');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
+    }
+    if (storedUsers) {
+      setUsers(JSON.parse(storedUsers));
+    } else {
+      localStorage.setItem('alpfa-users', JSON.stringify(initialUsers));
     }
     setLoading(false);
   }, []);
@@ -40,6 +49,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem('alpfa-user');
   };
+  
+  const register = (newUser: User) => {
+    const existingUser = users.find(u => u.email === newUser.email);
+    if (existingUser) {
+      throw new Error('User with this email already exists.');
+    }
+    const updatedUsers = [...users, newUser];
+    setUsers(updatedUsers);
+    localStorage.setItem('alpfa-users', JSON.stringify(updatedUsers));
+  };
 
   const switchUser = (userId: string) => {
     const foundUser = users.find(u => u.id === userId);
@@ -50,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, switchUser }}>
+    <AuthContext.Provider value={{ user, users, login, logout, register, loading, switchUser }}>
       {children}
     </AuthContext.Provider>
   );

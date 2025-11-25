@@ -13,11 +13,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/components/auth-provider';
 import { useRouter } from 'next/navigation';
-import { users } from '@/lib/data';
 import { Check } from 'lucide-react';
 
 export default function UserNav() {
-  const { user, logout, switchUser } = useAuth();
+  const { user, users, logout, switchUser } = useAuth();
   const router = useRouter();
 
   if (!user) {

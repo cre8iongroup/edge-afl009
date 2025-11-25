@@ -1,4 +1,6 @@
-import { submissions, users } from '@/lib/data';
+'use client';
+
+import { submissions } from '@/lib/data';
 import {
   Table,
   TableBody,
@@ -13,6 +15,7 @@ import { AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { useAuth } from '../auth-provider';
 
 
 const statusConfig = {
@@ -24,6 +27,7 @@ const statusConfig = {
 
 
 export default function SubmissionsTable() {
+    const { users } = useAuth();
     const data = submissions.map(sub => ({
         ...sub,
         user: users.find(u => u.id === sub.userId)
