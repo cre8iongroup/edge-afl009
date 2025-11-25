@@ -6,73 +6,7 @@ export const users: User[] = [
   { id: '3', name: 'Internal User', email: 'internal@example.com', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026706d', role: 'internal' },
 ];
 
-export const submissions: Submission[] = [
-  {
-    id: 'sub1',
-    userId: '1',
-    title: 'Future of Fintech',
-    description: 'A deep dive into blockchain, AI, and the future of financial services.',
-    status: 'Approved',
-    pillar: 'Business Mastery',
-    format: 'Panel',
-    audience: 'Professionals',
-    objectives: ['Identify key concepts, trends, or insights related to the topic.'],
-    cpe: true,
-    createdAt: new Date('2023-10-01'),
-  },
-  {
-    id: 'sub2',
-    userId: '1',
-    title: 'Leading with Emotional Intelligence',
-    description: 'Learn how to improve your leadership skills by mastering emotional intelligence.',
-    status: 'Awaiting Approval',
-    pillar: 'Professional EQ',
-    format: 'Workshop',
-    audience: 'Executive Level and above',
-    objectives: ['Develop a clear next step, action plan, or strategy based on the session.'],
-    cpe: true,
-    createdAt: new Date('2023-10-15'),
-  },
-  {
-    id: 'sub3',
-    userId: '1',
-    title: 'Building Your Personal Brand',
-    description: 'Strategies for creating a strong personal brand in the digital age.',
-    status: 'Needs Information',
-    pillar: 'Self-advocacy and career design',
-    format: 'Workshop',
-    audience: 'Undergraduate Students',
-    objectives: ['Practice a skill through guided activity or discussion.'],
-    cpe: false,
-    createdAt: new Date('2023-11-05'),
-  },
-  {
-    id: 'sub4',
-    userId: '1',
-    title: 'Networking for Success',
-    description: 'Effective networking strategies for introverts and extroverts.',
-    status: 'Rejected',
-    pillar: 'Community Engagement',
-    format: 'Interactive Session',
-    audience: 'Undergraduate Students',
-    objectives: ['Analyze different approaches to a workplace or community challenge.'],
-    cpe: false,
-    createdAt: new Date('2023-11-10'),
-  },
-    {
-    id: 'sub5',
-    userId: '2',
-    title: 'Corporate Responsibility in 2024',
-    description: 'How companies can drive positive change.',
-    status: 'Approved',
-    pillar: 'Community Engagement',
-    format: 'Presentation',
-    audience: 'Executive Level and above',
-    objectives: ['Evaluate options to determine the most effective action or solution.'],
-    cpe: false,
-    createdAt: new Date('2023-11-20'),
-  },
-];
+export const submissions: Submission[] = [];
 
 export const submissionFormConfig = {
   tooltips: {
@@ -91,7 +25,7 @@ export const submissionFormConfig = {
       value: 'Professional EQ', 
       label: 'Professional EQ',
       description: 'Communication, collaboration, and values-driven leadership that strengthens team performance and interpersonal effectiveness.',
-      examples: ['Feedback, communication, and executive presence', 'Navigating conflict or difficult conversations', 'Emotional intelligence in leadership', 'Team dynamics + collaboration', 'Self-advocacy and career design']
+      examples: ['Feedback, communication, and executive presence', 'Navigating conflict or difficult conversations', 'Emotional intelligence in leadership', 'Team dynamics + collaboration']
     },
     { 
       value: 'Xtrapreneurship', 

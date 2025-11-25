@@ -2,11 +2,12 @@
 
 import AppLayout from '@/components/layout/app-layout';
 import { useAuth } from '@/components/auth-provider';
-import { submissions } from '@/lib/data';
 import SubmissionCard from '@/components/dashboard/submission-card';
+import { useSubmissions } from '@/components/submissions-provider';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { submissions } = useSubmissions();
   const userSubmissions = submissions.filter(sub => sub.userId === user?.id);
 
   return (

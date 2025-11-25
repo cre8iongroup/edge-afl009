@@ -16,9 +16,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare, Send, Bot, User, Loader2 } from 'lucide-react';
 import { answerUserQuestion } from '@/ai/flows/answer-user-questions';
 import { useAuth } from '../auth-provider';
-import { submissions } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { useSubmissions } from '../submissions-provider';
 
 type Message = {
   role: 'user' | 'bot';
@@ -31,6 +31,7 @@ export default function AIChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
+  const { submissions } = useSubmissions();
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
 
   const userSubmissions = submissions.filter(sub => sub.userId === user?.id);

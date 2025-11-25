@@ -1,6 +1,5 @@
 'use client';
 
-import { submissions } from '@/lib/data';
 import {
   Table,
   TableBody,
@@ -16,6 +15,7 @@ import { Card, CardContent } from '../ui/card';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useAuth } from '../auth-provider';
+import { useSubmissions } from '../submissions-provider';
 
 
 const statusConfig = {
@@ -28,6 +28,7 @@ const statusConfig = {
 
 export default function SubmissionsTable() {
     const { users } = useAuth();
+    const { submissions } = useSubmissions();
     const data = submissions.map(sub => ({
         ...sub,
         user: users.find(u => u.id === sub.userId)
@@ -50,8 +51,8 @@ export default function SubmissionsTable() {
             </TableHeader>
             <TableBody>
               {data.map((item) => {
-                const StatusIcon = statusConfig[item.status].icon;
-                const statusClassName = statusConfig[item.status].className;
+                const StatusIcon = statusConfig[item.status]?.icon || Clock;
+                const statusClassName = statusConfig[item.status]?.className || '';
                 return (
                     <TableRow key={item.id}>
                         <TableCell>

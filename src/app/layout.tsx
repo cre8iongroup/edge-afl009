@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { AuthProvider } from '@/components/auth-provider';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
+import { SubmissionsProvider } from '@/components/submissions-provider';
 
 export const metadata: Metadata = {
   title: 'ALPFA Convention Portal',
@@ -22,8 +23,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          {children}
-          <Toaster />
+          <SubmissionsProvider>
+            {children}
+            <Toaster />
+          </SubmissionsProvider>
         </AuthProvider>
       </body>
     </html>

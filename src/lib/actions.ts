@@ -1,5 +1,8 @@
 'use server';
 
+// This file is now unused since we are handling state on the client
+// but we'll keep it here in case we need server actions later.
+
 import { z } from 'zod';
 
 const workshopSchema = z.object({

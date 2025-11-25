@@ -19,16 +19,17 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { submitWorkshop } from '@/lib/actions';
 import { useAuth } from '../auth-provider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Upload } from 'lucide-react';
 import { submissionFormConfig } from '@/lib/data';
 import type { Submission } from '@/lib/types';
 import { useEffect } from 'react';
 import { Label } from '../ui/label';
+import { useSubmissions } from '../submissions-provider';
+import { Separator } from '../ui/separator';
 
 const formSchema = z.object({
   pillar: z.string().min(1, 'Please select a pillar.'),
@@ -42,7 +43,16 @@ const formSchema = z.object({
     message: 'You can select up to 3 objectives.',
   }),
   cpe: z.boolean().default(false),
+  // Presenter fields
+  presenterName: z.string().optional(),
+  presenterEmail: z.string().email('Please enter a valid email.').optional().or(z.literal('')),
+  presenterPocName: z.string().optional(),
+  presenterPocEmail: z.string().email('Please enter a valid email.').optional().or(z.literal('')),
+  presenterBio: z.string().optional(),
+  presenterHeadshot: z.any().optional(),
 });
+
+type SubmissionFormData = z.infer<typeof formSchema>;
 
 const TooltipIcon = () => <HelpCircle className="h-4 w-4 text-muted-foreground" />;
 
@@ -54,14 +64,20 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
+  const { addSubmission, updateSubmission } = useSubmissions();
   
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<SubmissionFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: submission || {
       title: '',
       description: '',
       objectives: [],
       cpe: false,
+      presenterName: '',
+      presenterEmail: '',
+      presenterPocName: '',
+      presenterPocEmail: '',
+      presenterBio: '',
     },
   });
 
@@ -71,18 +87,27 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
     }
   }, [submission, form]);
 
+  const showPresenterFields = submission && submission.status !== 'Awaiting Approval';
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: SubmissionFormData) {
     if (!user) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to submit.' });
       return;
     }
     try {
-      await submitWorkshop({ ...values, userId: user.id });
-      toast({
-        title: submission ? 'Submission Updated!' : 'Submission Successful!',
-        description: submission ? 'Your workshop proposal has been updated.' : 'Your workshop proposal has been received.',
-      });
+      if (submission) {
+        updateSubmission({ ...submission, ...values });
+        toast({
+          title: 'Submission Updated!',
+          description: 'Your workshop proposal has been updated.',
+        });
+      } else {
+        addSubmission({ ...values, userId: user.id });
+        toast({
+          title: 'Submission Successful!',
+          description: 'Your workshop proposal has been received.',
+        });
+      }
       router.push('/dashboard');
     } catch (error) {
       toast({
@@ -99,6 +124,7 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
         <TooltipProvider>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              {/* Core Fields */}
               <FormField
                 control={form.control}
                 name="pillar"
@@ -153,7 +179,6 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="format"
@@ -202,7 +227,6 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="audience"
@@ -250,7 +274,6 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="title"
@@ -393,6 +416,76 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
                   </FormItem>
                 )}
               />
+
+              {/* Presenter Fields - Conditional */}
+              {showPresenterFields && (
+                <div className="space-y-8 pt-8 border-t">
+                    <div className="space-y-2">
+                        <h3 className="text-xl font-semibold font-headline">Presenter Information</h3>
+                        <p className="text-muted-foreground">This information is required for approved sessions.</p>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <FormField control={form.control} name="presenterName" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Presenter Full Name</FormLabel>
+                                <FormControl><Input placeholder="e.g., Jane Doe" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="presenterEmail" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Presenter Email</FormLabel>
+                                <FormControl><Input placeholder="e.g., jane.doe@example.com" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <FormField control={form.control} name="presenterPocName" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Point of Contact Name (if different)</FormLabel>
+                                <FormControl><Input placeholder="e.g., John Smith" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="presenterPocEmail" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Point of Contact Email (if different)</FormLabel>
+                                <FormControl><Input placeholder="e.g., john.smith@example.com" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </div>
+                    <FormField control={form.control} name="presenterBio" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Presenter Bio</FormLabel>
+                            <FormDescription>A brief biography of the presenter (max 500 characters).</FormDescription>
+                            <FormControl><Textarea placeholder="Tell us about the presenter..." {...field} maxLength={500} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <FormField control={form.control} name="presenterHeadshot" render={({ field }) => (
+                        <FormItem>
+                             <FormLabel>Presenter Headshot</FormLabel>
+                            <FormControl>
+                                <div className="flex items-center justify-center w-full">
+                                    <Label htmlFor="headshot-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/80">
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
+                                            <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                            <p className="text-xs text-muted-foreground">PNG, JPG, or GIF (MAX. 800x800px)</p>
+                                        </div>
+                                        <Input id="headshot-upload" type="file" className="hidden" onChange={(e) => field.onChange(e.target.files?.[0])} />
+                                    </Label>
+                                </div> 
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+
+                </div>
+              )}
+
               <div className="flex justify-end">
                 <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">Submit Session for Approval</Button>
               </div>

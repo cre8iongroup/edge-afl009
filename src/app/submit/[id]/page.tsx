@@ -2,15 +2,15 @@
 
 import AppLayout from '@/components/layout/app-layout';
 import SubmissionForm from '@/components/submit/submission-form';
-import { submissions } from '@/lib/data';
 import { useParams } from 'next/navigation';
+import { useSubmissions } from '@/components/submissions-provider';
 
 export default function EditSubmissionPage() {
   const params = useParams();
   const { id } = params;
+  const { getSubmission } = useSubmissions();
 
-  // In a real app, you'd fetch this from a database
-  const submission = submissions.find(sub => sub.id === id);
+  const submission = getSubmission(id as string);
 
   return (
     <AppLayout>

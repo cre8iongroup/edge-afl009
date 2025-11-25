@@ -36,7 +36,9 @@ const statusConfig = {
 
 
 export default function SubmissionCard({ submission }: SubmissionCardProps) {
-  const { icon: Icon, className } = statusConfig[submission.status];
+  const config = statusConfig[submission.status];
+  const Icon = config ? config.icon : Clock;
+  const className = config ? config.className : '';
   
   return (
     <motion.div
@@ -62,7 +64,7 @@ export default function SubmissionCard({ submission }: SubmissionCardProps) {
           <p className="text-sm text-muted-foreground">{submission.description}</p>
         </CardContent>
         <CardFooter>
-          <Link href={`/submit/${submission.id}`} passHref legacyBehavior>
+          <Link href={`/submit/${submission.id}`} passHref className='w-full'>
             <Button variant="outline" className="w-full">
               <Edit className="mr-2 h-4 w-4" />
               Edit Submission
