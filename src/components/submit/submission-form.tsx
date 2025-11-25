@@ -235,7 +235,7 @@ export default function SubmissionForm() {
                         <Tooltip>
                             <TooltipTrigger><TooltipIcon /></TooltipTrigger>
                             <TooltipContent side="top" align="start">
-                                <p className="max-w-xs">{submissionForm-config.tooltips.title_description}</p>
+                                <p className="max-w-xs">{submissionFormConfig.tooltips.title_description}</p>
                             </TooltipContent>
                         </Tooltip>
                     </FormLabel>
