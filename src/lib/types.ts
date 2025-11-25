@@ -11,7 +11,7 @@ export type Submission = {
   userId: string;
   title: string;
   description: string;
-  status: 'Waiting for Approval' | 'Approved' | 'Rejected' | 'Needs Information';
+  status: 'Awaiting Approval' | 'Approved' | 'Rejected' | 'Needs Information';
   pillar: string;
   format: string;
   audience: string;

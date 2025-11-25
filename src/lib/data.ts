@@ -25,7 +25,7 @@ export const submissions: Submission[] = [
     userId: '1',
     title: 'Leading with Emotional Intelligence',
     description: 'Learn how to improve your leadership skills by mastering emotional intelligence.',
-    status: 'Waiting for Approval',
+    status: 'Awaiting Approval',
     pillar: 'Professional EQ',
     format: 'Workshop',
     audience: 'Executive Level and above',

@@ -12,7 +12,7 @@ type SubmissionCardProps = {
 };
 
 const statusConfig = {
-  'Waiting for Approval': {
+  'Awaiting Approval': {
     icon: Clock,
     color: 'bg-blue-500',
     className: 'border-blue-500/50 text-blue-500',
