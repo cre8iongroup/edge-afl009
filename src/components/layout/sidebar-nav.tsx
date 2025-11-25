@@ -24,7 +24,7 @@ export default function SidebarNav() {
     {
       href: '/admin',
       icon: Users,
-      label: 'Admin',
+      label: 'All Sessions',
       roles: ['client', 'internal'],
     },
     {

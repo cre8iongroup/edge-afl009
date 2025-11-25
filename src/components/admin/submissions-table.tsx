@@ -10,15 +10,18 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
-import { AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, XCircle, MoreHorizontal } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useAuth } from '../auth-provider';
 import { useSubmissions } from '../submissions-provider';
+import type { Submission } from '@/lib/types';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { Button } from '../ui/button';
 
 
-const statusConfig = {
+const statusConfig: Record<Submission['status'], { icon: React.ElementType, className: string }> = {
     'Awaiting Approval': { icon: Clock, className: 'text-blue-500' },
     'Approved': { icon: CheckCircle2, className: 'text-green-500' },
     'Rejected': { icon: XCircle, className: 'text-red-500' },
@@ -28,11 +31,18 @@ const statusConfig = {
 
 export default function SubmissionsTable() {
     const { users } = useAuth();
-    const { submissions } = useSubmissions();
+    const { submissions, updateSubmission } = useSubmissions();
     const data = submissions.map(sub => ({
         ...sub,
         user: users.find(u => u.id === sub.userId)
     }));
+
+    const handleStatusChange = (submissionId: string, newStatus: Submission['status']) => {
+        const submission = submissions.find(s => s.id === submissionId);
+        if (submission) {
+            updateSubmission({ ...submission, status: newStatus });
+        }
+    };
 
   return (
     <Card>
@@ -47,6 +57,7 @@ export default function SubmissionsTable() {
                 <TableHead>Pillar</TableHead>
                 <TableHead>Format</TableHead>
                 <TableHead className="text-right">Submitted On</TableHead>
+                <TableHead><span className="sr-only">Actions</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -77,6 +88,29 @@ export default function SubmissionsTable() {
                         <TableCell>{item.pillar}</TableCell>
                         <TableCell>{item.format}</TableCell>
                         <TableCell className="text-right">{format(item.createdAt, 'MMM d, yyyy')}</TableCell>
+                        <TableCell className="text-right">
+                           <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                        <span className="sr-only">Actions</span>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {Object.keys(statusConfig).map((status) => (
+                                        <DropdownMenuItem
+                                            key={status}
+                                            onSelect={() => handleStatusChange(item.id, status as Submission['status'])}
+                                            disabled={item.status === status}
+                                        >
+                                            {status}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </TableCell>
                     </TableRow>
                 )
               })}

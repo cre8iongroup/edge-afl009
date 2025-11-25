@@ -8,7 +8,7 @@ export default function AdminPage() {
     <AppLayout>
       <div className="flex flex-col gap-8">
         <div>
-          <h1 className="font-headline text-3xl font-semibold">Admin Dashboard</h1>
+          <h1 className="font-headline text-3xl font-semibold">All Sessions</h1>
           <p className="text-muted-foreground">View and manage all workshop submissions.</p>
         </div>
         <SubmissionsTable />
