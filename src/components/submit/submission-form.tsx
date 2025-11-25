@@ -38,9 +38,9 @@ const formSchema = z.object({
   audience: z.string().min(1, 'Please select an intended audience.'),
   title: z.string().min(5, 'Title must be at least 5 characters.'),
   description: z.string().min(20, 'Description must be at least 20 characters.'),
-  objectives: z.array(z.string()).refine((value) => value.length > 0, {
+  objectives: z.array(z.string()).refine((value) => value.some((item) => item), {
     message: 'You must select at least one objective.',
-  }).refine((value) => value.length <= 3, {
+  }).refine(value => value.length <= 3, {
     message: 'You can select up to 3 objectives.',
   }),
   cpe: z.boolean().default(false),
@@ -94,15 +94,15 @@ export default function SubmissionForm() {
                   name="pillar"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        ALPFA Pillar
+                       <div className="flex items-center gap-2">
+                        <FormLabel>ALPFA Pillar</FormLabel>
                         <Tooltip>
                             <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                             <TooltipContent side="top" align="start">
                                 <p className="max-w-xs">{submissionFormConfig.tooltips.pillar}</p>
                             </TooltipContent>
                         </Tooltip>
-                      </FormLabel>
+                      </div>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -126,15 +126,15 @@ export default function SubmissionForm() {
                   name="format"
                   render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                            Session Format
+                        <div className="flex items-center gap-2">
+                            <FormLabel>Session Format</FormLabel>
                              <Tooltip>
                                 <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                                 <TooltipContent side="top" align="start">
                                     <p className="max-w-xs">{submissionFormConfig.tooltips.format}</p>
                                 </TooltipContent>
                             </Tooltip>
-                        </FormLabel>
+                        </div>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -158,15 +158,15 @@ export default function SubmissionForm() {
                   name="audience"
                   render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                            Intended Audience
+                        <div className="flex items-center gap-2">
+                            <FormLabel>Intended Audience</FormLabel>
                             <Tooltip>
                                 <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                                 <TooltipContent side="top" align="start">
                                     <p className="max-w-xs">{submissionFormConfig.tooltips.audience}</p>
                                 </TooltipContent>
                             </Tooltip>
-                        </FormLabel>
+                        </div>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -192,15 +192,15 @@ export default function SubmissionForm() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                        Session Title
+                    <div className="flex items-center gap-2">
+                        <FormLabel>Session Title</FormLabel>
                         <Tooltip>
                             <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                             <TooltipContent side="top" align="start">
                                 <p className="max-w-xs">{submissionFormConfig.tooltips.title_description}</p>
                             </TooltipContent>
                         </Tooltip>
-                    </FormLabel>
+                    </div>
                     <FormControl>
                       <Input placeholder="e.g., Project Management Fundamentals" {...field} />
                     </FormControl>
@@ -213,8 +213,8 @@ export default function SubmissionForm() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                        Session Description
+                    <div className="flex items-center gap-2">
+                        <FormLabel>Session Description</FormLabel>
                         <Tooltip>
                             <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                             <TooltipContent side="top" align="start">
@@ -230,7 +230,7 @@ export default function SubmissionForm() {
                                 </div>
                             </TooltipContent>
                         </Tooltip>
-                    </FormLabel>
+                    </div>
                     <FormControl>
                       <Textarea
                         placeholder="Provide a detailed description of your session..."
@@ -248,15 +248,15 @@ export default function SubmissionForm() {
                 render={() => (
                     <FormItem>
                     <div className="mb-4">
-                      <FormLabel className="flex items-center gap-2 text-base">
-                        Session Objectives
+                      <div className="flex items-center gap-2">
+                        <FormLabel className="text-base">Session Objectives</FormLabel>
                         <Tooltip>
                             <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                             <TooltipContent side="top" align="start">
                                 <p className="max-w-xs">{submissionFormConfig.tooltips.objectives}</p>
                             </TooltipContent>
                         </Tooltip>
-                      </FormLabel>
+                      </div>
                       <FormDescription>
                         Choose up to 3 objectives for your session.
                       </FormDescription>
@@ -310,15 +310,15 @@ export default function SubmissionForm() {
                       />
     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="flex items-center gap-2">
-                        Request CPE Credit (Optional)
+                       <div className="flex items-center gap-2">
+                        <FormLabel>Request CPE Credit (Optional)</FormLabel>
                          <Tooltip>
                             <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                             <TooltipContent side="top" align="start">
                                 <p className="max-w-sm">{submissionFormConfig.tooltips.cpe}</p>
                             </TooltipContent>
                         </Tooltip>
-                      </FormLabel>
+                      </div>
                       <FormDescription>
                         Check this box if this session should be considered for CPE credits.
                       </FormDescription>
@@ -327,7 +327,7 @@ export default function SubmissionForm() {
                 )}
               />
               <div className="flex justify-end">
-                <Button type="submit">Submit Session for Approval</Button>
+                <Button type="submit" className="bg-accent hover:bg-accent/90">Submit Session for Approval</Button>
               </div>
             </form>
           </Form>
