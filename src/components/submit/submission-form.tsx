@@ -97,7 +97,7 @@ export default function SubmissionForm() {
                       <FormLabel className="flex items-center gap-2">
                         ALPFA Pillar
                         <Tooltip>
-                            <TooltipTrigger><TooltipIcon /></TooltipTrigger>
+                            <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                             <TooltipContent side="top" align="start">
                                 <p className="max-w-xs">{submissionFormConfig.tooltips.pillar}</p>
                             </TooltipContent>
@@ -129,7 +129,7 @@ export default function SubmissionForm() {
                         <FormLabel className="flex items-center gap-2">
                             Session Format
                              <Tooltip>
-                                <TooltipTrigger><TooltipIcon /></TooltipTrigger>
+                                <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                                 <TooltipContent side="top" align="start">
                                     <p className="max-w-xs">{submissionFormConfig.tooltips.format}</p>
                                 </TooltipContent>
@@ -161,7 +161,7 @@ export default function SubmissionForm() {
                         <FormLabel className="flex items-center gap-2">
                             Intended Audience
                             <Tooltip>
-                                <TooltipTrigger><TooltipIcon /></TooltipTrigger>
+                                <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                                 <TooltipContent side="top" align="start">
                                     <p className="max-w-xs">{submissionFormConfig.tooltips.audience}</p>
                                 </TooltipContent>
@@ -195,7 +195,7 @@ export default function SubmissionForm() {
                     <FormLabel className="flex items-center gap-2">
                         Session Title
                         <Tooltip>
-                            <TooltipTrigger><TooltipIcon /></TooltipTrigger>
+                            <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                             <TooltipContent side="top" align="start">
                                 <p className="max-w-xs">{submissionFormConfig.tooltips.title_description}</p>
                             </TooltipContent>
@@ -216,7 +216,7 @@ export default function SubmissionForm() {
                     <FormLabel className="flex items-center gap-2">
                         Session Description
                         <Tooltip>
-                            <TooltipTrigger><TooltipIcon /></TooltipTrigger>
+                            <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                             <TooltipContent side="top" align="start">
                                 <div className="max-w-sm space-y-2">
                                     <p className="font-bold">Your description should clearly explain what the session covers, what participants will experience, and how the content aligns with your selected pillar. Session descriptions must:</p>
@@ -251,7 +251,7 @@ export default function SubmissionForm() {
                       <FormLabel className="flex items-center gap-2 text-base">
                         Session Objectives
                         <Tooltip>
-                            <TooltipTrigger><TooltipIcon /></TooltipTrigger>
+                            <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                             <TooltipContent side="top" align="start">
                                 <p className="max-w-xs">{submissionFormConfig.tooltips.objectives}</p>
                             </TooltipContent>
@@ -308,12 +308,12 @@ export default function SubmissionForm() {
                         checked={field.value}
                         onCheckedChange={field.onChange}
                       />
-                    </FormControl>
+    </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel className="flex items-center gap-2">
                         Request CPE Credit (Optional)
                          <Tooltip>
-                            <TooltipTrigger><TooltipIcon /></TooltipTrigger>
+                            <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                             <TooltipContent side="top" align="start">
                                 <p className="max-w-sm">{submissionFormConfig.tooltips.cpe}</p>
                             </TooltipContent>
