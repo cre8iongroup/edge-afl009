@@ -7,9 +7,9 @@ import { users as initialUsers } from '@/lib/data';
 interface AuthContextType {
   user: User | null;
   users: User[];
-  login: (email: string, pass: string) => void;
+  login: (email: string, pass: string) => Promise<void>;
   logout: () => void;
-  register: (newUser: User) => void;
+  register: (newUser: Omit<User, 'id' | 'avatar' | 'role'> & {password: string}) => void;
   switchUser: (userId: string) => void;
   loading: boolean;
 }
@@ -18,25 +18,34 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('alpfa-user');
     const storedUsers = localStorage.getItem('alpfa-users');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    
     if (storedUsers) {
       setUsers(JSON.parse(storedUsers));
     } else {
-      localStorage.setItem('alpfa-users', JSON.stringify(initialUsers));
+      const initialUsersWithPasswords = initialUsers.map(u => ({...u, password: 'password'}));
+      localStorage.setItem('alpfa-users', JSON.stringify(initialUsersWithPasswords));
+      setUsers(initialUsersWithPasswords);
     }
+    
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+
     setLoading(false);
   }, []);
 
-  const login = (email: string, pass: string) => {
-    const foundUser = users.find((u) => u.email === email);
+  const login = async (email: string, pass: string) => {
+    // Simulate async operation
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const storedUsers = JSON.parse(localStorage.getItem('alpfa-users') || '[]');
+    const foundUser = storedUsers.find((u: User & {password: string}) => u.email === email && u.password === pass);
+    
     if (foundUser) {
       setUser(foundUser);
       localStorage.setItem('alpfa-user', JSON.stringify(foundUser));
@@ -50,18 +59,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('alpfa-user');
   };
   
-  const register = (newUser: User) => {
-    const existingUser = users.find(u => u.email === newUser.email);
+  const register = (newUser: Omit<User, 'id' | 'avatar' | 'role'> & {password: string}) => {
+    const storedUsers = JSON.parse(localStorage.getItem('alpfa-users') || '[]');
+    const existingUser = storedUsers.find((u: User) => u.email === newUser.email);
     if (existingUser) {
       throw new Error('User with this email already exists.');
     }
-    const updatedUsers = [...users, newUser];
+    
+    const userToSave: User & {password: string} = {
+        ...newUser,
+        id: Date.now().toString(),
+        avatar: `https://i.pravatar.cc/150?u=${newUser.email}`,
+        role: 'regular',
+    };
+
+    const updatedUsers = [...storedUsers, userToSave];
     setUsers(updatedUsers);
     localStorage.setItem('alpfa-users', JSON.stringify(updatedUsers));
   };
 
   const switchUser = (userId: string) => {
-    const foundUser = users.find(u => u.id === userId);
+    const storedUsers = JSON.parse(localStorage.getItem('alpfa-users') || '[]');
+    const foundUser = storedUsers.find((u:User) => u.id === userId);
     if (foundUser) {
       setUser(foundUser);
       localStorage.setItem('alpfa-user', JSON.stringify(foundUser));
