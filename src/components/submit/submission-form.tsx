@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +26,8 @@ import { useAuth } from '../auth-provider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { HelpCircle } from 'lucide-react';
 import { submissionFormConfig } from '@/lib/data';
+import type { Submission } from '@/lib/types';
+import { useEffect } from 'react';
 
 const formSchema = z.object({
   pillar: z.string().min(1, 'Please select a pillar.'),
@@ -42,18 +45,31 @@ const formSchema = z.object({
 
 const TooltipIcon = () => <HelpCircle className="h-4 w-4 text-muted-foreground" />;
 
-export default function SubmissionForm() {
+type SubmissionFormProps = {
+  submission?: Submission;
+};
+
+export default function SubmissionForm({ submission }: SubmissionFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const router = useRouter();
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: submission || {
       title: '',
       description: '',
       objectives: [],
       cpe: false,
     },
   });
+
+  useEffect(() => {
+    if (submission) {
+      form.reset(submission);
+    }
+  }, [submission, form]);
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
@@ -63,10 +79,10 @@ export default function SubmissionForm() {
     try {
       await submitWorkshop({ ...values, userId: user.id });
       toast({
-        title: 'Submission Successful!',
-        description: 'Your workshop proposal has been received.',
+        title: submission ? 'Submission Updated!' : 'Submission Successful!',
+        description: submission ? 'Your workshop proposal has been updated.' : 'Your workshop proposal has been received.',
       });
-      form.reset();
+      router.push('/dashboard');
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -87,38 +103,47 @@ export default function SubmissionForm() {
                 name="pillar"
                 render={({ field }) => (
                   <FormItem className="space-y-3">
-                    <FormLabel className="text-base">ALPFA Pillar</FormLabel>
-                    <FormDescription>Choose the one pillar that best aligns with your content.</FormDescription>
+                    <div className="flex items-center gap-2">
+                        <FormLabel className="text-base">ALPFA Pillar</FormLabel>
+                        <Tooltip>
+                            <TooltipTrigger asChild><button type="button"><TooltipIcon /></button></TooltipTrigger>
+                            <TooltipContent><p>Choose the one pillar that best aligns with your content.</p></TooltipContent>
+                        </Tooltip>
+                    </div>
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-2"
+                        value={field.value}
+                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                       >
                         {submissionFormConfig.pillars.map((pillar) => (
-                          <FormItem key={pillar.value} className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value={pillar.value} />
-                            </FormControl>
-                            <FormLabel className="font-normal flex items-center gap-2">
-                              {pillar.label}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button type="button"><TooltipIcon /></button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="font-bold">{pillar.description}</p>
-                                  {pillar.examples && pillar.examples.length > 0 && (
-                                    <div className="mt-2">
-                                      <p className="text-sm font-semibold">Example Themes:</p>
-                                      <ul className="list-disc list-inside text-xs">
-                                        {pillar.examples.map((ex) => <li key={ex}>{ex}</li>)}
-                                      </ul>
+                          <FormItem key={pillar.value} className="flex-1">
+                             <Label className="flex items-start gap-3 rounded-md border p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:bg-accent has-[input:checked]:text-accent-foreground">
+                                <FormControl>
+                                  <RadioGroupItem value={pillar.value} className="sr-only"/>
+                                </FormControl>
+                                <div className="flex-1 space-y-1">
+                                    <div className="font-semibold flex items-center gap-2">
+                                    {pillar.label}
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button type="button" onClick={(e) => e.preventDefault()}><TooltipIcon /></button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p className="font-bold max-w-xs">{pillar.description}</p>
+                                            {pillar.examples && pillar.examples.length > 0 && (
+                                                <div className="mt-2">
+                                                <p className="text-sm font-semibold">Example Themes:</p>
+                                                <ul className="list-disc list-inside text-xs max-w-xs">
+                                                    {pillar.examples.map((ex) => <li key={ex}>{ex}</li>)}
+                                                </ul>
+                                                </div>
+                                            )}
+                                        </TooltipContent>
+                                    </Tooltip>
                                     </div>
-                                  )}
-                                </TooltipContent>
-                              </Tooltip>
-                            </FormLabel>
+                                </div>
+                             </Label>
                           </FormItem>
                         ))}
                       </RadioGroup>
@@ -133,32 +158,41 @@ export default function SubmissionForm() {
                 name="format"
                 render={({ field }) => (
                   <FormItem className="space-y-3">
-                    <FormLabel className="text-base">Session Format</FormLabel>
-                     <FormDescription>Select the format that best describes your session's structure and participant experience.</FormDescription>
+                    <div className="flex items-center gap-2">
+                        <FormLabel className="text-base">Session Format</FormLabel>
+                        <Tooltip>
+                            <TooltipTrigger asChild><button type="button"><TooltipIcon /></button></TooltipTrigger>
+                            <TooltipContent><p>Select the format that best describes your session's structure and participant experience.</p></TooltipContent>
+                        </Tooltip>
+                    </div>
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-2"
+                        value={field.value}
+                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                       >
                         {submissionFormConfig.formats.map((format) => (
-                          <FormItem key={format.value} className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value={format.value} />
-                            </FormControl>
-                            <FormLabel className="font-normal flex items-center gap-2">
-                              {format.label}
-                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button type="button"><TooltipIcon /></button>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <p className="font-bold">{format.label}</p>
-                                  <p className="text-sm">{format.description}</p>
-                                  <p className="text-sm mt-2"><span className="font-semibold">Key Feature:</span> {format.features}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </FormLabel>
+                          <FormItem key={format.value}>
+                             <Label className="flex items-start gap-3 rounded-md border p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:bg-accent has-[input:checked]:text-accent-foreground">
+                                <FormControl>
+                                  <RadioGroupItem value={format.value} className="sr-only"/>
+                                </FormControl>
+                                <div className="flex-1 space-y-1">
+                                    <div className="font-semibold flex items-center gap-2">
+                                        {format.label}
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <button type="button" onClick={(e) => e.preventDefault()}><TooltipIcon /></button>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-xs">
+                                            <p className="font-bold">{format.label}</p>
+                                            <p className="text-sm">{format.description}</p>
+                                            <p className="text-sm mt-2"><span className="font-semibold">Key Feature:</span> {format.features}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                </div>
+                             </Label>
                           </FormItem>
                         ))}
                       </RadioGroup>
@@ -173,31 +207,40 @@ export default function SubmissionForm() {
                 name="audience"
                 render={({ field }) => (
                   <FormItem className="space-y-3">
-                    <FormLabel className="text-base">Intended Audience</FormLabel>
-                     <FormDescription>Indicate who you designed content for. ALPFA will use your intended audience to guide placement and categorization.</FormDescription>
+                    <div className="flex items-center gap-2">
+                        <FormLabel className="text-base">Intended Audience</FormLabel>
+                        <Tooltip>
+                            <TooltipTrigger asChild><button type="button"><TooltipIcon /></button></TooltipTrigger>
+                            <TooltipContent><p className="max-w-xs">Indicate who you designed content for. ALPFA will use your intended audience to guide placement and categorization.</p></TooltipContent>
+                        </Tooltip>
+                    </div>
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-2"
+                        value={field.value}
+                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                       >
                         {submissionFormConfig.audiences.map((audience) => (
-                          <FormItem key={audience.value} className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value={audience.value} />
-                            </FormControl>
-                            <FormLabel className="font-normal flex items-center gap-2">
-                              {audience.label}
-                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button type="button"><TooltipIcon /></button>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                     <p className="font-bold">{audience.label}</p>
-                                     <p className="text-sm">{audience.description}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </FormLabel>
+                          <FormItem key={audience.value}>
+                            <Label className="flex items-start gap-3 rounded-md border p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:bg-accent has-[input:checked]:text-accent-foreground">
+                                <FormControl>
+                                  <RadioGroupItem value={audience.value} className="sr-only"/>
+                                </FormControl>
+                                <div className="flex-1 space-y-1">
+                                    <div className="font-semibold flex items-center gap-2">
+                                    {audience.label}
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button type="button" onClick={(e) => e.preventDefault()}><TooltipIcon /></button>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs">
+                                            <p className="font-bold">{audience.label}</p>
+                                            <p className="text-sm">{audience.description}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    </div>
+                                </div>
+                            </Label>
                           </FormItem>
                         ))}
                       </RadioGroup>
@@ -217,7 +260,7 @@ export default function SubmissionForm() {
                         <Tooltip>
                             <TooltipTrigger asChild><button type="button"><TooltipIcon /></button></TooltipTrigger>
                             <TooltipContent>
-                                <p className="max-w-xs">{submissionFormConfig.tooltips.title_description}</p>
+                                <p className="max-w-xs">{submissionFormConfig.tooltips.title}</p>
                             </TooltipContent>
                         </Tooltip>
                     </div>
@@ -287,6 +330,8 @@ export default function SubmissionForm() {
                         control={form.control}
                         name="objectives"
                         render={({ field }) => {
+                          const isChecked = field.value?.includes(item.id) ?? false;
+                          const isLimitReached = (field.value?.length ?? 0) >= 3;
                           return (
                             <FormItem
                               key={item.id}
@@ -294,23 +339,16 @@ export default function SubmissionForm() {
                             >
                               <FormControl>
                                 <Checkbox
-                                  checked={field.value?.includes(item.id)}
+                                  checked={isChecked}
+                                  disabled={!isChecked && isLimitReached}
                                   onCheckedChange={(checked) => {
-                                    const currentValues = field.value || [];
-                                    if (checked) {
-                                      if (currentValues.length < 3) {
-                                        field.onChange([...currentValues, item.id]);
-                                      } else {
-                                        // This part prevents checking, but we should also inform the user.
-                                        // The schema validation will catch this on submit.
-                                      }
-                                    } else {
-                                      field.onChange(
-                                        currentValues.filter(
-                                          (value) => value !== item.id
+                                    return checked
+                                      ? field.onChange([...(field.value || []), item.id])
+                                      : field.onChange(
+                                          field.value?.filter(
+                                            (value) => value !== item.id
+                                          )
                                         )
-                                      );
-                                    }
                                   }}
                                 />
                               </FormControl>

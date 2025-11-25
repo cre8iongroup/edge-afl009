@@ -25,7 +25,7 @@ export const submissions: Submission[] = [
     userId: '1',
     title: 'Leading with Emotional Intelligence',
     description: 'Learn how to improve your leadership skills by mastering emotional intelligence.',
-    status: 'Pending',
+    status: 'Waiting for Approval',
     pillar: 'Professional EQ',
     format: 'Workshop',
     audience: 'Executive Level and above',
@@ -38,7 +38,7 @@ export const submissions: Submission[] = [
     userId: '1',
     title: 'Building Your Personal Brand',
     description: 'Strategies for creating a strong personal brand in the digital age.',
-    status: 'Needs Changes',
+    status: 'Needs Information',
     pillar: 'Self-advocacy and career design',
     format: 'Workshop',
     audience: 'Undergraduate Students',
@@ -76,9 +76,6 @@ export const submissions: Submission[] = [
 
 export const submissionFormConfig = {
   tooltips: {
-    pillar: 'Choose the one pillar that best aligns with your content. Each pillar includes a short definition and a few example themes to guide your thinking.',
-    format: "Select the format that best describes your session's structure and participant experience.",
-    audience: 'Indicate who you designed content for. ALPFA will use your intended audience to guide placement and categorization.',
     title: 'Your title and description should clearly explain what the session covers, what participants will experience, and how the content aligns with your selected pillar.',
     objectives: 'Select up to 3 objectives that your session will help attendees achieve.',
     cpe: 'If you would like your session to be considered for CPE credit, simply indicate your interest. ALPFA will compile and align all required documentation on your behalf. Note: Selecting CPE does not guarantee approval.'

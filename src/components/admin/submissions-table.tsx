@@ -19,10 +19,10 @@ import { useAuth } from '../auth-provider';
 
 
 const statusConfig = {
-    'Pending': { icon: Clock, className: 'text-blue-500' },
+    'Waiting for Approval': { icon: Clock, className: 'text-blue-500' },
     'Approved': { icon: CheckCircle2, className: 'text-green-500' },
     'Rejected': { icon: XCircle, className: 'text-red-500' },
-    'Needs Changes': { icon: AlertCircle, className: 'text-yellow-500' },
+    'Needs Information': { icon: AlertCircle, className: 'text-yellow-500' },
 };
 
 

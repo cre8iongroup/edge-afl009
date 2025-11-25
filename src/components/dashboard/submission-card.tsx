@@ -1,16 +1,18 @@
 import type { Submission } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, AlertCircle, Edit } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Button } from '../ui/button';
+import Link from 'next/link';
 
 type SubmissionCardProps = {
   submission: Submission;
 };
 
 const statusConfig = {
-  'Pending': {
+  'Waiting for Approval': {
     icon: Clock,
     color: 'bg-blue-500',
     className: 'border-blue-500/50 text-blue-500',
@@ -25,7 +27,7 @@ const statusConfig = {
     color: 'bg-red-500',
     className: 'border-red-500/50 text-red-500',
   },
-  'Needs Changes': {
+  'Needs Information': {
     icon: AlertCircle,
     color: 'bg-yellow-500',
     className: 'border-yellow-500/50 text-yellow-500',
@@ -59,6 +61,14 @@ export default function SubmissionCard({ submission }: SubmissionCardProps) {
         <CardContent className="flex-grow">
           <p className="text-sm text-muted-foreground">{submission.description}</p>
         </CardContent>
+        <CardFooter>
+          <Link href={`/submit/${submission.id}`} passHref legacyBehavior>
+            <Button variant="outline" className="w-full">
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Submission
+            </Button>
+          </Link>
+        </CardFooter>
       </Card>
     </motion.div>
   );
