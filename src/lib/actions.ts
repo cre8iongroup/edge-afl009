@@ -9,7 +9,7 @@ const workshopSchema = z.object({
   audience: z.string(),
   title: z.string(),
   description: z.string(),
-  objectives: z.string(),
+  objectives: z.array(z.string()),
   cpe: z.boolean(),
 });
 
@@ -17,6 +17,7 @@ export async function submitWorkshop(data: z.infer<typeof workshopSchema>) {
   const validatedData = workshopSchema.safeParse(data);
 
   if (!validatedData.success) {
+    console.error('Invalid submission data:', validatedData.error.flatten());
     throw new Error('Invalid submission data.');
   }
 

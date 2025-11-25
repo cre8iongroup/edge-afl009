@@ -12,10 +12,10 @@ export type Submission = {
   title: string;
   description: string;
   status: 'Pending' | 'Approved' | 'Rejected' | 'Needs Changes';
-  pillar: 'Professional Development' | 'Leadership Development' | 'Community Engagement' | 'Networking';
-  format: 'Workshop' | 'Panel' | 'Keynote' | 'Roundtable';
-  audience: 'Students' | 'Professionals' | 'Executives';
-  objectives: string;
+  pillar: string;
+  format: string;
+  audience: string;
+  objectives: string[];
   cpe: boolean;
   createdAt: Date;
 };
