@@ -77,9 +77,9 @@ export const submissions: Submission[] = [
 export const submissionFormConfig = {
   tooltips: {
     pillar: 'Choose the one pillar that best aligns with your content. Each pillar includes a short definition and a few example themes to guide your thinking.',
-    format: 'Select the format that best describes your session\'s structure and participant experience.',
+    format: "Select the format that best describes your session's structure and participant experience.",
     audience: 'Indicate who you designed content for. ALPFA will use your intended audience to guide placement and categorization.',
-    title_description: 'Your title and description should clearly explain what the session covers, what participants will experience, and how the content aligns with your selected pillar.',
+    title: 'Your title and description should clearly explain what the session covers, what participants will experience, and how the content aligns with your selected pillar.',
     objectives: 'Select up to 3 objectives that your session will help attendees achieve.',
     cpe: 'If you would like your session to be considered for CPE credit, simply indicate your interest. ALPFA will compile and align all required documentation on your behalf. Note: Selecting CPE does not guarantee approval.'
   },

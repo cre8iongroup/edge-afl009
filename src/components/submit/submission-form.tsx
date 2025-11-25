@@ -145,7 +145,7 @@ export default function SubmissionForm() {
                           {submissionFormConfig.formats.map(format => (
                              <SelectItem key={format.value} value={format.value}>
                                 {format.label}
-                            </SelectItem>
+                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -197,7 +197,7 @@ export default function SubmissionForm() {
                         <Tooltip>
                             <TooltipTrigger type="button"><TooltipIcon /></TooltipTrigger>
                             <TooltipContent side="top" align="start">
-                                <p className="max-w-xs">{submissionFormConfig.tooltips.title_description}</p>
+                                <p className="max-w-xs">{submissionFormConfig.tooltips.title}</p>
                             </TooltipContent>
                         </Tooltip>
                     </div>
