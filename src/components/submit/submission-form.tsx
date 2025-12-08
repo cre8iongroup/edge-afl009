@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '../auth-provider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -29,7 +29,6 @@ import type { Submission } from '@/lib/types';
 import { useEffect } from 'react';
 import { Label } from '../ui/label';
 import { useSubmissions } from '../submissions-provider';
-import { Separator } from '../ui/separator';
 
 const formSchema = z.object({
   pillar: z.string().min(1, 'Please select a pillar.'),
@@ -145,7 +144,7 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
                       >
                         {submissionFormConfig.pillars.map((pillar) => (
                           <FormItem key={pillar.value} className="flex-1">
-                             <Label className="flex items-start gap-3 rounded-md border p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:bg-accent has-[input:checked]:text-accent-foreground">
+                             <Label className="flex items-start gap-3 rounded-md border p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:border-primary has-[input:checked]:bg-primary/5 has-[input:checked]:shadow-sm">
                                 <FormControl>
                                   <RadioGroupItem value={pillar.value} className="sr-only"/>
                                 </FormControl>
@@ -156,16 +155,18 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
                                         <TooltipTrigger asChild>
                                             <button type="button" onClick={(e) => e.preventDefault()}><TooltipIcon /></button>
                                         </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p className="font-bold max-w-xs">{pillar.description}</p>
-                                            {pillar.examples && pillar.examples.length > 0 && (
-                                                <div className="mt-2">
-                                                <p className="text-sm font-semibold">Example Themes:</p>
-                                                <ul className="list-disc list-inside text-xs max-w-xs">
-                                                    {pillar.examples.map((ex) => <li key={ex}>{ex}</li>)}
-                                                </ul>
-                                                </div>
-                                            )}
+                                        <TooltipContent side="top" align="start">
+                                            <div className="max-w-xs space-y-1">
+                                                <p className="font-bold">{pillar.description}</p>
+                                                {pillar.examples && pillar.examples.length > 0 && (
+                                                    <div className="mt-2">
+                                                    <p className="text-sm font-semibold">Example Themes:</p>
+                                                    <ul className="list-disc list-inside text-xs">
+                                                        {pillar.examples.map((ex) => <li key={ex}>{ex}</li>)}
+                                                    </ul>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </TooltipContent>
                                     </Tooltip>
                                     </div>
@@ -199,7 +200,7 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
                       >
                         {submissionFormConfig.formats.map((format) => (
                           <FormItem key={format.value}>
-                             <Label className="flex items-start gap-3 rounded-md border p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:bg-accent has-[input:checked]:text-accent-foreground">
+                             <Label className="flex items-start gap-3 rounded-md border p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:border-primary has-[input:checked]:bg-primary/5 has-[input:checked]:shadow-sm">
                                 <FormControl>
                                   <RadioGroupItem value={format.value} className="sr-only"/>
                                 </FormControl>
@@ -210,7 +211,7 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
                                             <TooltipTrigger asChild>
                                                 <button type="button" onClick={(e) => e.preventDefault()}><TooltipIcon /></button>
                                             </TooltipTrigger>
-                                            <TooltipContent className="max-w-xs">
+                                            <TooltipContent className="max-w-xs" side="top" align="start">
                                             <p className="font-bold">{format.label}</p>
                                             <p className="text-sm">{format.description}</p>
                                             <p className="text-sm mt-2"><span className="font-semibold">Key Feature:</span> {format.features}</p>
@@ -247,7 +248,7 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
                       >
                         {submissionFormConfig.audiences.map((audience) => (
                           <FormItem key={audience.value}>
-                            <Label className="flex items-start gap-3 rounded-md border p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:bg-accent has-[input:checked]:text-accent-foreground">
+                            <Label className="flex items-start gap-3 rounded-md border p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:border-primary has-[input:checked]:bg-primary/5 has-[input:checked]:shadow-sm">
                                 <FormControl>
                                   <RadioGroupItem value={audience.value} className="sr-only"/>
                                 </FormControl>
@@ -258,7 +259,7 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
                                         <TooltipTrigger asChild>
                                             <button type="button" onClick={(e) => e.preventDefault()}><TooltipIcon /></button>
                                         </TooltipTrigger>
-                                        <TooltipContent className="max-w-xs">
+                                        <TooltipContent className="max-w-xs" side="top" align="start">
                                             <p className="font-bold">{audience.label}</p>
                                             <p className="text-sm">{audience.description}</p>
                                         </TooltipContent>
@@ -487,7 +488,9 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
               )}
 
               <div className="flex justify-end">
-                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">Submit Session for Approval</Button>
+                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                  {submission ? 'Update Submission' : 'Submit Session for Approval'}
+                </Button>
               </div>
             </form>
           </Form>

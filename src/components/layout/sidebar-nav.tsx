@@ -28,7 +28,7 @@ export default function SidebarNav() {
       roles: ['client', 'internal'],
     },
     {
-      href: '/submit',
+      href: '/template',
       icon: FilePlus,
       label: 'Submit Workshop',
       roles: ['regular', 'client', 'internal'],
@@ -51,7 +51,7 @@ export default function SidebarNav() {
           <SidebarMenuItem key={item.href}>
             <Link href={item.href}>
               <SidebarMenuButton
-                isActive={pathname === item.href}
+                isActive={pathname.startsWith(item.href) && (item.href !== '/' || pathname === '/')}
                 tooltip={item.label}
               >
                 <item.icon />

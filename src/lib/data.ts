@@ -6,7 +6,19 @@ export const users: User[] = [
   { id: '3', name: 'Internal User', email: 'internal@example.com', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026706d', role: 'internal' },
 ];
 
+// This is now managed by the SubmissionsProvider and localStorage
 export const submissions: Submission[] = [];
+
+export const templateSubmission = {
+  pillar: 'Business Mastery',
+  format: 'Workshop',
+  audience: 'Mid-Career',
+  title: 'Mastering Data-Driven Decision Making',
+  description: 'This interactive workshop dives into the practical application of data analysis for strategic business decisions. Participants will work through a real-world business case, using common data tools to extract insights and present their findings. You will leave with a repeatable framework for turning raw data into actionable strategy, preparing you to lead with confidence in a data-centric world. This session is designed for mid-career professionals looking to sharpen their analytical skills and drive measurable impact in their roles.',
+  objectives: ['objective-1', 'objective-2', 'objective-6'],
+  cpe: true,
+};
+
 
 export const submissionFormConfig = {
   tooltips: {
