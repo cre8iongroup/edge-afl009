@@ -6,7 +6,6 @@ export const users: User[] = [
   { id: '3', name: 'Internal User', email: 'internal@example.com', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026706d', role: 'internal' },
 ];
 
-// This is now managed by the SubmissionsProvider and localStorage
 export const submissions: Submission[] = [];
 
 export const templateSubmission = {

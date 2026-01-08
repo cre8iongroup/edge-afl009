@@ -5,8 +5,8 @@ import './globals.css';
 import { SubmissionsProvider } from '@/components/submissions-provider';
 
 export const metadata: Metadata = {
-  title: 'ALPFA Convention Portal',
-  description: 'The official portal for the ALPFA Convention.',
+  title: 'ALPFA 2026 Convention Portal',
+  description: 'The official portal for the ALPFA 2026 Convention.',
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

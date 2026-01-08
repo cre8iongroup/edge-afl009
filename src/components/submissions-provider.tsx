@@ -58,7 +58,7 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
 
   const updateSubmission = (updatedSubmission: Submission) => {
     const updatedSubmissions = submissions.map(sub =>
-      sub.id === updatedSubmission.id ? { ...sub, ...updatedSubmission } : sub
+      sub.id === updatedSubmission.id ? { ...updatedSubmission } : sub
     );
     persistSubmissions(updatedSubmissions);
   };

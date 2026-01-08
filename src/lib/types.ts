@@ -9,6 +9,7 @@ export type User = {
 export type Submission = {
   id: string;
   userId: string;
+  sessionType: 'workshop' | 'reception' | 'info-session';
   title: string;
   description: string;
   status: 'Awaiting Approval' | 'Approved' | 'Rejected' | 'Needs Information';

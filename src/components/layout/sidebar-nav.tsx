@@ -4,9 +4,11 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/components/auth-provider';
-import { LayoutDashboard, Users, FilePlus, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, FilePlus, Settings, Briefcase, Handshake, Presentation } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
@@ -27,18 +29,27 @@ export default function SidebarNav() {
       label: 'All Sessions',
       roles: ['client', 'internal'],
     },
-    {
-      href: '/template',
-      icon: FilePlus,
-      label: 'Submit Workshop',
+  ];
+
+  const submissionItems = [
+     {
+      href: '/submit/workshop',
+      icon: Briefcase,
+      label: 'Workshop',
       roles: ['regular', 'client', 'internal'],
     },
-    // {
-    //   href: '/settings',
-    //   icon: Settings,
-    //   label: 'Settings',
-    //   roles: ['regular', 'client', 'internal'],
-    // }
+    {
+      href: '/submit/reception',
+      icon: Handshake,
+      label: 'Reception',
+      roles: ['regular', 'client', 'internal'],
+    },
+    {
+      href: '/submit/info-session',
+      icon: Presentation,
+      label: 'Info Session',
+      roles: ['regular', 'client', 'internal'],
+    }
   ];
 
   if (!user) return null;
@@ -60,6 +71,33 @@ export default function SidebarNav() {
             </Link>
           </SidebarMenuItem>
         ))}
+        <SidebarMenuItem>
+          <Link href="/template">
+            <SidebarMenuButton
+              isActive={pathname.startsWith('/submit') || pathname === '/template'}
+              tooltip="Submit Session"
+            >
+              <FilePlus />
+              <span>Submit Session</span>
+            </SidebarMenuButton>
+          </Link>
+          <SidebarMenuSub>
+            {submissionItems
+              .filter((item) => item.roles.includes(user.role))
+              .map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href}>
+                    <SidebarMenuSubButton
+                      isActive={pathname === item.href}
+                    >
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </SidebarMenuSubButton>
+                  </Link>
+                </li>
+            ))}
+          </SidebarMenuSub>
+      </SidebarMenuItem>
     </SidebarMenu>
   );
 }

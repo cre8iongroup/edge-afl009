@@ -6,7 +6,6 @@ import {
   SidebarHeader,
   SidebarContent,
   SidebarFooter,
-  SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
 import Header from '@/components/layout/header';
@@ -19,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { LogOut } from 'lucide-react';
 import { Separator } from '../ui/separator';
+import AlpfaLogo from '../alpfa-logo';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth();
@@ -43,10 +43,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar collapsible="icon">
         <SidebarHeader>
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <span className="font-bold">A</span>
-            </div>
-            <span className="font-headline text-lg font-semibold">ALPFA</span>
+            <AlpfaLogo className="h-8 w-auto text-primary" />
+            <span className="font-headline text-lg font-semibold">ALPFA 26</span>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -72,6 +70,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <Header />
         <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <footer className="p-4 text-center text-sm text-muted-foreground sm:p-6 lg:p-8">
+          ALPFA 2026 Convention powered by <strong className="font-semibold text-foreground">cre8ion</strong>.
+        </footer>
         <AIChat />
       </SidebarInset>
     </SidebarProvider>

@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import AlpfaLogo from '@/components/alpfa-logo';
+import Cre8ionLogo from '@/components/cre8ion-logo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,10 +39,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      <div className="absolute top-8 flex items-center gap-4">
+        <AlpfaLogo className="h-12 w-auto" />
+        <span className="text-2xl font-thin text-muted-foreground">x</span>
+        <Cre8ionLogo className="h-8 w-auto" />
+      </div>
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-3xl">ALPFA Convention Portal</CardTitle>
+          <CardTitle className="font-headline text-3xl">ALPFA 2026 Convention Portal</CardTitle>
           <CardDescription>Sign in to access your account</CardDescription>
         </CardHeader>
         <CardContent>
@@ -86,6 +93,9 @@ export default function LoginPage() {
           </div>
         </CardContent>
       </Card>
+      <footer className="absolute bottom-4 text-center text-sm text-muted-foreground">
+        ALPFA 2026 Convention powered by <strong className="font-semibold text-foreground">cre8ion</strong>.
+      </footer>
     </div>
   );
 }

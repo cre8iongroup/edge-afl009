@@ -56,10 +56,11 @@ type SubmissionFormData = z.infer<typeof formSchema>;
 const TooltipIcon = () => <HelpCircle className="h-4 w-4 text-muted-foreground" />;
 
 type SubmissionFormProps = {
+  sessionType: Submission['sessionType'];
   submission?: Submission;
 };
 
-export default function SubmissionForm({ submission }: SubmissionFormProps) {
+export default function SubmissionForm({ sessionType, submission }: SubmissionFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
@@ -95,16 +96,16 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
     }
     try {
       if (submission) {
-        updateSubmission({ ...submission, ...values });
+        updateSubmission({ ...submission, ...values, sessionType });
         toast({
           title: 'Submission Updated!',
-          description: 'Your workshop proposal has been updated.',
+          description: 'Your submission has been updated.',
         });
       } else {
-        addSubmission({ ...values, userId: user.id });
+        addSubmission({ ...values, userId: user.id, sessionType });
         toast({
           title: 'Submission Successful!',
-          description: 'Your workshop proposal has been received.',
+          description: 'Your submission has been received.',
         });
       }
       router.push('/dashboard');
@@ -489,7 +490,7 @@ export default function SubmissionForm({ submission }: SubmissionFormProps) {
 
               <div className="flex justify-end">
                 <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                  {submission ? 'Update Submission' : 'Submit Session for Approval'}
+                  {submission ? 'Update Submission' : 'Submit for Approval'}
                 </Button>
               </div>
             </form>

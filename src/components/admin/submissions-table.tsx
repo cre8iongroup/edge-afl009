@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
-import { AlertCircle, CheckCircle2, Clock, XCircle, MoreHorizontal } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, XCircle, MoreHorizontal, Briefcase, Presentation, Handshake } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -22,10 +22,16 @@ import { Button } from '../ui/button';
 
 
 const statusConfig: Record<Submission['status'], { icon: React.ElementType, className: string }> = {
-    'Awaiting Approval': { icon: Clock, className: 'text-blue-500' },
-    'Approved': { icon: CheckCircle2, className: 'text-green-500' },
-    'Rejected': { icon: XCircle, className: 'text-red-500' },
-    'Needs Information': { icon: AlertCircle, className: 'text-yellow-500' },
+    'Awaiting Approval': { icon: Clock, className: 'text-blue-500 border-blue-500/50' },
+    'Approved': { icon: CheckCircle2, className: 'text-green-500 border-green-500/50' },
+    'Rejected': { icon: XCircle, className: 'text-red-500 border-red-500/50' },
+    'Needs Information': { icon: AlertCircle, className: 'text-yellow-500 border-yellow-500/50' },
+};
+
+const sessionTypeConfig: Record<Submission['sessionType'], { icon: React.ElementType, label: string }> = {
+    'workshop': { icon: Briefcase, label: 'Workshop' },
+    'reception': { icon: Handshake, label: 'Reception' },
+    'info-session': { icon: Presentation, label: 'Info Session' },
 };
 
 
@@ -53,6 +59,7 @@ export default function SubmissionsTable() {
               <TableRow>
                 <TableHead>Submitter</TableHead>
                 <TableHead>Title</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead className="text-center">Status</TableHead>
                 <TableHead>Pillar</TableHead>
                 <TableHead>Format</TableHead>
@@ -64,6 +71,8 @@ export default function SubmissionsTable() {
               {data.map((item) => {
                 const StatusIcon = statusConfig[item.status]?.icon || Clock;
                 const statusClassName = statusConfig[item.status]?.className || '';
+                const SessionTypeIcon = sessionTypeConfig[item.sessionType]?.icon || Briefcase;
+                const sessionTypeLabel = sessionTypeConfig[item.sessionType]?.label || 'Workshop';
                 return (
                     <TableRow key={item.id}>
                         <TableCell>
@@ -79,6 +88,12 @@ export default function SubmissionsTable() {
                             </div>
                         </TableCell>
                         <TableCell className="font-medium">{item.title}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                                <SessionTypeIcon className="h-4 w-4 text-muted-foreground" />
+                                {sessionTypeLabel}
+                            </div>
+                        </TableCell>
                         <TableCell className="text-center">
                             <Badge variant="outline" className={cn('whitespace-nowrap font-medium', statusClassName)}>
                                 <StatusIcon className="mr-1.5 h-3.5 w-3.5" />
