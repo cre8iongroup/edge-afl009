@@ -30,9 +30,8 @@ import type { Submission } from '@/lib/types';
 import { useEffect, useState, useMemo } from 'react';
 import { Label } from '../ui/label';
 import { useSubmissions } from '../submissions-provider';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Calendar } from '../ui/calendar';
 import { availableSlots } from '@/lib/schedule';
 
 const formSchema = z.object({
@@ -47,10 +46,8 @@ const formSchema = z.object({
     message: 'You can select up to 3 objectives.',
   }),
   cpe: z.boolean().default(false),
-  // New time slot fields
-  preferredDate: z.date().optional(),
+  preferredDate: z.string().optional(),
   preferredTime: z.string().optional(),
-  // Presenter fields
   presenterName: z.string().optional(),
   presenterEmail: z.string().email('Please enter a valid email.').optional().or(z.literal('')),
   presenterPocName: z.string().optional(),
@@ -78,7 +75,7 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
     resolver: zodResolver(formSchema),
     defaultValues: submission ? {
       ...submission,
-      preferredDate: submission.preferredDate ? new Date(submission.preferredDate) : undefined
+      preferredDate: submission.preferredDate ? new Date(submission.preferredDate).toISOString() : undefined
     } : {
       title: '',
       description: '',
@@ -96,7 +93,7 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
     if (submission) {
       form.reset({
         ...submission,
-        preferredDate: submission.preferredDate ? new Date(submission.preferredDate) : undefined
+        preferredDate: submission.preferredDate ? new Date(submission.preferredDate).toISOString() : undefined
       });
     }
   }, [submission, form]);
@@ -111,13 +108,14 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
   }, [sessionType]);
 
   const availableDates = useMemo(() => {
-    return filteredSlots.map(slot => new Date(slot.date));
+    const uniqueDates = new Set(filteredSlots.map(slot => new Date(slot.date).toISOString().split('T')[0]));
+    return Array.from(uniqueDates).map(dateStr => new Date(dateStr));
   }, [filteredSlots]);
 
   useEffect(() => {
     if (selectedDate) {
-        const dateString = format(selectedDate, 'yyyy-MM-dd');
-        const daySlots = filteredSlots.find(slot => format(new Date(slot.date), 'yyyy-MM-dd') === dateString);
+        const dateString = new Date(selectedDate).toISOString().split('T')[0];
+        const daySlots = filteredSlots.find(slot => slot.date.startsWith(dateString));
         setAvailableTimes(daySlots?.times.map(t => t.time) || []);
         form.setValue('preferredTime', ''); // Reset time when date changes
     } else {
@@ -133,6 +131,7 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
     try {
       const submissionData = {
           ...values,
+          preferredDate: values.preferredDate ? new Date(values.preferredDate) : undefined,
           sessionType,
       };
 
@@ -447,31 +446,20 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
                           <FormLabel>Preferred Date</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={"outline"}
-                                  className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) => !availableDates.some(d => d.toDateString() === date.toDateString())}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
+                           <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a date" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {availableDates.map(date => (
+                                    <SelectItem key={date.toISOString()} value={date.toISOString()}>
+                                      {format(date, "EEEE, MMMM d, yyyy")}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -620,3 +608,5 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
     </Card>
   );
 }
+
+    
