@@ -94,7 +94,7 @@ export default function LoginPage() {
         </CardContent>
       </Card>
       <footer className="absolute bottom-4 text-center text-sm text-muted-foreground">
-        ALPFA 2026 Convention powered by <strong className="font-semibold text-foreground">cre8ion</strong>.
+        ALPFA 2026 Convention, powered by <strong className="font-semibold text-foreground">cre8ion Edge</strong>.
       </footer>
     </div>
   );

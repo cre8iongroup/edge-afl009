@@ -71,7 +71,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <Header />
         <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
         <footer className="p-4 text-center text-sm text-muted-foreground sm:p-6 lg:p-8">
-          ALPFA 2026 Convention powered by <strong className="font-semibold text-foreground">cre8ion</strong>.
+          ALPFA 2026 Convention, powered by <strong className="font-semibold text-foreground">cre8ion Edge</strong>.
         </footer>
         <AIChat />
       </SidebarInset>
