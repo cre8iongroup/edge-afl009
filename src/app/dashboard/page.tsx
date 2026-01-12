@@ -8,19 +8,21 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, FilePlus } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 export default function DashboardPage() {
   const { user } = useUser();
   const { submissions } = useSubmissions();
+  const { profile } = useUserProfile(user?.uid);
   const userSubmissions = submissions.filter(sub => sub.userId === user?.uid);
 
-  const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
+  const displayName = profile?.name && profile.name !== 'New Member' ? profile.name : '';
 
   return (
     <AppLayout>
       <div className="flex flex-col gap-8">
         <div>
-          <h1 className="font-headline text-3xl font-semibold">Welcome, {displayName}!</h1>
+          <h1 className="font-headline text-3xl font-semibold">Welcome{displayName ? `, ${displayName}` : ''}!</h1>
           <p className="text-muted-foreground">Here&apos;s an overview of your submissions.</p>
         </div>
 

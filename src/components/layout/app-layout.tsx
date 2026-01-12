@@ -20,11 +20,13 @@ import { LogOut } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import AlpfaLogo from '../alpfa-logo';
 import { signOut } from 'firebase/auth';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useFirebaseAuth();
   const router = useRouter();
+  const { profile, isLoading: isProfileLoading } = useUserProfile(user?.uid);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -39,13 +41,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
-  if (isUserLoading || !user) {
+  if (isUserLoading || isProfileLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
+
+  const displayName = profile?.name && profile.name !== 'New Member' ? profile.name : user.email;
 
   return (
     <SidebarProvider>
@@ -63,11 +67,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Separator className="mb-2" />
           <div className="flex items-center gap-3 px-2">
              <Avatar className="h-9 w-9">
-                <AvatarImage src={user.photoURL || undefined} alt={user.displayName || ''} />
-                <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+                <AvatarImage src={user.photoURL || profile?.avatar} alt={displayName || ''} />
+                <AvatarFallback>{displayName?.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col overflow-hidden">
-                <span className="truncate font-medium">{user.displayName}</span>
+                <span className="truncate font-medium">{displayName}</span>
                 <span className="truncate text-xs text-muted-foreground">{user.email}</span>
             </div>
             <Button variant="ghost" size="icon" className="ml-auto" onClick={handleLogout}>

@@ -34,7 +34,7 @@ export default function FinishSignInPage() {
 
           if (!userDoc.exists()) {
             await setDoc(userRef, {
-              name: user.email?.split('@')[0] || 'New User',
+              name: 'New Member',
               email: user.email,
               avatar: user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`,
               role: 'regular',
