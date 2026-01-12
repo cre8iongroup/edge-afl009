@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
+import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -23,12 +24,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { HelpCircle, Upload } from 'lucide-react';
+import { HelpCircle, Upload, CalendarIcon } from 'lucide-react';
 import { submissionFormConfig } from '@/lib/data';
 import type { Submission } from '@/lib/types';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Label } from '../ui/label';
 import { useSubmissions } from '../submissions-provider';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { cn } from '@/lib/utils';
+import { Calendar } from '../ui/calendar';
 
 const formSchema = z.object({
   pillar: z.string().min(1, 'Please select a pillar.'),
@@ -42,6 +46,9 @@ const formSchema = z.object({
     message: 'You can select up to 3 objectives.',
   }),
   cpe: z.boolean().default(false),
+  // New time slot fields
+  preferredDate: z.date().optional(),
+  preferredTime: z.string().optional(),
   // Presenter fields
   presenterName: z.string().optional(),
   presenterEmail: z.string().email('Please enter a valid email.').optional().or(z.literal('')),
@@ -60,6 +67,14 @@ type SubmissionFormProps = {
   submission?: Submission;
 };
 
+// Mock data for available slots - replace with real data later
+const availableTimeSlots = {
+    "2026-08-03": ["09:00 AM", "11:00 AM", "02:00 PM"],
+    "2026-08-04": ["10:00 AM", "01:00 PM", "03:00 PM"],
+    "2026-08-05": ["09:00 AM", "11:00 AM"],
+};
+type AvailableDates = keyof typeof availableTimeSlots;
+
 export default function SubmissionForm({ sessionType, submission }: SubmissionFormProps) {
   const { toast } = useToast();
   const { user } = useUser();
@@ -68,7 +83,10 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
   
   const form = useForm<SubmissionFormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: submission || {
+    defaultValues: submission ? {
+      ...submission,
+      preferredDate: submission.preferredDate ? new Date(submission.preferredDate) : undefined
+    } : {
       title: '',
       description: '',
       objectives: [],
@@ -83,11 +101,27 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
 
   useEffect(() => {
     if (submission) {
-      form.reset(submission);
+      form.reset({
+        ...submission,
+        preferredDate: submission.preferredDate ? new Date(submission.preferredDate) : undefined
+      });
     }
   }, [submission, form]);
 
   const showPresenterFields = submission && submission.status !== 'Awaiting Approval';
+
+  const selectedDate = form.watch('preferredDate');
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (selectedDate) {
+        const dateString = format(selectedDate, 'yyyy-MM-dd') as AvailableDates;
+        setAvailableTimes(availableTimeSlots[dateString] || []);
+        form.setValue('preferredTime', ''); // Reset time when date changes
+    } else {
+        setAvailableTimes([]);
+    }
+  }, [selectedDate, form]);
 
   function onSubmit(values: SubmissionFormData) {
     if (!user) {
@@ -95,14 +129,20 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
       return;
     }
     try {
+      const submissionData = {
+          ...values,
+          sessionType,
+          preferredDate: values.preferredDate ? values.preferredDate.toISOString() : undefined,
+      };
+
       if (submission) {
-        updateSubmission({ ...submission, ...values, sessionType });
+        updateSubmission({ ...submission, ...submissionData });
         toast({
           title: 'Submission Updated!',
           description: 'Your submission has been updated.',
         });
       } else {
-        addSubmission({ ...values, userId: user.uid, sessionType });
+        addSubmission({ ...submissionData, userId: user.uid });
         toast({
           title: 'Submission Successful!',
           description: 'Your submission has been received.',
@@ -390,6 +430,88 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
                   </FormItem>
                 )}
                 />
+                
+              {/* Date and Time Picker */}
+              <div className="space-y-4 rounded-md border p-4">
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-medium">Schedule Preference</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Select your preferred date and time for the session from the available slots.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="preferredDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Preferred Date</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) => {
+                                    const dateString = format(date, 'yyyy-MM-dd');
+                                    return !availableTimeSlots.hasOwnProperty(dateString);
+                                }}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="preferredTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Preferred Time</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              className="flex flex-wrap gap-2"
+                              disabled={!selectedDate || availableTimes.length === 0}
+                            >
+                              {availableTimes.map((time) => (
+                                <FormItem key={time}>
+                                  <Label className="flex items-center gap-2 rounded-md border p-2 px-3 cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:border-primary has-[input:checked]:bg-primary/5 has-[input:checked]:shadow-sm">
+                                    <FormControl>
+                                      <RadioGroupItem value={time} className="sr-only" />
+                                    </FormControl>
+                                    {time}
+                                  </Label>
+                                </FormItem>
+                              ))}
+                            </RadioGroup>
+                          </FormControl>
+                          {!selectedDate && <FormDescription>Please select a date first.</FormDescription>}
+                          {selectedDate && availableTimes.length === 0 && <FormDescription>No available times for this date.</FormDescription>}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+              </div>
+
               <FormField
                 control={form.control}
                 name="cpe"

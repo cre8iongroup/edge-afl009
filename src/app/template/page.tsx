@@ -29,7 +29,7 @@ export default function TemplatePage() {
         </div>
 
         <div className="flex justify-center">
-          <Link href="/submit" passHref>
+          <Link href="/submit/workshop" passHref>
             <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
               Get Started with Your Submission
               <ArrowRight className="ml-2 h-5 w-5" />

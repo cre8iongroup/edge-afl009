@@ -4,17 +4,23 @@ import AppLayout from '@/components/layout/app-layout';
 import SubmissionCard from '@/components/dashboard/submission-card';
 import { useSubmissions } from '@/components/submissions-provider';
 import { useUser } from '@/firebase';
+import { Button } from '@/components/ui/button';
+import { ArrowRight, FilePlus } from 'lucide-react';
+import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function DashboardPage() {
   const { user } = useUser();
   const { submissions } = useSubmissions();
   const userSubmissions = submissions.filter(sub => sub.userId === user?.uid);
 
+  const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
+
   return (
     <AppLayout>
       <div className="flex flex-col gap-8">
         <div>
-          <h1 className="font-headline text-3xl font-semibold">Welcome, {user?.displayName || 'User'}!</h1>
+          <h1 className="font-headline text-3xl font-semibold">Welcome, {displayName}!</h1>
           <p className="text-muted-foreground">Here&apos;s an overview of your submissions.</p>
         </div>
 
@@ -24,8 +30,23 @@ export default function DashboardPage() {
               <SubmissionCard key={submission.id} submission={submission} />
             ))
           ) : (
-            <div className="col-span-full text-center text-muted-foreground">
-                You haven&apos;t made any submissions yet.
+            <div className="col-span-full">
+              <Card className="flex flex-col items-center justify-center text-center p-8 md:p-12">
+                <CardHeader>
+                  <CardTitle className="font-headline text-2xl">Ready to Make an Impact?</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="max-w-prose text-muted-foreground">
+                    It looks like you haven&apos;t submitted a session proposal yet. Share your expertise and contribute to the ALPFA 2026 Convention by submitting a workshop, reception, or info session.
+                  </p>
+                  <Link href="/template" passHref>
+                    <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                      <FilePlus className="mr-2" />
+                      Start a New Submission
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
             </div>
           )}
         </div>

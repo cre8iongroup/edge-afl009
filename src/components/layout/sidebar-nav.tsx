@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/sidebar';
 import { useUser } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { LayoutDashboard, Users, FilePlus, Settings, Briefcase, Handshake, Presentation, Loader2 } from 'lucide-react';
+import { LayoutDashboard, Users, FilePlus, Settings, Briefcase, Handshake, Presentation, Loader2, BookOpen } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
@@ -83,8 +83,8 @@ export default function SidebarNav() {
         ))}
         <SidebarMenuItem>
           <Link href="/template">
-            <SidebarMenuButton
-              isActive={pathname.startsWith('/submit') || pathname === '/template'}
+             <SidebarMenuButton
+              isActive={pathname.startsWith('/submit') || pathname.startsWith('/template')}
               tooltip="Submit Session"
             >
               <FilePlus />
@@ -92,6 +92,16 @@ export default function SidebarNav() {
             </SidebarMenuButton>
           </Link>
           <SidebarMenuSub>
+             <li>
+                <Link href="/template">
+                    <SidebarMenuSubButton
+                      isActive={pathname === '/template'}
+                    >
+                      <BookOpen />
+                      <span>Submission Guide</span>
+                    </SidebarMenuSubButton>
+                  </Link>
+              </li>
             {submissionItems
               .filter((item) => item.roles.includes(profile.role))
               .map((item) => (
