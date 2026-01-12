@@ -1,344 +1,49 @@
 {
   "entities": {
-    "WorkshopSubmission": {
+    "UserProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "WorkshopSubmission",
+      "title": "UserProfile",
       "type": "object",
-      "description": "Represents a workshop submission proposal from a partner.",
+      "description": "Represents a user's profile information.",
       "properties": {
-        "id": {
+        "name": {
           "type": "string",
-          "description": "Unique identifier for the workshop submission."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User who submitted the workshop. (Relationship: User 1:N WorkshopSubmission)"
-        },
-        "alpfaPillar": {
-          "type": "string",
-          "description": "The ALPFA pillar that the workshop aligns with."
-        },
-        "sessionFormat": {
-          "type": "string",
-          "description": "The format of the workshop session (e.g., lecture, panel, interactive)."
-        },
-        "intendedAudience": {
-          "type": "string",
-          "description": "The intended audience for the workshop."
-        },
-        "sessionTitle": {
-          "type": "string",
-          "description": "The title of the workshop session."
-        },
-        "sessionDescription": {
-          "type": "string",
-          "description": "A detailed description of the workshop session."
-        },
-        "objectives": {
-          "type": "string",
-          "description": "The learning objectives for the workshop participants."
-        },
-        "cpeCreditOption": {
-          "type": "boolean",
-          "description": "Indicates whether the workshop offers CPE credits."
-        },
-        "submissionDate": {
-          "type": "string",
-          "description": "The date and time when the workshop submission was created.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the submission (e.g., 'waiting for approval', 'approved', 'rejected')."
-        },
-        "feedbackQueueId": {
-          "type": "string",
-          "description": "Reference to the AI Feedback queue related to this submission. (Relationship: FeedbackQueue 1:1 WorkshopSubmission)"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "alpfaPillar",
-        "sessionFormat",
-        "intendedAudience",
-        "sessionTitle",
-        "sessionDescription",
-        "objectives",
-        "cpeCreditOption",
-        "submissionDate",
-        "status"
-      ]
-    },
-    "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User",
-      "type": "object",
-      "description": "Represents a user of the ALPFA Convention Portal.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the user."
-        },
-        "firstName": {
-          "type": "string",
-          "description": "The first name of the user."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "The last name of the user."
+          "description": "The user's full name."
         },
         "email": {
           "type": "string",
-          "description": "The email address of the user.",
-          "format": "email"
+          "format": "email",
+          "description": "The user's email address."
         },
-        "roleId": {
+        "avatar": {
           "type": "string",
-          "description": "Reference to the Role assigned to the user. (Relationship: Role 1:N User)"
+          "format": "uri",
+          "description": "URL to the user's avatar image."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role in the application.",
+          "enum": ["regular", "client", "internal"]
         }
       },
-      "required": [
-        "id",
-        "firstName",
-        "lastName",
-        "email",
-        "roleId"
-      ]
-    },
-    "Role": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Role",
-      "type": "object",
-      "description": "Represents a user role within the ALPFA Convention Portal (e.g., client, internal, regular user).",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the role."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the role (e.g., 'admin', 'client', 'user')."
-        },
-        "permissions": {
-          "type": "array",
-          "description": "A list of permission IDs associated with this role.",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "permissions"
-      ]
-    },
-    "Permission": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Permission",
-      "type": "object",
-      "description": "Represents a specific permission within the ALPFA Convention Portal.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the permission."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the permission (e.g., 'create_submission', 'view_dashboard')."
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of what the permission allows."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description"
-      ]
-    },
-    "Notification": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Notification",
-      "type": "object",
-      "description": "Represents a notification for users or internal teams.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the notification."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the user who should receive the notification. (Relationship: User 1:N Notification)"
-        },
-        "message": {
-          "type": "string",
-          "description": "The content of the notification."
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "The date and time when the notification was created.",
-          "format": "date-time"
-        },
-        "type": {
-          "type": "string",
-          "description": "The type of notification (e.g., 'submission_update', 'new_submission')."
-        },
-        "isRead": {
-          "type": "boolean",
-          "description": "Indicates whether the notification has been read by the user."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "message",
-        "timestamp",
-        "type",
-        "isRead"
-      ]
-    },
-    "FeedbackQueue": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FeedbackQueue",
-      "type": "object",
-      "description": "Represents a queue for AI feedback requests related to workshop submissions.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the feedback queue."
-        },
-        "submissionId": {
-          "type": "string",
-          "description": "Reference to the WorkshopSubmission associated with this queue. (Relationship: WorkshopSubmission 1:1 FeedbackQueue)"
-        },
-        "question": {
-          "type": "string",
-          "description": "The question submitted by the user to the AI feedback tool."
-        },
-        "answer": {
-          "type": "string",
-          "description": "The answer provided by the AI feedback tool."
-        },
-        "status": {
-          "type": "string",
-          "description": "The status of the feedback request (e.g., 'pending', 'answered', 'reviewed')."
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "The date and time when the feedback request was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "submissionId",
-        "question",
-        "answer",
-        "status",
-        "timestamp"
-      ]
+      "required": ["name", "email", "role"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["passwordless"]
   },
   "firestore": {
     "structure": [
       {
         "path": "/users/{userId}",
         "definition": {
-          "entityName": "User",
+          "entityName": "UserProfile",
           "schema": {
-            "$ref": "#/backend/entities/User"
+            "$ref": "#/entities/UserProfile"
           },
-          "description": "Stores user profiles. 'userId' corresponds to the Firebase Auth UID. Includes denormalized 'roleId' for authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user, matching the Firebase Auth UID."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/roles/{roleId}",
-        "definition": {
-          "entityName": "Role",
-          "schema": {
-            "$ref": "#/backend/entities/Role"
-          },
-          "description": "Stores role definitions. Roles are manually assigned and used for authorization.",
-          "params": [
-            {
-              "name": "roleId",
-              "description": "The unique identifier for the role (e.g., 'admin', 'client', 'user')."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/workshopSubmissions/{workshopSubmissionId}",
-        "definition": {
-          "entityName": "WorkshopSubmission",
-          "schema": {
-            "$ref": "#/backend/entities/WorkshopSubmission"
-          },
-          "description": "Stores workshop submissions for each user. Uses path-based ownership for secure access. Includes denormalized `userId` to enforce ownership. Includes denormalized `roleId` from `/users/{userId}` for role based filtering.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user who submitted the workshop."
-            },
-            {
-              "name": "workshopSubmissionId",
-              "description": "The unique identifier for the workshop submission."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/notifications/{notificationId}",
-        "definition": {
-          "entityName": "Notification",
-          "schema": {
-            "$ref": "#/backend/entities/Notification"
-          },
-          "description": "Stores notifications for each user. Uses path-based ownership. The 'userId' field within the notification document is redundant but maintained for potential future use cases.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user who receives the notification."
-            },
-            {
-              "name": "notificationId",
-              "description": "The unique identifier for the notification."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/feedbackQueues/{feedbackQueueId}",
-        "definition": {
-          "entityName": "FeedbackQueue",
-          "schema": {
-            "$ref": "#/backend/entities/FeedbackQueue"
-          },
-          "description": "Stores AI feedback queue entries.  Accessed by admins and potentially the user who created the submission, based on submissionId.",
-          "params": [
-            {
-              "name": "feedbackQueueId",
-              "description": "The unique identifier for the feedback queue entry."
-            }
-          ]
+          "description": "Stores user profiles. The document ID {userId} matches the Firebase Auth UID."
         }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability, adhering to the principles of DBAC (Database Authentication and Authorization Control) and QAPs (Rules are not Filters).  Authorization Independence is achieved by denormalizing role information. This eliminates the need for `get()` calls in security rules, enabling atomic operations and simplifying debugging. Segregation ensures all documents in a collection share the same security posture. User roles (admin, client, end user) are managed through the `roles` collection and linked to users via the `users` collection. Workshop submissions are stored under `/users/{userId}/workshopSubmissions/{workshopSubmissionId}` to represent the 1:N relationship, with roles duplicated to enable independent authorization. This structure supports QAPs by allowing secure list operations based on role and ownership. Notifications are stored under `/users/{userId}/notifications/{notificationId}` to directly tie notifications to users and are designed for individual access. The AI feedback queue is kept separate to manage access and ensure the structure promotes clean access modeling and simplifies future scaling."
+    ]
   }
 }

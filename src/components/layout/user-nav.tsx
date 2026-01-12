@@ -11,20 +11,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/components/auth-provider';
+import { useUser, useAuth as useFirebaseAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { Check } from 'lucide-react';
+import { signOut } from 'firebase/auth';
 
 export default function UserNav() {
-  const { user, users, logout, switchUser } = useAuth();
+  const { user } = useUser();
+  const auth = useFirebaseAuth();
   const router = useRouter();
 
   if (!user) {
     return null;
   }
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut(auth);
     router.push('/');
   };
 
@@ -33,30 +34,20 @@ export default function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
+            <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p>
+            <p className="text-sm font-medium leading-none">{user.displayName || 'User'}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Switch User</DropdownMenuLabel>
-            {users.map((u) => (
-                <DropdownMenuItem key={u.id} onSelect={() => switchUser(u.id)}>
-                    {u.name}
-                    {user.id === u.id && <Check className="ml-auto h-4 w-4" />}
-                </DropdownMenuItem>
-            ))}
-        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={handleLogout}>
           Log out

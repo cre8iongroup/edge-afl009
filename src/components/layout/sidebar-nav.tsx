@@ -7,13 +7,15 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
-import { useAuth } from '@/components/auth-provider';
-import { LayoutDashboard, Users, FilePlus, Settings, Briefcase, Handshake, Presentation } from 'lucide-react';
+import { useUser } from '@/firebase';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import { LayoutDashboard, Users, FilePlus, Settings, Briefcase, Handshake, Presentation, Loader2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
 export default function SidebarNav() {
-  const { user } = useAuth();
+  const { user } = useUser();
+  const { profile, isLoading } = useUserProfile(user?.uid);
   const pathname = usePathname();
 
   const navItems = [
@@ -52,12 +54,20 @@ export default function SidebarNav() {
     }
   ];
 
-  if (!user) return null;
+  if (isLoading) {
+    return (
+      <div className="p-4">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+  
+  if (!user || !profile) return null;
 
   return (
     <SidebarMenu>
       {navItems
-        .filter((item) => item.roles.includes(user.role))
+        .filter((item) => item.roles.includes(profile.role))
         .map((item) => (
           <SidebarMenuItem key={item.href}>
             <Link href={item.href}>
@@ -83,7 +93,7 @@ export default function SidebarNav() {
           </Link>
           <SidebarMenuSub>
             {submissionItems
-              .filter((item) => item.roles.includes(user.role))
+              .filter((item) => item.roles.includes(profile.role))
               .map((item) => (
                 <li key={item.href}>
                   <Link href={item.href}>

@@ -1,6 +1,6 @@
-import type { User, Submission } from './types';
+import type { UserProfile, Submission } from './types';
 
-export const users: User[] = [
+export const users: UserProfile[] = [
   { id: '1', name: 'Regular User', email: 'user@example.com', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d', role: 'regular' },
   { id: '2', name: 'Client User', email: 'client@example.com', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026705d', role: 'client' },
   { id: '3', name: 'Internal User', email: 'internal@example.com', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026706d', role: 'internal' },

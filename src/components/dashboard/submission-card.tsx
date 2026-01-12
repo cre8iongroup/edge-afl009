@@ -68,7 +68,7 @@ export default function SubmissionCard({ submission }: SubmissionCardProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-grow">
-          <p className="text-sm text-muted-foreground">{submission.description}</p>
+          <p className="text-sm text-muted-foreground line-clamp-3">{submission.description}</p>
         </CardContent>
         <CardFooter>
           <Link href={`/submit/${submission.sessionType}/${submission.id}`} passHref className='w-full'>

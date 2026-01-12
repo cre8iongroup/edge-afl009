@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/firebase';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +22,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '../auth-provider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { HelpCircle, Upload } from 'lucide-react';
 import { submissionFormConfig } from '@/lib/data';
@@ -62,7 +62,7 @@ type SubmissionFormProps = {
 
 export default function SubmissionForm({ sessionType, submission }: SubmissionFormProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user } = useUser();
   const router = useRouter();
   const { addSubmission, updateSubmission } = useSubmissions();
   
@@ -102,7 +102,7 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
           description: 'Your submission has been updated.',
         });
       } else {
-        addSubmission({ ...values, userId: user.id, sessionType });
+        addSubmission({ ...values, userId: user.uid, sessionType });
         toast({
           title: 'Submission Successful!',
           description: 'Your submission has been received.',

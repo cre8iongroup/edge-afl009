@@ -14,11 +14,11 @@ import { AlertCircle, CheckCircle2, Clock, XCircle, MoreHorizontal, Briefcase, P
 import { Card, CardContent } from '../ui/card';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { useAuth } from '../auth-provider';
 import { useSubmissions } from '../submissions-provider';
 import type { Submission } from '@/lib/types';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
+import { useUserProfiles } from '@/hooks/use-user-profiles';
 
 
 const statusConfig: Record<Submission['status'], { icon: React.ElementType, className: string }> = {
@@ -36,12 +36,24 @@ const sessionTypeConfig: Record<Submission['sessionType'], { icon: React.Element
 
 
 export default function SubmissionsTable() {
-    const { users } = useAuth();
+    const { users } = useUserProfiles();
     const { submissions, updateSubmission } = useSubmissions();
-    const data = submissions.map(sub => ({
-        ...sub,
-        user: users.find(u => u.id === sub.userId)
-    }));
+    
+    const data = submissions.map(sub => {
+        const user = users?.find(u => u.id === sub.userId)
+        return {
+            ...sub,
+            user: user ? {
+                name: user.name,
+                email: user.email,
+                avatar: user.avatar,
+            } : {
+                name: 'Unknown User',
+                email: '',
+                avatar: '',
+            }
+        }
+    });
 
     const handleStatusChange = (submissionId: string, newStatus: Submission['status']) => {
         const submission = submissions.find(s => s.id === submissionId);

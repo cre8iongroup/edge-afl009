@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import { AuthProvider } from '@/components/auth-provider';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
-import { SubmissionsProvider } from '@/components/submissions-provider';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { SubmissionsProvider } from '@/components/submissions-provider';
 
 export const metadata: Metadata = {
   title: 'ALPFA 2026 Convention Portal',
@@ -28,12 +28,12 @@ export default function RootLayout({
         className="font-body antialiased bg-stage"
         style={{ '--bg-image': `url(${bgImage?.imageUrl})` } as React.CSSProperties}
       >
-        <AuthProvider>
+        <FirebaseClientProvider>
           <SubmissionsProvider>
             {children}
             <Toaster />
           </SubmissionsProvider>
-        </AuthProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );

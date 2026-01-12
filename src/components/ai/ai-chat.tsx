@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare, Send, Bot, User, Loader2 } from 'lucide-react';
 import { answerUserQuestion } from '@/ai/flows/answer-user-questions';
-import { useAuth } from '../auth-provider';
+import { useUser } from '@/firebase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useSubmissions } from '../submissions-provider';
@@ -30,11 +30,11 @@ export default function AIChat() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
+  const { user } = useUser();
   const { submissions } = useSubmissions();
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
 
-  const userSubmissions = submissions.filter(sub => sub.userId === user?.id);
+  const userSubmissions = submissions.filter(sub => sub.userId === user?.uid);
 
   const handleSend = async () => {
     if (input.trim() === '') return;
@@ -113,8 +113,8 @@ export default function AIChat() {
                 </div>
                  {message.role === 'user' && user && (
                     <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={user.photoURL || undefined} />
+                        <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                     </Avatar>
                  )}
                 </div>

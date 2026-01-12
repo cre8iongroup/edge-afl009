@@ -1,37 +1,46 @@
 'use client';
 
-import Link from 'next/link';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/auth-provider';
+import { useToast } from '@/hooks/use-toast';
+import { getAuth, sendSignInLinkToEmail } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import AlpfaLogo from '@/components/alpfa-logo';
 import Cre8ionLogo from '@/components/cre8ion-logo';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await login(email, password);
-      router.push('/dashboard');
+      const auth = getAuth();
+      const actionCodeSettings = {
+        url: `${window.location.origin}/finish-signin`,
+        handleCodeInApp: true,
+      };
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      window.localStorage.setItem('emailForSignIn', email);
+      setEmailSent(true);
+      toast({
+        title: 'Check your email',
+        description: `A sign-in link has been sent to ${email}.`,
+      });
     } catch (error) {
+      console.error(error);
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: (error as Error).message,
+        description: (error as Error).message || 'Could not send sign-in link. Please try again.',
       });
     } finally {
       setIsLoading(false);
@@ -51,46 +60,33 @@ export default function LoginPage() {
           <CardDescription>Sign in to access your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="user@example.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
+          {emailSent ? (
+            <div className="text-center">
+              <h3 className="text-lg font-semibold">Email Sent!</h3>
+              <p className="text-muted-foreground">
+                Please check your inbox for a magic link to sign in. You can close this tab.
+              </p>
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link href="#" className="text-sm text-primary hover:underline">
-                  Forgot password?
-                </Link>
+          ) : (
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                />
               </div>
-              <Input 
-                id="password" 
-                type="password" 
-                required 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sign In
-            </Button>
-          </form>
-          <div className="mt-6 text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-medium text-primary hover:underline">
-              Sign up
-            </Link>
-          </div>
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Send Sign-In Link
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
       <footer className="absolute bottom-4 text-center text-sm text-muted-foreground">
