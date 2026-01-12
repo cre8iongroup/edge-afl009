@@ -50,6 +50,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   const displayName = profile?.name && profile.name !== 'New Member' ? profile.name : user.email;
+  const fallbackInitial = displayName?.charAt(0) || '';
 
   return (
     <SidebarProvider>
@@ -67,8 +68,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Separator className="mb-2" />
           <div className="flex items-center gap-3 px-2">
              <Avatar className="h-9 w-9">
-                <AvatarImage src={user.photoURL || profile?.avatar} alt={displayName || ''} />
-                <AvatarFallback>{displayName?.charAt(0)}</AvatarFallback>
+                <AvatarImage src={profile?.avatar} alt={displayName || ''} />
+                <AvatarFallback>{fallbackInitial}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col overflow-hidden">
                 <span className="truncate font-medium">{displayName}</span>

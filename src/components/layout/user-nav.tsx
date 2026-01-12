@@ -33,14 +33,15 @@ export default function UserNav() {
   };
 
   const displayName = profile?.name && profile.name !== 'New Member' ? profile.name : user.email;
+  const fallbackInitial = displayName?.charAt(0) || '';
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user.photoURL || profile?.avatar} alt={displayName || 'User'} />
-            <AvatarFallback>{displayName?.charAt(0)}</AvatarFallback>
+            <AvatarImage src={profile?.avatar} alt={displayName || 'User'} />
+            <AvatarFallback>{fallbackInitial}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>

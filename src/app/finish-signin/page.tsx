@@ -36,7 +36,7 @@ export default function FinishSignInPage() {
             await setDoc(userRef, {
               name: 'New Member',
               email: user.email,
-              avatar: user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`,
+              avatar: '', // Ensure no placeholder avatar is set
               role: 'regular',
               createdAt: serverTimestamp(),
             });

@@ -91,7 +91,7 @@ export default function SubmissionsTable() {
                             <div className="flex items-center gap-3">
                                 <Avatar className="h-9 w-9">
                                     <AvatarImage src={item.user?.avatar} alt={item.user?.name} />
-                                    <AvatarFallback>{item.user?.name.charAt(0)}</AvatarFallback>
+                                    <AvatarFallback>{item.user?.name?.charAt(0) || item.user?.email?.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div>
                                     <div className="font-medium">{item.user?.name}</div>
