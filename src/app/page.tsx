@@ -39,13 +39,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="absolute top-8 flex items-center gap-4">
         <AlpfaLogo className="h-12 w-auto" />
         <span className="text-2xl font-thin text-muted-foreground">x</span>
         <Cre8ionLogo className="h-8 w-auto" />
       </div>
-      <Card className="w-full max-w-md shadow-2xl">
+      <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm shadow-2xl">
         <CardHeader className="text-center">
           <CardTitle className="font-headline text-3xl">ALPFA 2026 Convention Portal</CardTitle>
           <CardDescription>Sign in to access your account</CardDescription>
