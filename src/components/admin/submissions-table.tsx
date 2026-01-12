@@ -85,16 +85,18 @@ export default function SubmissionsTable() {
                 const statusClassName = statusConfig[item.status]?.className || '';
                 const SessionTypeIcon = sessionTypeConfig[item.sessionType]?.icon || Briefcase;
                 const sessionTypeLabel = sessionTypeConfig[item.sessionType]?.label || 'Workshop';
+                const userName = (item.user?.name && item.user?.name !== 'New Member') ? item.user.name : item.user?.email;
+                const fallbackInitial = userName?.charAt(0) || '';
                 return (
                     <TableRow key={item.id}>
                         <TableCell>
                             <div className="flex items-center gap-3">
                                 <Avatar className="h-9 w-9">
                                     <AvatarImage src={item.user?.avatar} alt={item.user?.name} />
-                                    <AvatarFallback>{item.user?.name?.charAt(0) || item.user?.email?.charAt(0)}</AvatarFallback>
+                                    <AvatarFallback>{fallbackInitial}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <div className="font-medium">{item.user?.name}</div>
+                                    <div className="font-medium">{userName}</div>
                                     <div className="text-xs text-muted-foreground">{item.user?.email}</div>
                                 </div>
                             </div>

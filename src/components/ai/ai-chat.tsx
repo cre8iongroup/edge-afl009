@@ -19,6 +19,7 @@ import { useUser } from '@/firebase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useSubmissions } from '../submissions-provider';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 type Message = {
   role: 'user' | 'bot';
@@ -31,6 +32,7 @@ export default function AIChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const { user } = useUser();
+  const { profile } = useUserProfile(user?.uid);
   const { submissions } = useSubmissions();
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
 
@@ -67,6 +69,9 @@ export default function AIChat() {
       setIsLoading(false);
     }
   };
+
+  const displayName = profile?.name && profile.name !== 'New Member' ? profile.name : user?.email;
+  const fallbackInitial = displayName?.charAt(0) || '';
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -113,8 +118,8 @@ export default function AIChat() {
                 </div>
                  {message.role === 'user' && user && (
                     <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.photoURL || undefined} />
-                        <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={profile?.avatar} />
+                        <AvatarFallback>{fallbackInitial}</AvatarFallback>
                     </Avatar>
                  )}
                 </div>
