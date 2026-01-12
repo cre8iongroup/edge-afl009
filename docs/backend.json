@@ -30,7 +30,7 @@
     }
   },
   "auth": {
-    "providers": ["passwordless"]
+    "providers": ["emailLink"]
   },
   "firestore": {
     "structure": [
