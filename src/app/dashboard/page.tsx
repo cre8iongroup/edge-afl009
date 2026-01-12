@@ -22,7 +22,7 @@ export default function DashboardPage() {
     <AppLayout>
       <div className="flex flex-col gap-8">
         <div>
-          <h1 className="font-headline text-3xl font-semibold">Welcome{displayName ? `, ${displayName}` : ''}!</h1>
+          <h1 className="font-headline text-3xl font-semibold">Welcome!</h1>
           <p className="text-muted-foreground">Here&apos;s an overview of your submissions.</p>
         </div>
 
