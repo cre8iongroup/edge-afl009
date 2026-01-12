@@ -57,7 +57,9 @@ export default function FinishSignInPage() {
       }
     };
 
-    completeSignIn();
+    if (firestore) {
+        completeSignIn();
+    }
   }, [router, toast, firestore]);
 
   return (

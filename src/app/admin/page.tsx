@@ -14,6 +14,10 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isUserLoading && !isProfileLoading) {
+      if (!user) {
+        router.push('/');
+        return;
+      }
       if (!profile || !['client', 'internal'].includes(profile.role)) {
         router.push('/dashboard');
       }

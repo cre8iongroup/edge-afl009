@@ -2,14 +2,14 @@
 
 import { useMemo } from 'react';
 import { doc, DocumentReference } from 'firebase/firestore';
-import { useFirestore, useDoc, WithId } from '@/firebase';
-import { UserProfile } from '@/lib/types';
+import { useFirestore, useDoc, WithId, useMemoFirebase } from '@/firebase';
+import type { UserProfile } from '@/lib/types';
 
 export function useUserProfile(uid: string | undefined) {
   const firestore = useFirestore();
 
-  const userDocRef = useMemo(() => {
-    if (!uid) return null;
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !uid) return null;
     return doc(firestore, 'users', uid) as DocumentReference<UserProfile>;
   }, [firestore, uid]);
 
