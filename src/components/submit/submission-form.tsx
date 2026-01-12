@@ -27,12 +27,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { HelpCircle, Upload, CalendarIcon } from 'lucide-react';
 import { submissionFormConfig } from '@/lib/data';
 import type { Submission } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Label } from '../ui/label';
 import { useSubmissions } from '../submissions-provider';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
 import { Calendar } from '../ui/calendar';
+import { availableSlots } from '@/lib/schedule';
 
 const formSchema = z.object({
   pillar: z.string().min(1, 'Please select a pillar.'),
@@ -66,14 +67,6 @@ type SubmissionFormProps = {
   sessionType: Submission['sessionType'];
   submission?: Submission;
 };
-
-// Mock data for available slots - replace with real data later
-const availableTimeSlots = {
-    "2026-08-03": ["09:00 AM", "11:00 AM", "02:00 PM"],
-    "2026-08-04": ["10:00 AM", "01:00 PM", "03:00 PM"],
-    "2026-08-05": ["09:00 AM", "11:00 AM"],
-};
-type AvailableDates = keyof typeof availableTimeSlots;
 
 export default function SubmissionForm({ sessionType, submission }: SubmissionFormProps) {
   const { toast } = useToast();
@@ -113,15 +106,24 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
   const selectedDate = form.watch('preferredDate');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
+  const filteredSlots = useMemo(() => {
+    return availableSlots.filter(slot => slot.sessionTypes.includes(sessionType));
+  }, [sessionType]);
+
+  const availableDates = useMemo(() => {
+    return filteredSlots.map(slot => new Date(slot.date));
+  }, [filteredSlots]);
+
   useEffect(() => {
     if (selectedDate) {
-        const dateString = format(selectedDate, 'yyyy-MM-dd') as AvailableDates;
-        setAvailableTimes(availableTimeSlots[dateString] || []);
+        const dateString = format(selectedDate, 'yyyy-MM-dd');
+        const daySlots = filteredSlots.find(slot => format(new Date(slot.date), 'yyyy-MM-dd') === dateString);
+        setAvailableTimes(daySlots?.times.map(t => t.time) || []);
         form.setValue('preferredTime', ''); // Reset time when date changes
     } else {
         setAvailableTimes([]);
     }
-  }, [selectedDate, form]);
+  }, [selectedDate, form, filteredSlots]);
 
   function onSubmit(values: SubmissionFormData) {
     if (!user) {
@@ -132,7 +134,6 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
       const submissionData = {
           ...values,
           sessionType,
-          preferredDate: values.preferredDate ? values.preferredDate.toISOString() : undefined,
       };
 
       if (submission) {
@@ -466,10 +467,7 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
                                 mode="single"
                                 selected={field.value}
                                 onSelect={field.onChange}
-                                disabled={(date) => {
-                                    const dateString = format(date, 'yyyy-MM-dd');
-                                    return !availableTimeSlots.hasOwnProperty(dateString);
-                                }}
+                                disabled={(date) => !availableDates.some(d => d.toDateString() === date.toDateString())}
                                 initialFocus
                               />
                             </PopoverContent>

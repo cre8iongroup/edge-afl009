@@ -23,8 +23,8 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
       const storedSubmissions = localStorage.getItem('alpfa-submissions');
       if (storedSubmissions) {
         const parsed = JSON.parse(storedSubmissions, (key, value) => {
-            if (key === 'createdAt') {
-                return new Date(value);
+            if (key === 'createdAt' || key === 'preferredDate') {
+                return value ? new Date(value) : undefined;
             }
             return value;
         });

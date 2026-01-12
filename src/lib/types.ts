@@ -19,7 +19,7 @@ export type Submission = {
   objectives: string[];
   cpe: boolean;
   createdAt: Date;
-  preferredDate?: string;
+  preferredDate?: Date;
   preferredTime?: string;
   presenterName?: string;
   presenterEmail?: string;
