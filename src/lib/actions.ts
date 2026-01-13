@@ -7,14 +7,12 @@ import { sendEmail } from './email';
 import SignInEmail from '@/emails/SignInEmail';
 import StatusUpdateEmail from '@/emails/StatusUpdateEmail';
 import type { Submission } from './types';
-import { users } from './data';
 
 if (!adminApp) {
   console.warn("Firebase Admin SDK is not initialized. Server-side actions may fail.");
 }
 
 const auth = adminApp ? getAuth(adminApp) : null;
-const firestore = adminApp ? getFirestore(adminApp) : null;
 
 export async function sendCustomSignInLink(email: string) {
   if (!auth) {

@@ -13,7 +13,6 @@ import SidebarNav from '@/components/layout/sidebar-nav';
 import { useUser, useAuth as useFirebaseAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import AIChat from '@/components/ai/ai-chat';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { LogOut } from 'lucide-react';
@@ -87,7 +86,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <footer className="p-4 text-center text-sm text-muted-foreground sm:p-6 lg:p-8">
           ALPFA 2026 Convention, powered by <strong className="font-semibold text-foreground">cre8ion Edge</strong>.
         </footer>
-        <AIChat />
       </SidebarInset>
     </SidebarProvider>
   );
