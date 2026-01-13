@@ -1,34 +1,57 @@
 'use server';
 
-// This file is now unused since we are handling state on the client
-// but we'll keep it here in case we need server actions later.
+import { getAuth } from 'firebase-admin/auth';
+import { adminApp } from '@/firebase/admin';
+import { getFirestore } from 'firebase-admin/firestore';
+import { sendEmail } from './email';
+import SignInEmail from '@/emails/SignInEmail';
+import StatusUpdateEmail from '@/emails/StatusUpdateEmail';
+import type { Submission } from './types';
+import { users } from './data';
 
-import { z } from 'zod';
+if (!adminApp) {
+  console.warn("Firebase Admin SDK is not initialized. Server-side actions may fail.");
+}
 
-const workshopSchema = z.object({
-  userId: z.string(),
-  pillar: z.string(),
-  format: z.string(),
-  audience: z.string(),
-  title: z.string(),
-  description: z.string(),
-  objectives: z.array(z.string()),
-  cpe: z.boolean(),
-});
+const auth = adminApp ? getAuth(adminApp) : null;
+const firestore = adminApp ? getFirestore(adminApp) : null;
 
-export async function submitWorkshop(data: z.infer<typeof workshopSchema>) {
-  const validatedData = workshopSchema.safeParse(data);
-
-  if (!validatedData.success) {
-    console.error('Invalid submission data:', validatedData.error.flatten());
-    throw new Error('Invalid submission data.');
+export async function sendCustomSignInLink(email: string) {
+  if (!auth) {
+    throw new Error('Firebase Admin SDK not initialized.');
   }
 
-  // In a real application, you would save this data to a database.
-  console.log('New workshop submission:', validatedData.data);
-  
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  const actionCodeSettings = {
+    url: `${process.env.NEXT_PUBLIC_BASE_URL}/finish-signin`,
+    handleCodeInApp: true,
+  };
 
-  return { success: true, data: validatedData.data };
+  try {
+    const link = await auth.generateSignInWithEmailLink(email, actionCodeSettings);
+
+    await sendEmail({
+      to: email,
+      subject: 'Sign in to ALPFA 2026 Convention Portal',
+      react: SignInEmail({ signInLink: link }),
+      replyTo: 'edge@cre8iongroup.com'
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error sending custom sign-in link:', error);
+    return { success: false, error: 'Could not send sign-in link. Please try again later.' };
+  }
+}
+
+export async function sendStatusUpdateEmail(submission: Submission, recipientEmail: string) {
+    await sendEmail({
+        to: recipientEmail,
+        subject: `Update on your ALPFA submission: "${submission.title}"`,
+        react: StatusUpdateEmail({
+            submissionTitle: submission.title,
+            newStatus: submission.status,
+            submissionType: submission.sessionType,
+        }),
+        replyTo: 'edge@cre8iongroup.com'
+    });
 }

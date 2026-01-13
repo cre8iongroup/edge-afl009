@@ -19,7 +19,8 @@ import type { Submission } from '@/lib/types';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { useUserProfiles } from '@/hooks/use-user-profiles';
-
+import { useToast } from '@/hooks/use-toast';
+import { sendStatusUpdateEmail } from '@/lib/actions';
 
 const statusConfig: Record<Submission['status'], { icon: React.ElementType, className: string }> = {
     'Awaiting Approval': { icon: Clock, className: 'text-blue-500 border-blue-500/50' },
@@ -38,6 +39,7 @@ const sessionTypeConfig: Record<Submission['sessionType'], { icon: React.Element
 export default function SubmissionsTable() {
     const { users } = useUserProfiles();
     const { submissions, updateSubmission } = useSubmissions();
+    const { toast } = useToast();
     
     const data = submissions.map(sub => {
         const user = users?.find(u => u.id === sub.userId)
@@ -55,10 +57,32 @@ export default function SubmissionsTable() {
         }
     });
 
-    const handleStatusChange = (submissionId: string, newStatus: Submission['status']) => {
+    const handleStatusChange = async (submissionId: string, newStatus: Submission['status']) => {
         const submission = submissions.find(s => s.id === submissionId);
         if (submission) {
-            updateSubmission({ ...submission, status: newStatus });
+            const updatedSubmission = { ...submission, status: newStatus };
+            updateSubmission(updatedSubmission);
+            toast({
+                title: "Status Updated",
+                description: `Submission status changed to "${newStatus}".`,
+            });
+            
+            const submitter = users?.find(u => u.id === submission.userId);
+            if (submitter?.email) {
+                try {
+                    await sendStatusUpdateEmail(updatedSubmission, submitter.email);
+                    toast({
+                        title: "Notification Sent",
+                        description: `An email has been sent to ${submitter.email}.`,
+                    });
+                } catch (error) {
+                     toast({
+                        variant: 'destructive',
+                        title: "Notification Failed",
+                        description: `Could not send email. See console for details.`,
+                    });
+                }
+            }
         }
     };
 
@@ -92,7 +116,7 @@ export default function SubmissionsTable() {
                         <TableCell>
                             <div className="flex items-center gap-3">
                                 <Avatar className="h-9 w-9">
-                                    <AvatarImage src={item.user?.avatar} alt={item.user?.name} />
+                                    <AvatarImage src={item.user?.avatar || ''} alt={item.user?.name || ''} />
                                     <AvatarFallback>{fallbackInitial}</AvatarFallback>
                                 </Avatar>
                                 <div>

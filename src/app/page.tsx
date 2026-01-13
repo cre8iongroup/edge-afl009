@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { getAuth, sendSignInLinkToEmail } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import AlpfaLogo from '@/components/alpfa-logo';
 import Cre8ionLogo from '@/components/cre8ion-logo';
+import { sendCustomSignInLink } from '@/lib/actions';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,12 +23,7 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const auth = getAuth();
-      const actionCodeSettings = {
-        url: `${window.location.origin}/finish-signin`,
-        handleCodeInApp: true,
-      };
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      await sendCustomSignInLink(email);
       window.localStorage.setItem('emailForSignIn', email);
       setEmailSent(true);
       toast({
@@ -40,7 +35,7 @@ export default function LoginPage() {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: (error as Error).message || 'Could not send sign-in link. Please try again.',
+        description: (error as Error).message || 'Could not send sign-in link.',
       });
     } finally {
       setIsLoading(false);
