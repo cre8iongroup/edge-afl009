@@ -3,9 +3,6 @@
 import { getAuth } from 'firebase-admin/auth';
 import { adminApp } from '@/firebase/admin';
 import { getFirestore } from 'firebase-admin/firestore';
-import { sendEmail } from './email';
-import SignInEmail from '@/emails/SignInEmail';
-import StatusUpdateEmail from '@/emails/StatusUpdateEmail';
 import type { Submission } from './types';
 
 if (!adminApp) {
@@ -25,31 +22,23 @@ export async function sendCustomSignInLink(email: string) {
   };
 
   try {
-    const link = await auth.generateSignInWithEmailLink(email, actionCodeSettings);
-
-    await sendEmail({
-      to: email,
-      subject: 'Sign in to ALPFA 2026 Convention Portal',
-      react: SignInEmail({ signInLink: link }),
-      replyTo: 'edge@cre8iongroup.com'
-    });
-
+    // This functionality is temporarily disabled until email configuration is complete.
+    // In a real scenario, you would generate a link and send it.
+    console.log(`[Action] Would send sign-in link to ${email}`);
+    // const link = await auth.generateSignInWithEmailLink(email, actionCodeSettings);
+    // console.log(`[Action] Generated Link: ${link}`);
+    
+    // For now, we'll simulate success without sending an email.
+    // The user will need to manually navigate to the finish-signin page if testing.
     return { success: true };
+
   } catch (error: any) {
-    console.error('Error sending custom sign-in link:', error);
-    return { success: false, error: 'Could not send sign-in link. Please try again later.' };
+    console.error('Error generating sign-in link:', error);
+    return { success: false, error: 'Could not generate sign-in link.' };
   }
 }
 
 export async function sendStatusUpdateEmail(submission: Submission, recipientEmail: string) {
-    await sendEmail({
-        to: recipientEmail,
-        subject: `Update on your ALPFA submission: "${submission.title}"`,
-        react: StatusUpdateEmail({
-            submissionTitle: submission.title,
-            newStatus: submission.status,
-            submissionType: submission.sessionType,
-        }),
-        replyTo: 'edge@cre8iongroup.com'
-    });
+    // This functionality is temporarily disabled.
+    console.log(`[Action] Would send status update to ${recipientEmail} for submission "${submission.title}"`);
 }
