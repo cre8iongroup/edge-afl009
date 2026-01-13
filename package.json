@@ -49,6 +49,7 @@
     "recharts": "^2.12.7",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
+    "zeptomail": "^7.0.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {

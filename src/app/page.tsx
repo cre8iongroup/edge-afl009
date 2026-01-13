@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,40 +10,35 @@ import { Loader2 } from 'lucide-react';
 import AlpfaLogo from '@/components/alpfa-logo';
 import Cre8ionLogo from '@/components/cre8ion-logo';
 import { sendCustomSignInLink } from '@/lib/actions';
-import { getAuth, sendSignInLinkToEmail } from 'firebase/auth';
-import { useFirebaseApp } from '@/firebase';
 
 export default function LoginPage() {
-  const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const app = useFirebaseApp();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const auth = getAuth(app);
-    const actionCodeSettings = {
-        url: `${window.location.origin}/finish-signin`,
-        handleCodeInApp: true,
-    };
 
     try {
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      window.localStorage.setItem('emailForSignIn', email);
-      setEmailSent(true);
-      toast({
-        title: 'Check your email',
-        description: `A sign-in link has been sent to ${email}.`,
-      });
+      const result = await sendCustomSignInLink(email);
+      if (result.success) {
+        window.localStorage.setItem('emailForSignIn', email);
+        setEmailSent(true);
+        toast({
+          title: 'Check your email',
+          description: `A sign-in link has been sent to ${email}.`,
+        });
+      } else {
+        throw new Error(result.error || 'Could not send sign-in link.');
+      }
     } catch (error) {
       console.error(error);
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: (error as Error).message || 'Could not send sign-in link.',
+        description: (error as Error).message,
       });
     } finally {
       setIsLoading(false);
