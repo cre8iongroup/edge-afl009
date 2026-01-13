@@ -72,14 +72,14 @@ export default function SubmissionsTable() {
                 try {
                     await sendStatusUpdateEmail(updatedSubmission, submitter.email);
                     toast({
-                        title: "Notification Sent",
-                        description: `An email has been sent to ${submitter.email}.`,
+                        title: "Notification Simulated",
+                        description: `An email would be sent to ${submitter.email}.`,
                     });
                 } catch (error) {
                      toast({
                         variant: 'destructive',
                         title: "Notification Failed",
-                        description: `Could not send email. See console for details.`,
+                        description: `Could not simulate email. See console for details.`,
                     });
                 }
             }
