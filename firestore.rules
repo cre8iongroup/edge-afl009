@@ -1,46 +1,55 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper Functions
+    // --- Helper Functions ---
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // Checks if the requesting user is the owner of the document.
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
-    function getRole(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    // Gets the role of the requesting user.
+    function requestorRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
-    function isInternal(userId) {
-      return getRole(userId) == 'internal';
+    // Checks if the requesting user is an admin or internal user.
+    function isInternalOrAdmin() {
+      return requestorRole() in ['internal', 'admin'];
     }
 
-    // Path: /users/{userId}
-    // Description: Stores user profiles.
+    // --- Path Rules ---
+
     match /users/{userId} {
-      // READ: Users can read their own profile. Internal users can read any profile.
-      allow get: if isSignedIn() && (isOwner(userId) || isInternal(request.auth.uid));
-      allow list: if isSignedIn() && isInternal(request.auth.uid);
-
-      // CREATE: A user can create their own profile upon sign-up.
-      // The incoming resource must have the owner's UID.
+      // Allow read if owner, or if requestor is internal/admin
+      allow get: if isSignedIn() && (isOwner(userId) || isInternalOrAdmin());
+      // Allow list if requestor is internal/admin
+      allow list: if isSignedIn() && isInternalOrAdmin();
+      // Allow create if owner
       allow create: if isSignedIn() && isOwner(userId);
-
-      // UPDATE: A user can update their own profile.
-      // An internal user can update anyone's profile (e.g., to change a role).
-      // Role changes are restricted to internal users.
-      allow update: if isSignedIn() && (isOwner(userId) && request.resource.data.role == resource.data.role || isInternal(request.auth.uid));
-
-      // DELETE: Only internal users can delete user profiles.
-      allow delete: if isSignedIn() && isInternal(request.auth.uid);
+      // Allow update if owner (and not changing role), or if requestor is internal/admin
+      allow update: if isSignedIn() && (isOwner(userId) && request.resource.data.role == resource.data.role || isInternalOrAdmin());
+      // Allow delete if requestor is internal/admin
+      allow delete: if isSignedIn() && isInternalOrAdmin();
     }
 
+    match /submissions/{submissionId} {
+      // Allow create for any signed in user
+      allow create: if isSignedIn();
+      // Allow read if owner or requestor is internal/admin
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isInternalOrAdmin());
+      // Allow list if requestor is internal/admin
+      allow list: if isSignedIn() && isInternalOrAdmin();
+      // Allow update/delete if owner or requestor is internal/admin
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isInternalOrAdmin());
+    }
+
+    // Allow users to manage their own subcollections
     match /users/{userId}/{document=**} {
       allow read, write: if isSignedIn() && isOwner(userId);
     }

@@ -7,10 +7,12 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-export default function AdminPage() {
+export default function AllSessionsPage() {
   const { user, isUserLoading } = useUser();
   const { profile, isLoading: isProfileLoading } = useUserProfile(user?.uid);
   const router = useRouter();
+
+  const canViewPage = !isUserLoading && !isProfileLoading && user && profile && ['internal', 'admin'].includes(profile.role);
 
   useEffect(() => {
     if (!isUserLoading && !isProfileLoading) {
@@ -18,7 +20,7 @@ export default function AdminPage() {
         router.push('/');
         return;
       }
-      if (!profile || !['client', 'internal'].includes(profile.role)) {
+      if (!profile || !['internal', 'admin'].includes(profile.role)) {
         router.push('/dashboard');
       }
     }
@@ -31,7 +33,7 @@ export default function AdminPage() {
           <h1 className="font-headline text-3xl font-semibold">All Sessions</h1>
           <p className="text-muted-foreground">View and manage all workshop submissions.</p>
         </div>
-        <SubmissionsTable />
+        {canViewPage && <SubmissionsTable />}
       </div>
     </AppLayout>
   );

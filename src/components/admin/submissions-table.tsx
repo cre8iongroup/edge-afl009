@@ -62,26 +62,27 @@ export default function SubmissionsTable() {
         if (submission) {
             const updatedSubmission = { ...submission, status: newStatus };
             updateSubmission(updatedSubmission);
-            toast({
-                title: "Status Updated",
-                description: `Submission status changed to "${newStatus}".`,
-            });
             
             const submitter = users?.find(u => u.id === submission.userId);
             if (submitter?.email) {
                 try {
                     await sendStatusUpdateEmail(updatedSubmission, submitter.email);
                     toast({
-                        title: "Notification Simulated",
-                        description: `An email would be sent to ${submitter.email}.`,
+                        title: "Status Updated & Notified",
+                        description: `Status changed to "${newStatus}" and an email was sent to ${submitter.email}.`,
                     });
                 } catch (error) {
                      toast({
                         variant: 'destructive',
-                        title: "Notification Failed",
-                        description: `Could not simulate email. See console for details.`,
+                        title: "Update Succeeded, Notification Failed",
+                        description: `The submission status was updated, but the notification email could not be sent. Please check the console for more details.`,
                     });
                 }
+            } else {
+                toast({
+                    title: "Status Updated",
+                    description: `Submission status changed to "${newStatus}".`,
+                });
             }
         }
     };

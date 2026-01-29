@@ -1,7 +1,7 @@
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
-import SubmissionForm from '@/components/submit/submission-form';
+import InfoSessionForm from '@/components/submit/info-session-form';
 
 export default function SubmitInfoSessionPage() {
   return (
@@ -11,7 +11,7 @@ export default function SubmitInfoSessionPage() {
           <h1 className="font-headline text-3xl font-semibold">Submit an Info Session</h1>
           <p className="text-muted-foreground">Fill out the form below to submit your info session for the ALPFA 2026 Convention.</p>
         </div>
-        <SubmissionForm sessionType="info-session" />
+        <InfoSessionForm />
       </div>
     </AppLayout>
   );

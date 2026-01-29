@@ -4,14 +4,13 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { useUser } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { LayoutDashboard, Users, FilePlus, Settings, Briefcase, Handshake, Presentation, Loader2, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Users, FilePlus, Briefcase, Handshake, Presentation, Loader2, BookText } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import React from 'react';
 
 export default function SidebarNav() {
   const { user } = useUser();
@@ -23,101 +22,76 @@ export default function SidebarNav() {
       href: '/dashboard',
       icon: LayoutDashboard,
       label: 'Dashboard',
-      roles: ['regular', 'client', 'internal'],
+      roles: ['regular', 'client', 'internal', 'admin'],
     },
     {
-      href: '/admin',
+      href: '/all-sessions',
       icon: Users,
       label: 'All Sessions',
-      roles: ['client', 'internal'],
-    },
-  ];
-
-  const submissionItems = [
-     {
-      href: '/submit/workshop',
-      icon: Briefcase,
-      label: 'Workshop',
-      roles: ['regular', 'client', 'internal'],
+      roles: ['internal', 'admin'],
     },
     {
-      href: '/submit/reception',
-      icon: Handshake,
-      label: 'Reception',
-      roles: ['regular', 'client', 'internal'],
+      label: 'Submit Session',
+      roles: ['regular', 'client', 'internal', 'admin'],
+      subItems: [
+        { href: '/submission-guide', icon: BookText, label: 'Submission Guide' },
+        { href: '/submit/workshop', icon: Briefcase, label: 'Workshop' },
+        { href: '/submit/reception', icon: Handshake, label: 'Reception' },
+        { href: '/submit/info-session', icon: Presentation, label: 'Info Session' },
+      ],
     },
-    {
-      href: '/submit/info-session',
-      icon: Presentation,
-      label: 'Info Session',
-      roles: ['regular', 'client', 'internal'],
-    }
   ];
 
   if (isLoading) {
     return (
-      <div className="p-4">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <div className="flex items-center justify-center p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
-  
-  if (!user || !profile) return null;
+
+  const userRole = profile?.role || 'regular';
 
   return (
     <SidebarMenu>
       {navItems
-        .filter((item) => item.roles.includes(profile.role))
-        .map((item) => (
-          <SidebarMenuItem key={item.href}>
-            <Link href={item.href}>
-              <SidebarMenuButton
-                isActive={pathname.startsWith(item.href) && (item.href !== '/' || pathname === '/')}
-                tooltip={item.label}
-              >
-                <item.icon />
-                <span>{item.label}</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        ))}
-        <SidebarMenuItem>
-          <Link href="/template">
-             <SidebarMenuButton
-              isActive={pathname.startsWith('/submit') || pathname.startsWith('/template')}
-              tooltip="Submit Session"
-            >
-              <FilePlus />
-              <span>Submit Session</span>
-            </SidebarMenuButton>
-          </Link>
-          <SidebarMenuSub>
-             <li>
-                <Link href="/template">
-                    <SidebarMenuSubButton
-                      isActive={pathname === '/template'}
-                    >
-                      <BookOpen />
-                      <span>Submission Guide</span>
-                    </SidebarMenuSubButton>
-                  </Link>
+        .filter(item => item.roles.includes(userRole))
+        .flatMap((item, index) => {
+          if (item.subItems) {
+            // Render the non-clickable header
+            const header = (
+              <li key={`${index}-header`} className="px-4 pt-6 pb-2 text-xs font-medium text-muted-foreground">
+                {item.label}
               </li>
-            {submissionItems
-              .filter((item) => item.roles.includes(profile.role))
-              .map((item) => (
-                <li key={item.href}>
-                  <Link href={item.href}>
-                    <SidebarMenuSubButton
-                      isActive={pathname === item.href}
-                    >
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </SidebarMenuSubButton>
-                  </Link>
-                </li>
-            ))}
-          </SidebarMenuSub>
-      </SidebarMenuItem>
+            );
+
+            // Render the indented sub-items
+            const subItems = item.subItems.map((subItem, subIndex) => (
+              <SidebarMenuItem key={`${index}-${subIndex}`}>
+                <Link href={subItem.href} passHref legacyBehavior>
+                  <SidebarMenuButton as="a" isActive={pathname === subItem.href} className="pl-7">
+                    {subItem.icon && <subItem.icon />}
+                    <span>{subItem.label}</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            ));
+
+            return [header, ...subItems];
+          }
+
+          // Render a regular top-level link
+          return (
+            <SidebarMenuItem key={index}>
+              <Link href={item.href || '#'} passHref legacyBehavior>
+                <SidebarMenuButton as="a" isActive={pathname === item.href}>
+                  {item.icon && <item.icon />}
+                  <span>{item.label}</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          );
+      })}
     </SidebarMenu>
   );
 }
