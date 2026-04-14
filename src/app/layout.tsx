@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { SubmissionsProvider } from '@/components/submissions-provider';
-import DevAdminLogin from '@/components/auth/DevAdminLogin';
+import DevLogin from '@/components/auth/DevLogin';
 
 export const metadata: Metadata = {
   title: 'ALPFA 2026 Convention Portal',
@@ -34,7 +34,7 @@ export default function RootLayout({
             {children}
             <Toaster />
           </SubmissionsProvider>
-          <DevAdminLogin />
+          <DevLogin />
         </FirebaseClientProvider>
       </body>
     </html>
