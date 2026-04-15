@@ -15,12 +15,17 @@ export type Submission = {
   status: 'Awaiting Approval' | 'Approved' | 'Rejected' | 'Needs Information';
   pillar: string;
   format: string;
-  audience: string;
+  audience: string | string[];
   objectives: string[];
   cpe: boolean;
   createdAt: Date;
   preferredDate?: Date | string;
   preferredTime?: string;
+  preferredDate2?: Date | string;
+  preferredTime2?: string;
+  preferredTimes?: string[];
+  secondaryAudience?: string | string[];
+  specialSetup?: string;
   presenterName?: string;
   presenterEmail?: string;
   presenterPocName?: string;
