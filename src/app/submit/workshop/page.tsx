@@ -1,7 +1,7 @@
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
-import WorkshopForm from '@/components/submit/workshop-form';
+import WorkshopSubmissionForm from '@/components/submit/workshop-submission-form';
 
 export default function SubmitWorkshopPage() {
   return (
@@ -11,7 +11,7 @@ export default function SubmitWorkshopPage() {
           <h1 className="font-headline text-3xl font-semibold">Submit a Workshop Proposal</h1>
           <p className="text-muted-foreground">Fill out the form below to submit your workshop for the ALPFA 2026 Convention.</p>
         </div>
-        <WorkshopForm sessionType='workshop' />
+        <WorkshopSubmissionForm />
       </div>
     </AppLayout>
   );
