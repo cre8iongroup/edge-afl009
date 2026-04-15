@@ -15,12 +15,13 @@ service cloud.firestore {
 
     // Gets the role of the requesting user.
     function requestorRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(userPath) ? get(userPath).data.get('role', 'regular') : 'regular';
     }
 
     // Checks if the requesting user is an admin or internal user.
     function isInternalOrAdmin() {
-      return requestorRole() in ['internal', 'admin'];
+      return isSignedIn() && requestorRole() in ['internal', 'admin'];
     }
 
     // --- Path Rules ---
@@ -43,8 +44,8 @@ service cloud.firestore {
       allow create: if isSignedIn();
       // Allow read if owner or requestor is internal/admin
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isInternalOrAdmin());
-      // Allow list if requestor is internal/admin
-      allow list: if isSignedIn() && isInternalOrAdmin();
+      // Allow list if requestor is internal/admin OR owner
+      allow list: if isSignedIn() && (isInternalOrAdmin() || resource.data.userId == request.auth.uid);
       // Allow update/delete if owner or requestor is internal/admin
       allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isInternalOrAdmin());
     }
