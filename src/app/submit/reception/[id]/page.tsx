@@ -1,7 +1,7 @@
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
-import SubmissionForm from '@/components/submit/submission-form';
+import ReceptionForm from '@/components/submit/reception-form';
 import { useParams } from 'next/navigation';
 import { useSubmissions } from '@/components/submissions-provider';
 
@@ -20,7 +20,7 @@ export default function EditReceptionPage() {
           <p className="text-muted-foreground">Make changes to your submission below.</p>
         </div>
         {submission ? (
-          <SubmissionForm sessionType="reception" submission={submission} />
+          <ReceptionForm submission={submission} />
         ) : (
           <div className="text-center text-muted-foreground">
             Submission not found.

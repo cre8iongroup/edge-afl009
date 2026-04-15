@@ -1,7 +1,7 @@
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
-import SubmissionForm from '@/components/submit/submission-form';
+import InfoSessionForm from '@/components/submit/info-session-form';
 import { useParams } from 'next/navigation';
 import { useSubmissions } from '@/components/submissions-provider';
 
@@ -20,7 +20,7 @@ export default function EditInfoSessionPage() {
           <p className="text-muted-foreground">Make changes to your submission below.</p>
         </div>
         {submission ? (
-          <SubmissionForm sessionType="info-session" submission={submission} />
+          <InfoSessionForm submission={submission} />
         ) : (
           <div className="text-center text-muted-foreground">
             Submission not found.

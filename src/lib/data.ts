@@ -68,47 +68,53 @@ export const submissionFormConfig = {
       value: 'Presentation',
       label: 'Presentation',
       description: 'Participants primarily listen. A presenter delivers insights, frameworks, or trends with one brief engagement moment (Q&A, poll, or reflection). Use this when: You are teaching or informing, not practicing.',
-      features: 'Content-led'
+      features: 'Content-led',
+      roomSetup: 'Theater'
     },
     { 
       value: 'Interactive Session',
       label: 'Interactive Session',
       description: 'Participants engage throughout, but do not complete structured skill practice. These sessions weave interaction into the content (Q&A, scenario reactions, light role-play, pair discussions). Use this when: you want to balance teaching or informing with light practice.',
-      features: 'Exploration, reflection, scenarios'
+      features: 'Exploration, reflection, scenarios',
+      roomSetup: 'Rounds'
     },
     { 
       value: 'Workshop',
       label: 'Workshop',
       description: 'Participants do real work during the session. Workshops include guided practice, tool use, small-group problem-solving, or hands-on activities aligned to a specific skill or framework. Use this when: you have hands on practice.',
-      features: 'Skill-building, tool use, application'
+      features: 'Skill-building, tool use, application',
+      roomSetup: 'Classroom'
     },
   ],
   audiences: [
     { 
-      value: 'Undergraduate Students',
-      label: 'Undergraduate Students',
-      description: 'Students pursuing a bachelor’s degree who are preparing for internships, early career roles, or their first professional experiences.'
+      value: 'Students',
+      label: 'Students',
+      description: 'Students pursuing a bachelor’s or master’s degree who are preparing for internships, early career roles, or their first professional experiences.'
     },
     { 
-      value: 'Graduate Students',
-      label: 'Graduate Students',
-      description: 'Master’s or MBA candidates preparing for career transitions, higher-level internships, or accelerated pathways into professional roles.'
+      value: 'Early Career Professionals',
+      label: 'Early Career Professionals',
+      description: 'Professionals with 0–5 years of experience building workplace confidence and navigating early promotions.'
     },
     { 
-      value: 'Early Career',
-      label: 'Early Career',
-      description: 'Professionals with 0–5 years of experience Professionals building workplace confidence and navigating early promotions'
+      value: 'Mid Career Professionals',
+      label: 'Mid Career Professionals',
+      description: 'Professionals with 5–15 years of experience who are taking on broader responsibilities and leading teams or projects.'
     },
     { 
-      value: 'Mid-Career',
-      label: 'Mid-Career',
-      description: 'Professionals with 5–15 years of experience who are taking on broader responsibilities, leading teams or projects, and preparing for senior roles.'
+      value: 'Executives',
+      label: 'Executives',
+      description: 'Senior leaders, executives, and high-level functional experts who influence organizational strategy and culture.'
     },
-    { 
-      value: 'Executive Level and above',
-      label: 'Executive Level and above',
-      description: 'Senior leaders, executives, and high-level functional experts who influence organizational strategy, culture, and business outcomes.'
-    },
+  ],
+  secondaryAudiences: [
+    { value: 'Students', label: 'Students' },
+    { value: 'Professionals (Early/Mid)', label: 'Professionals (Early/Mid)' },
+    { value: 'Senior Executives', label: 'Senior Executives' },
+    { value: 'Entrepreneurs/Creatives', label: 'Entrepreneurs/Creatives' },
+    { value: 'Chapter Leaders', label: 'Chapter Leaders' },
+    { value: 'All Members', label: 'All Members' },
   ],
   objectives: [
     { id: 'objective-1', label: 'Identify key concepts, trends, or insights related to the topic.' },

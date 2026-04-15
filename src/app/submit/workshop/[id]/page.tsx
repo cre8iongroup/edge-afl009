@@ -1,7 +1,7 @@
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
-import SubmissionForm from '@/components/submit/submission-form';
+import WorkshopSubmissionForm from '@/components/submit/workshop-submission-form';
 import { useParams } from 'next/navigation';
 import { useSubmissions } from '@/components/submissions-provider';
 
@@ -20,7 +20,7 @@ export default function EditWorkshopPage() {
           <p className="text-muted-foreground">Make changes to your submission below.</p>
         </div>
         {submission ? (
-          <SubmissionForm sessionType="workshop" submission={submission} />
+          <WorkshopSubmissionForm submission={submission} />
         ) : (
           <div className="text-center text-muted-foreground">
             Submission not found.
