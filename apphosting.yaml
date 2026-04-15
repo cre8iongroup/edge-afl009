@@ -5,3 +5,13 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+
+env:
+  - variable: ZOHO_FROM_EMAIL
+    value: edge@cre8iongroup.com
+
+secrets:
+  - variable: FIREBASE_SERVICE_ACCOUNT_KEY
+    secret: firebase-service-account-key
+  - variable: ZOHO_SEND_MAIL_TOKEN
+    secret: zoho-send-mail-token
