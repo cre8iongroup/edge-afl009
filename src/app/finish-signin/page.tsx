@@ -17,9 +17,14 @@ export default function FinishSignInPage() {
   useEffect(() => {
     const completeSignIn = async () => {
       const auth = getAuth();
-      const email = window.localStorage.getItem('emailForSignIn');
+      let email = window.localStorage.getItem('emailForSignIn');
       if (!email) {
-        setError('Sign-in email not found. Please try again from the login page.');
+        // User opened the link on a different device or browser.
+        email = window.prompt('Please enter your email to securely confirm your sign-in:');
+      }
+      
+      if (!email) {
+        setError('Sign-in email not provided. Please try again from the login page.');
         return;
       }
 
