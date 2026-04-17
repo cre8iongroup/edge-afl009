@@ -8,7 +8,7 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { useSubmissions } from '@/components/submissions-provider';
 import { useUserProfiles } from '@/hooks/use-user-profiles';
 import { useToast } from '@/hooks/use-toast';
-import { sendStatusUpdateEmail } from '@/lib/actions';
+import { sendStatusUpdateEmail, sendSessionApprovedEmail } from '@/lib/actions';
 import type { Submission } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -74,6 +74,7 @@ function SessionReviewCard({ submission }: { submission: Submission }) {
       await updateSubmission(updated);
       if (submitter?.email) {
         await sendStatusUpdateEmail(updated, submitter.email);
+        await sendSessionApprovedEmail(updated, submitter.email);
       }
       toast({
         title: 'Session Approved',

@@ -19,7 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Button } from '../ui/button';
 import { useUserProfiles } from '@/hooks/use-user-profiles';
 import { useToast } from '@/hooks/use-toast';
-import { sendStatusUpdateEmail } from '@/lib/actions';
+import { sendStatusUpdateEmail, sendSessionApprovedEmail } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 
 // Short badge label + colored dot — full label is visible inside the session detail
@@ -77,6 +77,9 @@ export default function SubmissionsTable() {
             if (submitter?.email) {
                 try {
                     await sendStatusUpdateEmail(updatedSubmission, submitter.email);
+                    if (newStatus === 'phase_2') {
+                        await sendSessionApprovedEmail(updatedSubmission, submitter.email);
+                    }
                     toast({
                         title: 'Status Updated & Notified',
                         description: `Status changed to "${newStatus}" and an email was sent to ${submitter.email}.`,

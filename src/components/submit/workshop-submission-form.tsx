@@ -33,6 +33,7 @@ import { useSubmissions } from '../submissions-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { availableSlots } from '@/lib/schedule';
+import { sendSessionSubmittedEmail } from '@/lib/actions';
 
 const formSchema = z.object({
   pillar: z.string().min(1, 'Please select a pillar.'),
@@ -144,6 +145,11 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
         });
       } else {
         addSubmission({ ...submissionData, userId: user.uid });
+        void sendSessionSubmittedEmail({
+          title: values.title,
+          sessionType,
+          partnerEmail: user.email || '',
+        });
         toast({
           title: 'Workshop Submitted!',
           description: 'Your workshop submission has been received for approval.',

@@ -31,6 +31,7 @@ import { useSubmissions } from '../submissions-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { availableSlots } from '@/lib/schedule';
+import { sendSessionSubmittedEmail } from '@/lib/actions';
 
 const formSchema = z.object({
   companyName: z.string().min(1, 'Company name is required.'),
@@ -127,6 +128,11 @@ export default function ReceptionForm({ submission }: ReceptionFormProps) {
         });
       } else {
         addSubmission({ ...submissionData, userId: user.uid });
+        void sendSessionSubmittedEmail({
+          title: values.receptionTitle,
+          sessionType,
+          partnerEmail: user.email || '',
+        });
         toast({
           title: 'Reception Submitted!',
           description: 'Your reception submission has been received for approval.',

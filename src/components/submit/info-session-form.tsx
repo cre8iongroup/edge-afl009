@@ -27,6 +27,7 @@ import { useSubmissions } from '../submissions-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { availableSlots } from '@/lib/schedule';
 import { useEffect, useMemo, useState } from 'react';
+import { sendSessionSubmittedEmail } from '@/lib/actions';
 import { Submission } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -143,6 +144,11 @@ export default function InfoSessionForm({ submission }: InfoSessionFormProps) {
                 });
             } else {
                 addSubmission({ ...submissionData, userId: user.uid });
+                void sendSessionSubmittedEmail({
+                    title: values.sessionTitle,
+                    sessionType,
+                    partnerEmail: user.email || '',
+                });
                 toast({
                     title: 'Info Session Submitted!',
                     description: 'Your info session submission has been received for approval.',
