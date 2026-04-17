@@ -11,17 +11,26 @@ import {
   AlertCircle,
   Info,
   CalendarCheck,
+  CalendarClock,
   CheckCircle2,
   Circle,
   Users,
   Monitor,
   ArrowLeft,
+  MapPin,
+  ShieldCheck,
+  X,
+  Plus,
+  RotateCcw,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import AVPackageSelector from './av-package-selector';
 import PresenterSection from './presenter-section';
+import { AV_OPEN_DATE } from '@/lib/av-packages';
+import { useUser } from '@/firebase';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 // ─── Phase config — single source of truth for labels, icons, colours ────────
 
@@ -34,6 +43,12 @@ const phaseConfig: Record<
     label: 'Awaiting Approval',
     className: 'border-blue-500/50 text-blue-500 bg-blue-500/10',
     bannerClassName: 'border-blue-500/30 bg-blue-500/5',
+  },
+  phase_1_revision: {
+    icon: RotateCcw,
+    label: 'Revision Requested',
+    className: 'border-orange-500/50 text-orange-500 bg-orange-500/10',
+    bannerClassName: 'border-orange-500/30 bg-orange-500/5',
   },
   phase_2: {
     icon: AlertCircle,
@@ -75,6 +90,146 @@ function SectionCard({ title, children }: { title: string; children: React.React
         <CardTitle className="text-base font-semibold">{title}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2">{children}</CardContent>
+    </Card>
+  );
+}
+
+// ─── Admin Panel ───────────────────────────────────────────────────────────────────────────────
+
+function AdminPanel({ submission }: { submission: Submission }) {
+  const { updateSubmission } = useSubmissions();
+  const { toast } = useToast();
+
+  // ─ Room Assignment ───────────────────────────────────────────────────────
+  const [roomValue, setRoomValue] = useState(submission.roomAssignment ?? '');
+  const [roomSaving, setRoomSaving] = useState(false);
+
+  const saveRoom = async () => {
+    setRoomSaving(true);
+    try {
+      await updateSubmission({ ...submission, roomAssignment: roomValue.trim() || undefined });
+      toast({ title: 'Room assignment saved' });
+    } catch {
+      toast({ variant: 'destructive', title: 'Save failed', description: 'Could not save room assignment.' });
+    } finally {
+      setRoomSaving(false);
+    }
+  };
+
+  // ─ Authorized Emails ─────────────────────────────────────────────────
+  const [emailInput, setEmailInput] = useState('');
+  const [emailSaving, setEmailSaving] = useState(false);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const currentEmails = submission.authorizedEmails ?? [];
+
+  const addEmail = async () => {
+    const email = emailInput.trim().toLowerCase();
+    if (!email || currentEmails.includes(email)) {
+      setEmailInput('');
+      return;
+    }
+    setEmailSaving(true);
+    try {
+      await updateSubmission({ ...submission, authorizedEmails: [...currentEmails, email] });
+      setEmailInput('');
+      emailInputRef.current?.focus();
+      toast({ title: 'Access granted', description: `${email} can now view and edit this session.` });
+    } catch {
+      toast({ variant: 'destructive', title: 'Save failed', description: 'Could not update authorized emails.' });
+    } finally {
+      setEmailSaving(false);
+    }
+  };
+
+  const removeEmail = async (email: string) => {
+    try {
+      await updateSubmission({ ...submission, authorizedEmails: currentEmails.filter(e => e !== email) });
+      toast({ title: 'Access removed', description: `${email} no longer has delegate access.` });
+    } catch {
+      toast({ variant: 'destructive', title: 'Remove failed' });
+    }
+  };
+
+  return (
+    <Card className="border-dashed border-amber-500/50 bg-amber-500/5">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-amber-600" />
+          <CardTitle className="text-base font-semibold text-amber-700">Admin Only</CardTitle>
+        </div>
+        <CardDescription>These fields are only visible to internal team members.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+
+        {/* Room Assignment */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+            Room Assignment
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Free-text — e.g. "Workshop 2 (W206ABC) — Monday August 10, 3:00 PM"
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={roomValue}
+              onChange={e => setRoomValue(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveRoom()}
+              placeholder="Enter room and time..."
+              className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <Button size="sm" onClick={saveRoom} disabled={roomSaving}>
+              {roomSaving ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Authorized Emails */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+            Delegate Access
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Additional emails that can view and edit this session. The original owner always retains full access.
+          </p>
+          <div className="flex gap-2">
+            <input
+              ref={emailInputRef}
+              type="email"
+              value={emailInput}
+              onChange={e => setEmailInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addEmail()}
+              placeholder="email@domain.com"
+              className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <Button size="sm" onClick={addEmail} disabled={emailSaving || !emailInput.trim()}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Add
+            </Button>
+          </div>
+          {currentEmails.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {currentEmails.map(email => (
+                <span
+                  key={email}
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-xs"
+                >
+                  {email}
+                  <button
+                    onClick={() => removeEmail(email)}
+                    className="ml-1 text-muted-foreground hover:text-foreground"
+                    aria-label={`Remove ${email}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </CardContent>
     </Card>
   );
 }
@@ -158,6 +313,7 @@ function Phase2View({ submission }: { submission: Submission }) {
   const presentersAdded = submission.presentersAdded ?? false;
   const avSelected = submission.avSelected ?? false;
   const isReception = submission.sessionType === 'reception';
+  const avIsOpen = new Date() >= AV_OPEN_DATE;
 
   // Reception: advance on AV only. Workshop/info-session: need both presenters + AV.
   const allDone = isReception ? avSelected : (presentersAdded && avSelected);
@@ -198,9 +354,18 @@ function Phase2View({ submission }: { submission: Submission }) {
           </TaskPill>
         )}
 
-        {/* Task 2 – AV Package & Payment — handled entirely by AVPackageSelector */}
-        <TaskPill complete={avSelected} icon={Monitor} label="AV Package & Payment" alwaysShowChildren>
-          <AVPackageSelector submission={submission} />
+        {/* Task 2 – AV Package & Payment */}
+        <TaskPill complete={avSelected} icon={Monitor} label="AV Package &amp; Payment" alwaysShowChildren>
+          {avIsOpen ? (
+            <AVPackageSelector submission={submission} />
+          ) : (
+            <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-4">
+              <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                AV package selection opens April 29. You'll receive an email when this section is ready to complete.
+              </p>
+            </div>
+          )}
         </TaskPill>
       </div>
     </div>
@@ -209,7 +374,7 @@ function Phase2View({ submission }: { submission: Submission }) {
 
 // ─── Phase 3: Submitted – Awaiting Assignment ─────────────────────────────────
 
-function Phase3View({ submission }: { submission: Submission }) {
+function Phase3View({ submission, isAdmin }: { submission: Submission; isAdmin: boolean }) {
   const cfg = phaseConfig.phase_3;
   const Icon = cfg.icon;
   const isReception = submission.sessionType === 'reception';
@@ -286,13 +451,29 @@ function Phase3View({ submission }: { submission: Submission }) {
         </CardContent>
       </Card>
 
+      {/* Room assignment — shown to partner only when filled in by admin */}
+      {submission.roomAssignment && (
+        <Card className="border-green-500/40 bg-green-500/5">
+          <CardContent className="flex items-start gap-3 p-5">
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
+            <div>
+              <p className="text-sm font-semibold text-green-700">Room Assignment</p>
+              <p className="text-sm mt-0.5">{submission.roomAssignment}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Admin panel — admin only */}
+      {isAdmin && <AdminPanel submission={submission} />}
+
     </div>
   );
 }
 
 // ─── Phase 4: Confirmed ───────────────────────────────────────────────────────
 
-function Phase4View({ submission }: { submission: Submission }) {
+function Phase4View({ submission, isAdmin }: { submission: Submission; isAdmin: boolean }) {
   const cfg = phaseConfig.phase_4;
   const Icon = cfg.icon;
   return (
@@ -345,14 +526,30 @@ function Phase4View({ submission }: { submission: Submission }) {
         </Card>
       )}
 
-      {/* Room & time assignment — fields populated by admin */}
-      <Card className="border-dashed">
-        <CardContent className="p-5">
-          <CardDescription className="text-center text-sm text-muted-foreground">
-            Your room and time assignment details will appear here once finalized by the ALPFA team.
-          </CardDescription>
-        </CardContent>
-      </Card>
+      {/* Room & time assignment */}
+      {submission.roomAssignment ? (
+        <Card className="border-green-500/40 bg-green-500/5">
+          <CardContent className="flex items-start gap-3 p-5">
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
+            <div>
+              <p className="text-sm font-semibold text-green-700">Room Assignment</p>
+              <p className="text-sm mt-0.5">{submission.roomAssignment}</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-dashed">
+          <CardContent className="p-5">
+            <CardDescription className="text-center text-sm text-muted-foreground">
+              Your room and time assignment details will appear here once finalized by the ALPFA team.
+            </CardDescription>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Admin panel — admin only */}
+      {isAdmin && <AdminPanel submission={submission} />}
+
     </div>
   );
 }
@@ -360,8 +557,29 @@ function Phase4View({ submission }: { submission: Submission }) {
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
 export default function SessionDetailView({ submission }: { submission: Submission }) {
+  const { user } = useUser();
+  const { profile } = useUserProfile(user?.uid);
+  const isAdmin = ['internal', 'admin'].includes(profile?.role ?? '');
+
+  // Access check: original owner OR listed in authorizedEmails (OR logic, not replacement)
+  const userEmail = user?.email?.toLowerCase();
+  const isAuthorized =
+    isAdmin ||
+    (user && submission.userId === user.uid) ||
+    (userEmail && (submission.authorizedEmails ?? []).map(e => e.toLowerCase()).includes(userEmail));
+
   const cfg = phaseConfig[submission.status] ?? phaseConfig.phase_1;
   const StatusIcon = cfg.icon;
+
+  if (!isAuthorized) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
+        <ShieldCheck className="h-10 w-10 text-muted-foreground" />
+        <p className="text-muted-foreground">You don’t have access to this session.</p>
+        <Link href="/dashboard" className="text-sm underline text-muted-foreground hover:text-foreground">Back to Dashboard</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -385,10 +603,10 @@ export default function SessionDetailView({ submission }: { submission: Submissi
       </div>
 
       {/* Phase content — partners see human-readable labels only, never phase keys */}
-      {submission.status === 'phase_1' && <Phase1View submission={submission} />}
+      {(submission.status === 'phase_1' || submission.status === 'phase_1_revision') && <Phase1View submission={submission} />}
       {submission.status === 'phase_2' && <Phase2View submission={submission} />}
-      {submission.status === 'phase_3' && <Phase3View submission={submission} />}
-      {submission.status === 'phase_4' && <Phase4View submission={submission} />}
+      {submission.status === 'phase_3' && <Phase3View submission={submission} isAdmin={isAdmin} />}
+      {submission.status === 'phase_4' && <Phase4View submission={submission} isAdmin={isAdmin} />}
     </div>
   );
 }

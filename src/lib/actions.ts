@@ -53,6 +53,7 @@ export async function sendCustomSignInLink(email: string) {
 export async function sendStatusUpdateEmail(submission: Submission, recipientEmail: string) {
     const phaseLabels: Record<Submission['status'], string> = {
         phase_1: 'Awaiting Approval',
+        phase_1_revision: 'Revision Requested — Please review the feedback and update your submission',
         phase_2: 'Needs Information',
         phase_3: 'Submitted - Awaiting Room Assignment',
         phase_4: 'Session Confirmed',

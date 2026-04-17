@@ -2,7 +2,7 @@ import type { Submission } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Clock, AlertCircle, Edit, Briefcase, Handshake, Presentation, Info, CalendarCheck } from 'lucide-react';
+import { Clock, AlertCircle, Edit, Briefcase, Handshake, Presentation, Info, CalendarCheck, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import Link from 'next/link';
@@ -12,10 +12,11 @@ type SubmissionCardProps = {
 };
 
 const statusConfig: Record<Submission['status'], { icon: React.ElementType; label: string; className: string }> = {
-  phase_1: { icon: Clock,         label: 'Awaiting Approval',       className: 'border-blue-500/50 text-blue-500' },
-  phase_2: { icon: AlertCircle,   label: 'Needs Information',       className: 'border-yellow-500/50 text-yellow-500' },
-  phase_3: { icon: Info,          label: 'Submitted - Awaiting Room Assignment', className: 'border-indigo-500/50 text-indigo-500' },
-  phase_4: { icon: CalendarCheck, label: 'Session Confirmed',        className: 'border-green-500/50 text-green-500' },
+  phase_1:          { icon: Clock,         label: 'Awaiting Approval',       className: 'border-blue-500/50 text-blue-500' },
+  phase_1_revision: { icon: RotateCcw,     label: 'Revision Requested',      className: 'border-orange-500/50 text-orange-500' },
+  phase_2:          { icon: AlertCircle,   label: 'Needs Information',       className: 'border-yellow-500/50 text-yellow-500' },
+  phase_3:          { icon: Info,          label: 'Submitted - Awaiting Room Assignment', className: 'border-indigo-500/50 text-indigo-500' },
+  phase_4:          { icon: CalendarCheck, label: 'Session Confirmed',        className: 'border-green-500/50 text-green-500' },
 };
 
 const sessionTypeConfig: Record<Submission['sessionType'], { icon: React.ElementType, label: string }> = {

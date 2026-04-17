@@ -24,13 +24,18 @@ service cloud.firestore {
       return isSignedIn() && requestorRole() in ['internal', 'admin'];
     }
 
+    // Checks if the requesting user is a client.
+    function isClient() {
+      return isSignedIn() && requestorRole() == 'client';
+    }
+
     // --- Path Rules ---
 
     match /users/{userId} {
       // Allow read if owner, or if requestor is internal/admin
       allow get: if isSignedIn() && (isOwner(userId) || isInternalOrAdmin());
-      // Allow list if requestor is internal/admin
-      allow list: if isSignedIn() && isInternalOrAdmin();
+      // Allow list if requestor is internal/admin, or client (for /review submitter attribution)
+      allow list: if isSignedIn() && (isInternalOrAdmin() || isClient());
       // Allow create if owner
       allow create: if isSignedIn() && isOwner(userId);
       // Allow update if owner (and not changing role), or if requestor is internal/admin
@@ -39,15 +44,31 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isInternalOrAdmin();
     }
 
+    // Checks if the requesting user's email is in the document's authorizedEmails array.
+    // Used to grant delegate read/write access without transferring ownership.
+    function isAuthorizedEmail() {
+      return isSignedIn()
+        && 'authorizedEmails' in resource.data
+        && request.auth.token.email in resource.data.authorizedEmails;
+    }
+
     match /submissions/{submissionId} {
       // Allow create for any signed in user
       allow create: if isSignedIn();
-      // Allow read if owner or requestor is internal/admin
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isInternalOrAdmin());
-      // Allow list if requestor is internal/admin OR owner
-      allow list: if isSignedIn() && (isInternalOrAdmin() || resource.data.userId == request.auth.uid);
-      // Allow update/delete if owner or requestor is internal/admin
-      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isInternalOrAdmin());
+      // Allow get if owner, delegate (authorizedEmails), or internal/admin
+      allow get: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAuthorizedEmail() ||
+        isInternalOrAdmin()
+      );
+      // Allow list if internal/admin, client (for /review page), or owner
+      allow list: if isSignedIn() && (isInternalOrAdmin() || isClient() || resource.data.userId == request.auth.uid);
+      // Allow update/delete if owner, delegate, or internal/admin
+      allow update, delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAuthorizedEmail() ||
+        isInternalOrAdmin()
+      );
     }
 
     // Allow users to manage their own subcollections

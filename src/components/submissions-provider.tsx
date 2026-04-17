@@ -26,7 +26,7 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
     
     const submissionsCol = collection(firestore, 'submissions') as CollectionReference<Submission>;
     
-    if (['admin', 'internal'].includes(profile.role)) {
+    if (['admin', 'internal', 'client'].includes(profile.role)) {
       return submissionsCol;
     } else {
       return query(submissionsCol, where('userId', '==', user.uid));

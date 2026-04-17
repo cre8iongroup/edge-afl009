@@ -17,7 +17,7 @@ const DevLogin = () => {
     return null;
   }
 
-  const handleLogin = async (role: 'admin' | 'user') => {
+  const handleLogin = async (role: 'admin' | 'user' | 'client') => {
     if (!auth || !firestore) {
       setError("Firebase services not available");
       return;
@@ -44,14 +44,15 @@ const DevLogin = () => {
       const userRef = doc(firestore, 'users', uid);
       const userSnap = await getDoc(userRef);
 
-      const targetRole = role === 'admin' ? 'admin' : 'regular';
+      const targetRole = role === 'admin' ? 'admin' : role === 'client' ? 'client' : 'regular';
+      const displayName = role === 'admin' ? 'Dev Admin' : role === 'client' ? 'Dev Client' : 'Dev User';
 
       if (userSnap.exists()) {
         await updateDoc(userRef, { role: targetRole });
       } else {
         await setDoc(userRef, {
           email: credentials.email,
-          name: role === 'admin' ? 'Dev Admin' : 'Dev User',
+          name: displayName,
           role: targetRole,
           avatar: '',
         });
@@ -106,7 +107,7 @@ const DevLogin = () => {
           </button>
         </div>
       ) : (
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" }}>
           <button
             onClick={() => handleLogin('user')}
             disabled={!!loading}
@@ -119,10 +120,27 @@ const DevLogin = () => {
               cursor: "pointer",
               fontSize: "12px",
               boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-              opacity: loading === 'admin' ? 0.5 : 1,
+              opacity: loading && loading !== 'user' ? 0.5 : 1,
             }}
           >
             {loading === 'user' ? "Logging in..." : "Log In as User (Dev)"}
+          </button>
+          <button
+            onClick={() => handleLogin('client')}
+            disabled={!!loading}
+            style={{
+              padding: "8px 14px",
+              backgroundColor: "#9C27B0",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "12px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+              opacity: loading && loading !== 'client' ? 0.5 : 1,
+            }}
+          >
+            {loading === 'client' ? "Logging in..." : "Log In as Client (Dev)"}
           </button>
           <button
             onClick={() => handleLogin('admin')}
@@ -136,7 +154,7 @@ const DevLogin = () => {
               cursor: "pointer",
               fontSize: "12px",
               boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-              opacity: loading === 'user' ? 0.5 : 1,
+              opacity: loading && loading !== 'admin' ? 0.5 : 1,
             }}
           >
             {loading === 'admin' ? "Logging in..." : "Log In as Admin (Dev)"}

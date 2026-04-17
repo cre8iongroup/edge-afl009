@@ -4,18 +4,34 @@ import AppLayout from '@/components/layout/app-layout';
 import SessionDetailView from '@/components/submit/session-detail-view';
 import { useParams } from 'next/navigation';
 import { useSubmissions } from '@/components/submissions-provider';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useFirestore } from '@/firebase';
+import { doc, collection } from 'firebase/firestore';
+import { useMemo } from 'react';
+import type { Submission } from '@/lib/types';
 
 export default function ReceptionDetailPage() {
   const params = useParams();
-  const { id } = params;
+  const id = params.id as string;
   const { getSubmission } = useSubmissions();
+  const firestore = useFirestore();
 
-  const submission = getSubmission(id as string);
+  const collectionSubmission = getSubmission(id);
+
+  const docRef = useMemo(
+    () => (!collectionSubmission && firestore ? doc(collection(firestore, 'submissions'), id) : null),
+    [collectionSubmission, firestore, id],
+  );
+  const { data: docSubmission, isLoading } = useDoc<Submission>(docRef);
+
+  const submission = collectionSubmission ?? docSubmission ?? null;
 
   return (
     <AppLayout>
       {submission ? (
         <SessionDetailView submission={submission} />
+      ) : isLoading ? (
+        <div className="text-center text-muted-foreground py-16">Loading…</div>
       ) : (
         <div className="text-center text-muted-foreground py-16">Submission not found.</div>
       )}
