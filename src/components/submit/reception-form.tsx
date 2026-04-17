@@ -126,7 +126,7 @@ export default function ReceptionForm({ submission }: ReceptionFormProps) {
           description: 'Your reception submission has been updated.',
         });
       } else {
-        addSubmission({ ...submissionData, userId: user.uid, status: 'Awaiting Approval' });
+        addSubmission({ ...submissionData, userId: user.uid });
         toast({
           title: 'Reception Submitted!',
           description: 'Your reception submission has been received for approval.',

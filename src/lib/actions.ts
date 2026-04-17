@@ -29,7 +29,7 @@ export async function sendCustomSignInLink(email: string) {
       ? await auth.generateSignInWithEmailLink(email, actionCodeSettings)
       : `#mock-link-for-${encodeURIComponent(email)}`;
     
-    console.log(`[Simulation] Generated sign-in link for ${email}: ${link}`);
+    console.log(`Generated sign-in link for ${email}: ${link}`);
 
     // Send the sign-in link via email
     const emailSubject = "Your sign-in link for the ALPFA Convention Portal";
@@ -37,10 +37,10 @@ export async function sendCustomSignInLink(email: string) {
     const emailResult = await sendEmail(email, emailSubject, emailBody);
 
     if (emailResult.success) {
-      console.log(`[Simulation] Successfully sent sign-in email to ${email}.`);
+      console.log(`Successfully sent sign-in email to ${email}.`);
       return { success: true, link };
     } else {
-      console.error('[Simulation] Error sending sign-in email:', emailResult.error);
+      console.error('Error sending sign-in email:', emailResult.error);
       return { success: false, error: 'Could not send sign-in email.' };
     }
   } catch (error) {
@@ -51,17 +51,25 @@ export async function sendCustomSignInLink(email: string) {
 }
 
 export async function sendStatusUpdateEmail(submission: Submission, recipientEmail: string) {
-    console.log(`[Simulation] Preparing status update email to ${recipientEmail} for submission "${submission.title}" to status ${submission.status}`);
+    const phaseLabels: Record<Submission['status'], string> = {
+        phase_1: 'Awaiting Approval',
+        phase_2: 'Needs Information',
+        phase_3: 'Submitted - Awaiting Room Assignment',
+        phase_4: 'Session Confirmed',
+    };
+    const statusLabel = phaseLabels[submission.status] ?? submission.status;
+
+    console.log(`Preparing status update email to ${recipientEmail} for submission "${submission.title}" — status: ${statusLabel}`);
 
     const emailSubject = `Update on your ALPFA submission: ${submission.title}`;
-    const emailBody = `<p>Hello,</p><p>The status of your submission, "${submission.title}," has been updated to: <strong>${submission.status}</strong>.</p><p>You can view your submission dashboard for more details.</p>`;
+    const emailBody = `<p>Hello,</p><p>The status of your submission, "${submission.title}," has been updated to: <strong>${statusLabel}</strong>.</p><p>You can view your submission dashboard for more details.</p>`;
     const emailResult = await sendEmail(recipientEmail, emailSubject, emailBody);
 
     if (emailResult.success) {
-        console.log(`[Simulation] Successfully sent status update email to ${recipientEmail}.`);
+        console.log(`Successfully sent status update email to ${recipientEmail}.`);
         return { success: true };
     } else {
-        console.error('[Simulation] Error sending status update email:', emailResult.error);
+        console.error('Error sending status update email:', emailResult.error);
         return { success: false, error: 'Could not send status update email.' };
     }
 }

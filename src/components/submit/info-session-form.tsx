@@ -142,7 +142,7 @@ export default function InfoSessionForm({ submission }: InfoSessionFormProps) {
                     description: 'Your info session submission has been updated.',
                 });
             } else {
-                addSubmission({ ...submissionData, userId: user.uid, status: 'Awaiting Approval' });
+                addSubmission({ ...submissionData, userId: user.uid });
                 toast({
                     title: 'Info Session Submitted!',
                     description: 'Your info session submission has been received for approval.',

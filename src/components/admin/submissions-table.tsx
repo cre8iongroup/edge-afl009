@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
-import { AlertCircle, CheckCircle2, Clock, XCircle, MoreHorizontal, Briefcase, Presentation, Handshake } from 'lucide-react';
+import { AlertCircle, Clock, MoreHorizontal, Briefcase, Presentation, Handshake, Info, CalendarCheck } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -22,12 +22,19 @@ import { useUserProfiles } from '@/hooks/use-user-profiles';
 import { useToast } from '@/hooks/use-toast';
 import { sendStatusUpdateEmail } from '@/lib/actions';
 
-const statusConfig: Record<Submission['status'], { icon: React.ElementType, className: string }> = {
-    'Awaiting Approval': { icon: Clock, className: 'text-blue-500 border-blue-500/50' },
-    'Approved': { icon: CheckCircle2, className: 'text-green-500 border-green-500/50' },
-    'Rejected': { icon: XCircle, className: 'text-red-500 border-red-500/50' },
-    'Needs Information': { icon: AlertCircle, className: 'text-yellow-500 border-yellow-500/50' },
+const statusConfig: Record<Submission['status'], { icon: React.ElementType; label: string; className: string }> = {
+    phase_1: { icon: Clock,         label: 'Phase 1 — Awaiting Approval',         className: 'text-blue-500 border-blue-500/50' },
+    phase_2: { icon: AlertCircle,   label: 'Phase 2 — Action Required',            className: 'text-yellow-500 border-yellow-500/50' },
+    phase_3: { icon: Info,          label: 'Phase 3 — Submitted - Awaiting Room Assignment',   className: 'text-indigo-500 border-indigo-500/50' },
+    phase_4: { icon: CalendarCheck, label: 'Phase 4 — Locked',                    className: 'text-green-500 border-green-500/50' },
 };
+
+const phaseMenuItems: { phase: Submission['status']; label: string }[] = [
+    { phase: 'phase_1', label: 'Move to Phase 1 — Awaiting Approval' },
+    { phase: 'phase_2', label: 'Move to Phase 2 — Action Required' },
+    { phase: 'phase_3', label: 'Move to Phase 3 — Submitted - Awaiting Room Assignment' },
+    { phase: 'phase_4', label: 'Move to Phase 4 — Locked' },
+];
 
 const sessionTypeConfig: Record<Submission['sessionType'], { icon: React.ElementType, label: string }> = {
     'workshop': { icon: Briefcase, label: 'Workshop' },
@@ -136,7 +143,7 @@ export default function SubmissionsTable() {
                         <TableCell className="text-center">
                             <Badge variant="outline" className={cn('whitespace-nowrap font-medium', statusClassName)}>
                                 <StatusIcon className="mr-1.5 h-3.5 w-3.5" />
-                                {item.status}
+                                {statusConfig[item.status]?.label ?? item.status}
                             </Badge>
                         </TableCell>
                         <TableCell>{item.pillar}</TableCell>
@@ -151,15 +158,15 @@ export default function SubmissionsTable() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                                    <DropdownMenuLabel>Change Phase</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
-                                    {Object.keys(statusConfig).map((status) => (
+                                    {phaseMenuItems.map(({ phase, label }) => (
                                         <DropdownMenuItem
-                                            key={status}
-                                            onSelect={() => handleStatusChange(item.id, status as Submission['status'])}
-                                            disabled={item.status === status}
+                                            key={phase}
+                                            onSelect={() => handleStatusChange(item.id, phase)}
+                                            disabled={item.status === phase}
                                         >
-                                            {status}
+                                            {label}
                                         </DropdownMenuItem>
                                     ))}
                                 </DropdownMenuContent>

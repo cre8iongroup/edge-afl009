@@ -95,7 +95,7 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
     },
   });
 
-  const showPresenterFields = submission && submission.status !== 'Awaiting Approval';
+  const showPresenterFields = submission && submission.status !== 'phase_1';
 
   const selectedDate1 = form.watch('preferredDate');
   const selectedDate2 = form.watch('preferredDate2');
@@ -143,7 +143,7 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
           description: 'Your workshop submission has been updated.',
         });
       } else {
-        addSubmission({ ...submissionData, userId: user.uid, status: 'Awaiting Approval' });
+        addSubmission({ ...submissionData, userId: user.uid });
         toast({
           title: 'Workshop Submitted!',
           description: 'Your workshop submission has been received for approval.',

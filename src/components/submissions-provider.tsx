@@ -67,7 +67,7 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
       ...submissionData,
       userId: user.uid, // Ensure userId is set
       createdAt: Timestamp.now(),
-      status: 'Awaiting Approval',
+      status: 'phase_1',
     };
 
     try {

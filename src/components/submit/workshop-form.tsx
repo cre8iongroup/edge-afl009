@@ -98,7 +98,7 @@ export default function SubmissionForm({ sessionType, submission }: SubmissionFo
     }
   }, [submission, form]);
 
-  const showPresenterFields = submission && submission.status !== 'Awaiting Approval';
+  const showPresenterFields = submission && submission.status !== 'phase_1';
 
   const selectedDate = form.watch('preferredDate');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);

@@ -2,7 +2,7 @@ import type { Submission } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Clock, CheckCircle2, XCircle, AlertCircle, Edit, Briefcase, Handshake, Presentation } from 'lucide-react';
+import { Clock, AlertCircle, Edit, Briefcase, Handshake, Presentation, Info, CalendarCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import Link from 'next/link';
@@ -11,23 +11,11 @@ type SubmissionCardProps = {
   submission: Submission;
 };
 
-const statusConfig = {
-  'Awaiting Approval': {
-    icon: Clock,
-    className: 'border-blue-500/50 text-blue-500',
-  },
-  'Approved': {
-    icon: CheckCircle2,
-    className: 'border-green-500/50 text-green-500',
-  },
-  'Rejected': {
-    icon: XCircle,
-    className: 'border-red-500/50 text-red-500',
-  },
-  'Needs Information': {
-    icon: AlertCircle,
-    className: 'border-yellow-500/50 text-yellow-500',
-  },
+const statusConfig: Record<Submission['status'], { icon: React.ElementType; label: string; className: string }> = {
+  phase_1: { icon: Clock,         label: 'Awaiting Approval',       className: 'border-blue-500/50 text-blue-500' },
+  phase_2: { icon: AlertCircle,   label: 'Needs Information',       className: 'border-yellow-500/50 text-yellow-500' },
+  phase_3: { icon: Info,          label: 'Submitted - Awaiting Room Assignment', className: 'border-indigo-500/50 text-indigo-500' },
+  phase_4: { icon: CalendarCheck, label: 'Session Confirmed',        className: 'border-green-500/50 text-green-500' },
 };
 
 const sessionTypeConfig: Record<Submission['sessionType'], { icon: React.ElementType, label: string }> = {
@@ -37,7 +25,7 @@ const sessionTypeConfig: Record<Submission['sessionType'], { icon: React.Element
 };
 
 export default function SubmissionCard({ submission }: SubmissionCardProps) {
-  const status = statusConfig[submission.status];
+  const status = statusConfig[submission.status] ?? statusConfig['phase_1'];
   const StatusIcon = status.icon;
 
   const sessionType = sessionTypeConfig[submission.sessionType];
@@ -55,7 +43,7 @@ export default function SubmissionCard({ submission }: SubmissionCardProps) {
             <CardTitle className="font-headline text-lg">{submission.title}</CardTitle>
              <Badge variant="outline" className={cn('whitespace-nowrap', status.className)}>
                 <StatusIcon className="mr-1.5 h-3.5 w-3.5" />
-                {submission.status}
+                {status.label}
             </Badge>
           </div>
           <CardDescription className="flex gap-2 pt-2">
