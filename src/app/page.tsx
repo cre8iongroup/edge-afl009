@@ -63,7 +63,29 @@ export default function LoginPage() {
         <span className="text-2xl font-thin text-muted-foreground">x</span>
         <Cre8ionLogo className="h-8 w-auto" />
       </div>
-      <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm shadow-2xl">
+      {/* Ambient glow behind the card — brand blue → pink */}
+      <div style={{ position: 'relative', width: '100%', maxWidth: '28rem' }}>
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: '-64px',
+            zIndex: 0,
+            pointerEvents: 'none',
+            borderRadius: '2rem',
+            opacity: 0.9,
+            filter: 'blur(48px)',
+            background:
+              'radial-gradient(ellipse at 15% 15%, #009FE3 0%, transparent 55%), radial-gradient(ellipse at 85% 85%, #EC008C 0%, transparent 55%)',
+          }}
+        />
+        <div style={{
+          padding: '1px',
+          borderRadius: '0.75rem',
+          background: 'linear-gradient(135deg, #009FE3, #EC008C)',
+          boxShadow: '0 0 20px rgba(0, 159, 227, 0.3), 0 0 40px rgba(236, 0, 140, 0.2)'
+        }}>
+          <Card className="relative z-10 w-full max-w-md bg-card/80 backdrop-blur-sm shadow-2xl" style={{ borderRadius: '0.7rem', border: 'none' }}>
         <CardHeader className="text-center">
           <CardTitle className="font-headline text-3xl">ALPFA 2026 Convention Portal</CardTitle>
           <CardDescription>Sign in to access your account</CardDescription>
@@ -97,7 +119,9 @@ export default function LoginPage() {
             </form>
           )}
         </CardContent>
-      </Card>
+          </Card>
+        </div>
+      </div>
       <footer className="absolute bottom-4 text-center text-sm text-muted-foreground">
         ALPFA 2026 Convention, powered by <strong className="font-semibold text-foreground">cre8ion Edge</strong>.
       </footer>
