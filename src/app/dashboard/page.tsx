@@ -5,10 +5,11 @@ import SubmissionCard from '@/components/dashboard/submission-card';
 import { useSubmissions } from '@/components/submissions-provider';
 import { useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, FilePlus } from 'lucide-react';
+import { FilePlus } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import ProcessTimeline from '@/components/template/process-timeline';
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -22,9 +23,11 @@ export default function DashboardPage() {
     <AppLayout>
       <div className="flex flex-col gap-8">
         <div>
-          <h1 className="font-headline text-3xl font-semibold">Welcome!</h1>
+          <h1 className="font-headline text-3xl font-semibold">Welcome to the ALPFA 2026 Convention Portal</h1>
           <p className="text-muted-foreground">Here&apos;s an overview of your submissions.</p>
         </div>
+
+        <ProcessTimeline />
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {userSubmissions.length > 0 ? (

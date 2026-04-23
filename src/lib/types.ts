@@ -41,7 +41,7 @@ export type Submission = {
   sessionType: 'workshop' | 'reception' | 'info-session';
   title: string;
   description: string;
-  status: 'phase_1' | 'phase_1_revision' | 'phase_2' | 'phase_3' | 'phase_4';
+  status: 'phase_1' | 'phase_2' | 'phase_3' | 'phase_4';
   presentersAdded?: boolean;
   presenters?: Presenter[];         // Phase 2 full presenter profiles
   avSelected?: boolean;
@@ -64,6 +64,9 @@ export type Submission = {
   presenterEmail?: string;
   presenterPocName?: string;
   presenterPocEmail?: string;
+  pocName?: string;          // reception & info-session POC name
+  pocEmail?: string;         // reception & info-session POC email
+  companyName?: string;      // reception & info-session company name
   presenterBio?: string;
   presenterHeadshot?: string;
   // ─── Admin-only fields ───────────────────────────────────────────────────────

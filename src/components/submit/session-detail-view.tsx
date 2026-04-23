@@ -21,7 +21,9 @@ import {
   ShieldCheck,
   X,
   Plus,
-  RotateCcw,
+  ChevronDown,
+  ChevronUp,
+  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
@@ -43,12 +45,6 @@ const phaseConfig: Record<
     label: 'Awaiting Approval',
     className: 'border-blue-500/50 text-blue-500 bg-blue-500/10',
     bannerClassName: 'border-blue-500/30 bg-blue-500/5',
-  },
-  phase_1_revision: {
-    icon: RotateCcw,
-    label: 'Revision Requested',
-    className: 'border-orange-500/50 text-orange-500 bg-orange-500/10',
-    bannerClassName: 'border-orange-500/30 bg-orange-500/5',
   },
   phase_2: {
     icon: AlertCircle,
@@ -267,6 +263,172 @@ function TaskPill({
   );
 }
 
+
+// ─── POC Resolution Helper ────────────────────────────────────────────────────
+
+function resolvePoc(submission: Submission): { name: string; email: string } {
+  const isReceptionOrInfo =
+    submission.sessionType === 'reception' || submission.sessionType === 'info-session';
+  const name = isReceptionOrInfo
+    ? (submission.pocName ?? '')
+    : (submission.presenterPocName ?? submission.presenterName ?? '');
+  const email = isReceptionOrInfo
+    ? (submission.pocEmail ?? '')
+    : (submission.presenterPocEmail ?? submission.presenterEmail ?? '');
+  return { name: name || 'Not provided', email: email || 'Not provided' };
+}
+
+// ─── Date Slot Formatting Helper ──────────────────────────────────────────────
+
+function formatDateSlot(date?: Date | string | { toDate(): Date } | null, time?: string | null): string {
+  if (!date && !time) return 'Not provided';
+  const parts: string[] = [];
+  if (date) {
+    try {
+      // Handle Firestore Timestamp (.toDate()), JS Date, or ISO string
+      const d =
+        typeof date === 'object' && 'toDate' in date && typeof (date as { toDate(): Date }).toDate === 'function'
+          ? (date as { toDate(): Date }).toDate()
+          : typeof date === 'string'
+            ? new Date(date)
+            : (date as Date);
+      parts.push(d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }));
+    } catch { parts.push(String(date)); }
+  }
+  if (time) parts.push(time);
+  return parts.join(' — ') || 'Not provided';
+}
+
+// ─── Submission Summary Card ──────────────────────────────────────────────────
+
+function SubmissionSummaryCard({ submission }: { submission: Submission }) {
+  const [expanded, setExpanded] = useState(false);
+  const poc = resolvePoc(submission);
+  const isWorkshop = submission.sessionType === 'workshop';
+  const isInfoSession = submission.sessionType === 'info-session';
+  const isReceptionOrInfo = submission.sessionType === 'reception' || isInfoSession;
+
+  const preferredTimes = Array.isArray(submission.preferredTimes) ? submission.preferredTimes : [];
+  const firstChoice = isInfoSession
+    ? formatDateSlot(submission.preferredDate, preferredTimes[0] ?? null)
+    : formatDateSlot(submission.preferredDate, submission.preferredTime);
+  const secondChoice = isInfoSession
+    ? (preferredTimes[1] ?? 'Not provided')
+    : formatDateSlot(submission.preferredDate2, submission.preferredTime2);
+
+  const secondaryAudience = Array.isArray(submission.secondaryAudience)
+    ? submission.secondaryAudience.join(', ')
+    : (submission.secondaryAudience ?? '');
+  const objectives = Array.isArray(submission.objectives) ? submission.objectives.join(', ') : '';
+  const audience = Array.isArray(submission.audience)
+    ? submission.audience.join(', ')
+    : (submission.audience ?? '');
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <button
+          type="button"
+          onClick={() => setExpanded(prev => !prev)}
+          className="flex w-full items-center justify-between gap-2 text-left"
+        >
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+            <CardTitle className="text-base font-semibold">Submission Summary</CardTitle>
+          </div>
+          {expanded
+            ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+            : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+        </button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Session Title</p>
+            <p className="text-sm font-medium">{submission.title}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Session Type · Pillar</p>
+            <p className="text-sm capitalize">{submission.sessionType.replace('-', ' ')}{submission.pillar ? ` · ${submission.pillar}` : ''}</p>
+          </div>
+          {isReceptionOrInfo && submission.companyName && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company Name</p>
+              <p className="text-sm">{submission.companyName}</p>
+            </div>
+          )}
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">1st Choice</p>
+            <p className="text-sm">{firstChoice}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">2nd Choice</p>
+            <p className="text-sm">{secondChoice}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Point of Contact</p>
+            <p className="text-sm">{poc.name}</p>
+          </div>
+        </div>
+        {expanded && (
+          <div className="border-t pt-4 grid gap-3 sm:grid-cols-2">
+            {submission.description && (
+              <div className="sm:col-span-2 space-y-1">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Description</p>
+                <p className="text-sm whitespace-pre-wrap">{submission.description}</p>
+              </div>
+            )}
+            {isWorkshop && objectives && (
+              <div className="sm:col-span-2 space-y-1">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Objectives</p>
+                <p className="text-sm">{objectives}</p>
+              </div>
+            )}
+            {audience && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Primary Audience</p>
+                <p className="text-sm">{audience}</p>
+              </div>
+            )}
+            {secondaryAudience && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Secondary Audience</p>
+                <p className="text-sm">{secondaryAudience}</p>
+              </div>
+            )}
+            {submission.format && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Format</p>
+                <p className="text-sm">{submission.format}</p>
+              </div>
+            )}
+            {isWorkshop && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">CPE Credit</p>
+                <p className="text-sm">{submission.cpe ? 'Requested' : 'Not requested'}</p>
+              </div>
+            )}
+            {isInfoSession && submission.specialSetup && (
+              <div className="sm:col-span-2 space-y-1">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Special Setup Requests</p>
+                <p className="text-sm">{submission.specialSetup}</p>
+              </div>
+            )}
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">POC Name</p>
+              <p className="text-sm">{poc.name}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">POC Email</p>
+              <p className="text-sm">{poc.email}</p>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Phase 1: Awaiting Approval ───────────────────────────────────────────────
 
 function Phase1View({ submission }: { submission: Submission }) {
@@ -287,20 +449,7 @@ function Phase1View({ submission }: { submission: Submission }) {
         </CardContent>
       </Card>
 
-      <SectionCard title="Session Overview">
-        <ReadOnlyField label="Title" value={submission.title} />
-        <ReadOnlyField label="Session Type" value={submission.sessionType} />
-        <ReadOnlyField label="Pillar" value={submission.pillar} />
-        <ReadOnlyField label="Format" value={submission.format} />
-      </SectionCard>
-
-      <SectionCard title="Session Details">
-        <div className="sm:col-span-2">
-          <ReadOnlyField label="Description" value={submission.description} />
-        </div>
-        <ReadOnlyField label="Audience" value={submission.audience} />
-        <ReadOnlyField label="CPE Credit" value={submission.cpe ? 'Yes' : 'No'} />
-      </SectionCard>
+      <SubmissionSummaryCard submission={submission} />
     </div>
   );
 }
@@ -345,6 +494,8 @@ function Phase2View({ submission }: { submission: Submission }) {
         </CardContent>
       </Card>
 
+      <SubmissionSummaryCard submission={submission} />
+
       <div className="flex flex-col gap-4">
 
         {/* Task 1 — Presenters (workshop & info-session only) */}
@@ -378,12 +529,6 @@ function Phase3View({ submission, isAdmin }: { submission: Submission; isAdmin: 
   const cfg = phaseConfig.phase_3;
   const Icon = cfg.icon;
   const isReception = submission.sessionType === 'reception';
-
-  // Point of Contact: prefer PoC-specific fields, fall back to generic presenter fields.
-  // Show "Not provided" rather than blank if all are empty.
-  const pocName = submission.presenterPocName || submission.presenterName || 'Not provided';
-  const pocEmail = submission.presenterPocEmail || submission.presenterEmail || 'Not provided';
-
   return (
     <div className="space-y-6">
       {/* Status banner */}
@@ -400,25 +545,8 @@ function Phase3View({ submission, isAdmin }: { submission: Submission; isAdmin: 
         </CardContent>
       </Card>
 
-      {/* Session Overview */}
-      <SectionCard title="Session Overview">
-        <ReadOnlyField label="Title" value={submission.title} />
-        <ReadOnlyField label="Session Type" value={submission.sessionType} />
-        <ReadOnlyField label="Pillar" value={submission.pillar} />
-        <ReadOnlyField label="Format" value={submission.format} />
-      </SectionCard>
-
-      {/* Point of Contact — always shown, never collapses to blank */}
-      <SectionCard title="Point of Contact">
-        <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Name</p>
-          <p className="text-sm">{pocName}</p>
-        </div>
-        <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Email</p>
-          <p className="text-sm">{pocEmail}</p>
-        </div>
-      </SectionCard>
+      {/* Submission Summary */}
+      <SubmissionSummaryCard submission={submission} />
 
       {/* Presenters — editable until July 1 (hidden for receptions) */}
       {!isReception && (
@@ -490,20 +618,7 @@ function Phase4View({ submission, isAdmin }: { submission: Submission; isAdmin: 
         </CardContent>
       </Card>
 
-      <SectionCard title="Session Overview">
-        <ReadOnlyField label="Title" value={submission.title} />
-        <ReadOnlyField label="Session Type" value={submission.sessionType} />
-        <ReadOnlyField label="Pillar" value={submission.pillar} />
-        <ReadOnlyField label="Format" value={submission.format} />
-      </SectionCard>
-
-      {/* Point of Contact (from initial submission) + Presenters array */}
-      {(submission.presenterName || submission.presenterPocName || (submission.presenters && submission.presenters.length > 0)) && (
-        <SectionCard title="Point of Contact">
-          <ReadOnlyField label="Name" value={submission.presenterPocName ?? submission.presenterName} />
-          <ReadOnlyField label="Email" value={submission.presenterPocEmail ?? submission.presenterEmail} />
-        </SectionCard>
-      )}
+      <SubmissionSummaryCard submission={submission} />
 
       {submission.presenters && submission.presenters.length > 0 && (
         <Card>
@@ -603,7 +718,7 @@ export default function SessionDetailView({ submission }: { submission: Submissi
       </div>
 
       {/* Phase content — partners see human-readable labels only, never phase keys */}
-      {(submission.status === 'phase_1' || submission.status === 'phase_1_revision') && <Phase1View submission={submission} />}
+      {submission.status === 'phase_1' && <Phase1View submission={submission} />}
       {submission.status === 'phase_2' && <Phase2View submission={submission} />}
       {submission.status === 'phase_3' && <Phase3View submission={submission} isAdmin={isAdmin} />}
       {submission.status === 'phase_4' && <Phase4View submission={submission} isAdmin={isAdmin} />}

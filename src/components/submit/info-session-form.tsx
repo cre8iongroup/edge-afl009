@@ -45,7 +45,7 @@ const formSchema = z.object({
     audience: z.array(z.string()).min(1, 'Please select at least one intended audience.'),
     secondaryAudience: z.array(z.string()).optional(),
     preferredDate: z.string().min(1, 'Please select a date.'),
-    preferredTimes: z.array(z.string()).min(1, 'Please select at least one time preference.').max(3),
+    preferredTimes: z.array(z.string()).min(2, 'Please select both a 1st and 2nd choice time.').max(2),
     specialSetup: z.string().optional(),
 });
 
@@ -452,12 +452,12 @@ export default function InfoSessionForm({ submission }: InfoSessionFormProps) {
                                             Select your preferred time slots in order of priority. Note: Info Sessions are held on Sunday only.
                                         </p>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <FormField
                                             control={form.control}
                                             name="preferredDate"
                                             render={({ field }) => (
-                                                <FormItem className="flex flex-col md:col-span-3">
+                                                <FormItem className="flex flex-col md:col-span-2">
                                                     <FormLabel>Convention Date</FormLabel>
                                                     <Select onValueChange={field.onChange} defaultValue={field.value} disabled>
                                                         <FormControl>
@@ -478,7 +478,7 @@ export default function InfoSessionForm({ submission }: InfoSessionFormProps) {
                                             )}
                                         />
 
-                                        {[0, 1, 2].map((i) => (
+                                        {[0, 1].map((i) => (
                                             <FormItem key={i} className="flex flex-col">
                                                 <FormLabel>{i === 0 ? '1st Choice' : i === 1 ? '2nd Choice' : '3rd Choice'}</FormLabel>
                                                 <Select

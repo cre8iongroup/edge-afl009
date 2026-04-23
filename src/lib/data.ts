@@ -109,8 +109,6 @@ export const submissionFormConfig = {
     },
   ],
   secondaryAudiences: [
-    { value: 'Students', label: 'Students' },
-    { value: 'Professionals (Early/Mid)', label: 'Professionals (Early/Mid)' },
     { value: 'Senior Executives', label: 'Senior Executives' },
     { value: 'Entrepreneurs/Creatives', label: 'Entrepreneurs/Creatives' },
     { value: 'Chapter Leaders', label: 'Chapter Leaders' },

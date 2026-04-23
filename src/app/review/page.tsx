@@ -16,7 +16,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { cn } from '@/lib/utils';
 import {
   Clock,
-  RotateCcw,
   CheckCircle2,
   Briefcase,
   Handshake,
@@ -28,7 +27,7 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const REVIEWABLE_STATUSES: Submission['status'][] = ['phase_1', 'phase_1_revision'];
+const REVIEWABLE_STATUSES: Submission['status'][] = ['phase_1'];
 
 const ALLOWED_ROLES = ['internal', 'admin', 'client'] as const;
 
@@ -37,11 +36,6 @@ const statusConfig = {
     icon: Clock,
     label: 'Awaiting Approval',
     className: 'border-blue-500/50 text-blue-500 bg-blue-500/5',
-  },
-  phase_1_revision: {
-    icon: RotateCcw,
-    label: 'Revision Requested',
-    className: 'border-orange-500/50 text-orange-500 bg-orange-500/5',
   },
 } satisfies Partial<Record<Submission['status'], { icon: React.ElementType; label: string; className: string }>>;
 
@@ -58,7 +52,6 @@ function SessionReviewCard({ submission }: { submission: Submission }) {
   const { toast } = useToast();
   const { users } = useUserProfiles();
   const [approvingId, setApprovingId] = useState<string | null>(null);
-  const [revisingId, setRevisingId] = useState<string | null>(null);
 
   const statusCfg = statusConfig[submission.status as keyof typeof statusConfig] ?? statusConfig.phase_1;
   const StatusIcon = statusCfg.icon;
@@ -87,28 +80,7 @@ function SessionReviewCard({ submission }: { submission: Submission }) {
     }
   };
 
-  const handleRequestRevision = async () => {
-    setRevisingId(submission.id);
-    try {
-      const updated = { ...submission, status: 'phase_1_revision' as Submission['status'] };
-      await updateSubmission(updated);
-      if (submitter?.email) {
-        await sendStatusUpdateEmail(updated, submitter.email);
-      }
-      toast({
-        title: 'Revision Requested',
-        description: `"${submission.title}" has been sent back for revision.`,
-      });
-    } catch {
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not request revision. Please try again.' });
-    } finally {
-      setRevisingId(null);
-    }
-  };
-
   const isApproving = approvingId === submission.id;
-  const isRevising = revisingId === submission.id;
-  const isBusy = isApproving || isRevising;
 
   return (
     <Card className="flex flex-col overflow-hidden transition-shadow duration-200 hover:shadow-md">
@@ -136,8 +108,16 @@ function SessionReviewCard({ submission }: { submission: Submission }) {
             <SessionIcon className="h-3.5 w-3.5" />
             {sessionCfg.label}
           </Badge>
-          <Badge variant="secondary">{submission.pillar}</Badge>
-          <Badge variant="secondary">{submission.format}</Badge>
+          {submission.pillar && <Badge variant="secondary">{submission.pillar}</Badge>}
+          {submission.format && <Badge variant="secondary">{submission.format}</Badge>}
+          {(() => {
+            const audiences = Array.isArray(submission.audience)
+              ? submission.audience
+              : submission.audience ? [submission.audience] : [];
+            return audiences.map((a) => (
+              <Badge key={a} variant="secondary">{a}</Badge>
+            ));
+          })()}
         </CardDescription>
       </CardHeader>
 
@@ -147,7 +127,7 @@ function SessionReviewCard({ submission }: { submission: Submission }) {
         <div className="mt-auto flex flex-col gap-2 sm:flex-row">
           <Button
             onClick={handleApprove}
-            disabled={isBusy}
+            disabled={isApproving}
             className="flex-1 gap-2 bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-600"
             id={`approve-${submission.id}`}
           >
@@ -157,21 +137,6 @@ function SessionReviewCard({ submission }: { submission: Submission }) {
               <CheckCircle2 className="h-4 w-4" />
             )}
             {isApproving ? 'Approving…' : 'Approve'}
-          </Button>
-
-          <Button
-            onClick={handleRequestRevision}
-            disabled={isBusy || submission.status === 'phase_1_revision'}
-            variant="outline"
-            className="flex-1 gap-2 border-orange-500/50 text-orange-600 hover:bg-orange-50 hover:text-orange-700 disabled:opacity-40"
-            id={`revise-${submission.id}`}
-          >
-            {isRevising ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RotateCcw className="h-4 w-4" />
-            )}
-            {isRevising ? 'Sending…' : 'Request Revision'}
           </Button>
         </div>
       </CardContent>
@@ -212,7 +177,6 @@ export default function ReviewPage() {
   );
 
   const phase1Count = submissions.filter(s => s.status === 'phase_1').length;
-  const revisionCount = submissions.filter(s => s.status === 'phase_1_revision').length;
 
   return (
     <AppLayout>
@@ -221,7 +185,7 @@ export default function ReviewPage() {
         <div className="flex flex-col gap-1">
           <h1 className="font-headline text-3xl font-semibold">Review Sessions</h1>
           <p className="text-muted-foreground">
-            Approve or request revisions for Phase 1 submissions.
+          Approve Phase 1 submissions.
           </p>
         </div>
 
@@ -232,12 +196,6 @@ export default function ReviewPage() {
               <Clock className="h-4 w-4 text-blue-500" />
               <span className="text-sm font-medium text-blue-700">{phase1Count} Awaiting Approval</span>
             </div>
-            {revisionCount > 0 && (
-              <div className="flex items-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-4 py-2">
-                <RotateCcw className="h-4 w-4 text-orange-500" />
-                <span className="text-sm font-medium text-orange-700">{revisionCount} Revision Requested</span>
-              </div>
-            )}
           </div>
         )}
 

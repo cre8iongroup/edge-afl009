@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import AppLayout from '@/components/layout/app-layout';
-import ProcessTimeline from '@/components/template/process-timeline';
 import TemplateForm from '@/components/template/template-form';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -14,11 +13,9 @@ export default function TemplatePage() {
         <div className="space-y-4 text-center">
           <h1 className="font-headline text-4xl font-bold tracking-tight">Workshop Submission Guide</h1>
           <p className="mx-auto max-w-3xl text-lg text-muted-foreground">
-            Follow this guide to craft a compelling workshop proposal. Below, you&apos;ll find a step-by-step overview of the process and an example of a high-quality submission.
+            Follow this guide to craft a compelling workshop proposal. Below, you&apos;ll find an example of a high-quality submission.
           </p>
         </div>
-
-        <ProcessTimeline />
         
         <div>
             <h2 className="mb-2 font-headline text-3xl font-semibold">Example Submission</h2>

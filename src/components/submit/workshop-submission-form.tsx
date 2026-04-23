@@ -54,8 +54,8 @@ const formSchema = z.object({
   preferredTime2: z.string().optional(),
   presenterName: z.string().optional(),
   presenterEmail: z.string().email('Please enter a valid email.').optional().or(z.literal('')),
-  presenterPocName: z.string().optional(),
-  presenterPocEmail: z.string().email('Please enter a valid email.').optional().or(z.literal('')),
+  presenterPocName: z.string().min(1, 'POC name is required.'),
+  presenterPocEmail: z.string().email('Please enter a valid POC email.'),
   presenterBio: z.string().optional(),
   presenterHeadshot: z.any().optional(),
 });
@@ -443,6 +443,37 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
                 />
               </div>
 
+
+              {/* Point of Contact — always visible, required */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="presenterPocName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-lg font-semibold font-headline">POC Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Jane Doe" {...field} className="bg-background/50" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="presenterPocEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-lg font-semibold font-headline">POC Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., jane.doe@example.com" {...field} className="bg-background/50" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
                 name="objectives"
@@ -467,7 +498,7 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
                           control={form.control}
                           name="objectives"
                           render={({ field }) => {
-                            const isChecked = field.value?.includes(item.id) ?? false;
+                            const isChecked = field.value?.includes(item.label) ?? false;
                             const isLimitReached = (field.value?.length ?? 0) >= 3;
                             return (
                               <FormItem
@@ -480,10 +511,10 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
                                     disabled={!isChecked && isLimitReached}
                                     onCheckedChange={(checked) => {
                                       return checked
-                                        ? field.onChange([...(field.value || []), item.id])
+                                        ? field.onChange([...(field.value || []), item.label])
                                         : field.onChange(
                                           field.value?.filter(
-                                            (value) => value !== item.id
+                                            (value) => value !== item.label
                                           )
                                         )
                                     }}
@@ -681,22 +712,6 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
                       <FormItem>
                         <FormLabel>Presenter Email</FormLabel>
                         <FormControl><Input placeholder="e.g., jane.doe@example.com" {...field} className="bg-background/50" /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <FormField control={form.control} name="presenterPocName" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Point of Contact Name (if different)</FormLabel>
-                        <FormControl><Input placeholder="e.g., John Smith" {...field} className="bg-background/50" /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="presenterPocEmail" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Point of Contact Email (if different)</FormLabel>
-                        <FormControl><Input placeholder="e.g., john.smith@example.com" {...field} className="bg-background/50" /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />

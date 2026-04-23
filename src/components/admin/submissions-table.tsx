@@ -25,18 +25,16 @@ import { useRouter } from 'next/navigation';
 // Short badge label + colored dot — full label is visible inside the session detail
 const statusConfig: Record<Submission['status'], { dot: string; label: string; className: string }> = {
     phase_1:          { dot: 'bg-blue-500',   label: 'Phase 1',          className: 'text-blue-500 border-blue-500/50' },
-    phase_1_revision: { dot: 'bg-orange-500', label: 'Phase 1 · Revision', className: 'text-orange-500 border-orange-500/50' },
     phase_2:          { dot: 'bg-yellow-500', label: 'Phase 2',          className: 'text-yellow-500 border-yellow-500/50' },
     phase_3:          { dot: 'bg-indigo-500', label: 'Phase 3',          className: 'text-indigo-500 border-indigo-500/50' },
     phase_4:          { dot: 'bg-green-500',  label: 'Phase 4',          className: 'text-green-500 border-green-500/50' },
 };
 
 const phaseMenuItems: { phase: Submission['status']; label: string }[] = [
-    { phase: 'phase_1',          label: 'Move to Phase 1 — Awaiting Approval' },
-    { phase: 'phase_1_revision', label: 'Move to Phase 1 — Revision Requested' },
-    { phase: 'phase_2',          label: 'Move to Phase 2 — Action Required' },
-    { phase: 'phase_3',          label: 'Move to Phase 3 — Submitted - Awaiting Room Assignment' },
-    { phase: 'phase_4',          label: 'Move to Phase 4 — Locked' },
+    { phase: 'phase_1', label: 'Move to Phase 1 — Awaiting Approval' },
+    { phase: 'phase_2', label: 'Move to Phase 2 — Action Required' },
+    { phase: 'phase_3', label: 'Move to Phase 3 — Submitted - Awaiting Room Assignment' },
+    { phase: 'phase_4', label: 'Move to Phase 4 — Locked' },
 ];
 
 const sessionTypeConfig: Record<Submission['sessionType'], { icon: React.ElementType, label: string }> = {
