@@ -34,6 +34,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { availableSlots } from '@/lib/schedule';
 import { sendSessionSubmittedEmail } from '@/lib/actions';
+import { useFirestore } from '@/firebase';
+import { doc, collection, onSnapshot, runTransaction } from 'firebase/firestore';
 
 const formSchema = z.object({
   pillar: z.string().min(1, 'Please select a pillar.'),
@@ -64,6 +66,16 @@ type WorkshopSubmissionFormData = z.infer<typeof formSchema>;
 
 const TooltipIcon = () => <HelpCircle className="h-4 w-4 text-muted-foreground" />;
 
+// ─── Inventory bucket helpers ─────────────────────────────────────────────────
+const STUDENT_AUDIENCES = ['Students'];
+const PROFESSIONAL_AUDIENCES = ['Early Career Professionals', 'Mid Career Professionals', 'Executives'];
+
+function getAudienceBucket(audience: string): 'student' | 'professional' | null {
+  if (STUDENT_AUDIENCES.includes(audience)) return 'student';
+  if (PROFESSIONAL_AUDIENCES.includes(audience)) return 'professional';
+  return null;
+}
+
 type WorkshopSubmissionFormProps = {
   submission?: Submission;
 };
@@ -73,7 +85,13 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
   const { user } = useUser();
   const router = useRouter();
   const { addSubmission, updateSubmission } = useSubmissions();
+  const firestore = useFirestore();
   const sessionType = 'workshop';
+
+  // ─── Inventory state ────────────────────────────────────────────────────────
+  type Inventory = { studentRemaining: number; professionalRemaining: number };
+  const [inventory, setInventory] = useState<Inventory | null>(null);
+  const [inventoryLoading, setInventoryLoading] = useState(!submission); // only load for new submissions
 
   const form = useForm<WorkshopSubmissionFormData>({
     resolver: zodResolver(formSchema),
@@ -97,6 +115,25 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
   });
 
   const showPresenterFields = submission && submission.status !== 'phase_1';
+
+  // ─── Inventory listener (new submissions only) ───────────────────────────────
+  useEffect(() => {
+    if (submission || !firestore) return; // edit mode — no listener needed
+    const inventoryRef = doc(firestore, 'config', 'workshopInventory');
+    const unsub = onSnapshot(inventoryRef, (snap) => {
+      if (snap.exists()) {
+        setInventory(snap.data() as Inventory);
+      }
+      setInventoryLoading(false);
+    }, () => {
+      setInventoryLoading(false); // fail gracefully — don't block form
+    });
+    return unsub;
+  }, [submission, firestore]);
+
+  const isStudentFull = !inventoryLoading && inventory !== null && inventory.studentRemaining <= 0;
+  const isProfessionalFull = !inventoryLoading && inventory !== null && inventory.professionalRemaining <= 0;
+  const isBothFull = isStudentFull && isProfessionalFull;
 
   const selectedDate1 = form.watch('preferredDate');
   const selectedDate2 = form.watch('preferredDate2');
@@ -124,7 +161,7 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
     return daySlots?.times.map(t => t.time) || [];
   }, [selectedDate2, filteredSlots]);
 
-  function onSubmit(values: WorkshopSubmissionFormData) {
+  async function onSubmit(values: WorkshopSubmissionFormData) {
     if (!user) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to submit.' });
       return;
@@ -138,13 +175,50 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
       };
 
       if (submission) {
+        // Edit mode — no inventory adjustment
         updateSubmission({ ...submission, ...submissionData });
         toast({
           title: 'Workshop Updated!',
           description: 'Your workshop submission has been updated.',
         });
+        router.push('/dashboard');
       } else {
-        addSubmission({ ...submissionData, userId: user.uid });
+        // New submission — atomic transaction: check capacity + write submission + decrement counter
+        if (!firestore) throw new Error('Firestore not available.');
+        const inventoryRef = doc(firestore, 'config', 'workshopInventory');
+        const submissionsCol = collection(firestore, 'submissions');
+        const bucket = getAudienceBucket(values.audience);
+
+        await runTransaction(firestore, async (tx) => {
+          const inventorySnap = await tx.get(inventoryRef);
+          if (!inventorySnap.exists()) throw new Error('Inventory not found.');
+
+          const inv = inventorySnap.data() as Inventory;
+
+          if (bucket === 'student' && inv.studentRemaining <= 0) {
+            throw new Error('FULL_STUDENT');
+          }
+          if (bucket === 'professional' && inv.professionalRemaining <= 0) {
+            throw new Error('FULL_PROFESSIONAL');
+          }
+
+          // Write new submission document
+          const newDocRef = doc(submissionsCol);
+          tx.set(newDocRef, {
+            ...submissionData,
+            userId: user.uid,
+            status: 'phase_1',
+            createdAt: new Date(),
+          });
+
+          // Decrement the correct counter
+          if (bucket === 'student') {
+            tx.update(inventoryRef, { studentRemaining: inv.studentRemaining - 1 });
+          } else if (bucket === 'professional') {
+            tx.update(inventoryRef, { professionalRemaining: inv.professionalRemaining - 1 });
+          }
+        });
+
         void sendSessionSubmittedEmail({
           title: values.title,
           sessionType,
@@ -154,14 +228,23 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
           title: 'Workshop Submitted!',
           description: 'Your workshop submission has been received for approval.',
         });
+        router.push('/dashboard');
       }
-      router.push('/dashboard');
     } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Submission Failed',
-        description: (error as Error).message || 'Something went wrong. Please try again.',
-      });
+      const msg = (error as Error).message;
+      if (msg === 'FULL_STUDENT' || msg === 'FULL_PROFESSIONAL') {
+        toast({
+          variant: 'destructive',
+          title: 'Session Type Just Filled Up',
+          description: 'Sorry, this session type just filled up. Please refresh and select a different audience.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Submission Failed',
+          description: msg || 'Something went wrong. Please try again.',
+        });
+      }
     }
   }
 
@@ -301,11 +384,26 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
                           value={field.value}
                           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
                         >
-                          {submissionFormConfig.audiences.map((audience) => (
+                          {inventoryLoading && !submission && (
+                            <p className="col-span-full text-sm text-muted-foreground animate-pulse">Checking availability…</p>
+                          )}
+                          {submissionFormConfig.audiences.map((audience) => {
+                            const isStudentOption = STUDENT_AUDIENCES.includes(audience.value);
+                            const isProfOption = PROFESSIONAL_AUDIENCES.includes(audience.value);
+                            const isDisabled = !submission && (
+                              (isStudentOption && isStudentFull) ||
+                              (isProfOption && isProfessionalFull)
+                            );
+                            return (
                             <FormItem key={audience.value}>
-                              <Label className="flex items-start gap-3 rounded-md border p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:border-primary has-[input:checked]:bg-primary/5 has-[input:checked]:shadow-sm bg-background/50 h-full">
+                              <Label className={cn(
+                                'flex items-start gap-3 rounded-md border p-4 h-full',
+                                isDisabled
+                                  ? 'opacity-50 cursor-not-allowed bg-muted/30'
+                                  : 'cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:border-primary has-[input:checked]:bg-primary/5 has-[input:checked]:shadow-sm bg-background/50'
+                              )}>
                                 <FormControl>
-                                  <RadioGroupItem value={audience.value} className="sr-only" />
+                                  <RadioGroupItem value={audience.value} className="sr-only" disabled={isDisabled} />
                                 </FormControl>
                                 <div className="flex-1 space-y-1">
                                   <div className="font-semibold flex items-center gap-2">
@@ -323,9 +421,19 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
                                 </div>
                               </Label>
                             </FormItem>
-                          ))}
+                            );
+                          })}
                         </RadioGroup>
                       </FormControl>
+                      {!submission && isBothFull && (
+                        <p className="text-sm text-destructive">Workshop submissions are currently full. Please check back later or contact us at <a href="mailto:connect@cre8iongroup.com" className="underline">connect@cre8iongroup.com</a></p>
+                      )}
+                      {!submission && !isBothFull && isStudentFull && (
+                        <p className="text-sm text-muted-foreground">Student workshop sessions are full. Please select a professional audience to continue.</p>
+                      )}
+                      {!submission && !isBothFull && isProfessionalFull && (
+                        <p className="text-sm text-muted-foreground">Professional workshop sessions are full. Please select Students to continue.</p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}

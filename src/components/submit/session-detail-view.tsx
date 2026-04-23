@@ -4,6 +4,7 @@ import type { Submission } from '@/lib/types';
 import { useSubmissions } from '@/components/submissions-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
@@ -107,6 +108,25 @@ function SectionCard({ title, children }: { title: string; children: React.React
 function AdminPanel({ submission }: { submission: Submission }) {
   const { updateSubmission } = useSubmissions();
   const { toast } = useToast();
+
+  // ─ Community tag ───────────────────────────────────────────────────────
+  const [communityValue, setCommunityValue] = useState(submission.community ?? false);
+  const [communitySaving, setCommunitySaving] = useState(false);
+
+  const handleCommunityToggle = async (checked: boolean | string) => {
+    const bool = checked === true;
+    setCommunityValue(bool);
+    setCommunitySaving(true);
+    try {
+      await updateSubmission({ ...submission, community: bool });
+      toast({ title: bool ? 'Tagged as Community Workshop' : 'Community tag removed' });
+    } catch {
+      setCommunityValue(!bool);
+      toast({ variant: 'destructive', title: 'Save failed', description: 'Could not update community tag.' });
+    } finally {
+      setCommunitySaving(false);
+    }
+  };
 
   // ─ Room Assignment ───────────────────────────────────────────────────────
   const [roomValue, setRoomValue] = useState(submission.roomAssignment ?? '');
@@ -236,6 +256,26 @@ function AdminPanel({ submission }: { submission: Submission }) {
             </div>
           )}
         </div>
+        {/* Community Workshop — workshop submissions only */}
+        {submission.sessionType === 'workshop' && (
+          <div className="space-y-2 pt-4 border-t">
+            <label className="text-sm font-medium flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5 text-muted-foreground" />
+              Community Workshop
+            </label>
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="community-tag"
+                checked={communityValue}
+                onCheckedChange={handleCommunityToggle}
+                disabled={communitySaving}
+              />
+              <label htmlFor="community-tag" className="text-sm text-muted-foreground cursor-pointer">
+                Tag this session as a Community Workshop
+              </label>
+            </div>
+          </div>
+        )}
 
       </CardContent>
     </Card>
@@ -445,12 +485,14 @@ function SubmissionSummaryCard({ submission }: { submission: Submission }) {
 
 function Phase1View({
   submission,
+  isAdmin = false,
   showApproveButton = false,
   onApprove,
   isApproving = false,
   approved = false,
 }: {
   submission: Submission;
+  isAdmin?: boolean;
   showApproveButton?: boolean;
   onApprove?: () => Promise<void>;
   isApproving?: boolean;
@@ -499,13 +541,16 @@ function Phase1View({
           )}
         </div>
       )}
+
+      {/* Admin panel — admin only */}
+      {isAdmin && <AdminPanel submission={submission} />}
     </div>
   );
 }
 
 // ─── Phase 2: Needs Information ───────────────────────────────────────────────
 
-function Phase2View({ submission }: { submission: Submission }) {
+function Phase2View({ submission, isAdmin }: { submission: Submission; isAdmin: boolean }) {
   const { updateSubmission } = useSubmissions();
 
   const presentersAdded = submission.presentersAdded ?? false;
@@ -568,6 +613,9 @@ function Phase2View({ submission }: { submission: Submission }) {
           )}
         </TaskPill>
       </div>
+
+      {/* Admin panel — admin only */}
+      {isAdmin && <AdminPanel submission={submission} />}
     </div>
   );
 }
@@ -856,13 +904,14 @@ export default function SessionDetailView({
       {submission.status === 'phase_1' && (
         <Phase1View
           submission={submission}
+          isAdmin={isAdmin}
           showApproveButton={showApproveButton}
           onApprove={handleApprove}
           isApproving={isApproving}
           approved={approved}
         />
       )}
-      {submission.status === 'phase_2' && <Phase2View submission={submission} />}
+      {submission.status === 'phase_2' && <Phase2View submission={submission} isAdmin={isAdmin} />}
       {submission.status === 'phase_3' && <Phase3View submission={submission} isAdmin={isAdmin} />}
       {submission.status === 'phase_4' && <Phase4View submission={submission} isAdmin={isAdmin} />}
     </div>

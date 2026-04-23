@@ -95,9 +95,16 @@ export default function SubmissionsTable() {
                         </TableCell>
                         <TableCell className="font-medium">{item.title}</TableCell>
                         <TableCell>
-                            <div className="flex items-center gap-2">
-                                <SessionTypeIcon className="h-4 w-4 text-muted-foreground" />
-                                {sessionTypeLabel}
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                    <SessionTypeIcon className="h-4 w-4 text-muted-foreground" />
+                                    {sessionTypeLabel}
+                                </div>
+                                {item.community && (
+                                    <Badge variant="secondary" className="text-xs w-fit px-1.5 py-0 font-normal">
+                                        Community
+                                    </Badge>
+                                )}
                             </div>
                         </TableCell>
                         <TableCell className="text-center">

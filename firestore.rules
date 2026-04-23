@@ -76,5 +76,12 @@ service cloud.firestore {
     match /users/{userId}/{document=**} {
       allow read, write: if isSignedIn() && isOwner(userId);
     }
+
+    // Workshop inventory and other app config — readable by any signed-in user,
+    // updatable by any signed-in user (capacity enforcement is done in app-layer transactions)
+    match /config/{docId} {
+      allow read: if isSignedIn();
+      allow update: if isSignedIn();
+    }
   }
 }
