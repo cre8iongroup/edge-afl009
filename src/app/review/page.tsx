@@ -1,22 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/app-layout';
 import { useUser } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useSubmissions } from '@/components/submissions-provider';
 import { useUserProfiles } from '@/hooks/use-user-profiles';
-import { useToast } from '@/hooks/use-toast';
-import { sendStatusUpdateEmail, sendSessionApprovedEmail } from '@/lib/actions';
 import type { Submission } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import {
   Clock,
-  CheckCircle2,
   Briefcase,
   Handshake,
   Presentation,
@@ -31,13 +36,13 @@ const REVIEWABLE_STATUSES: Submission['status'][] = ['phase_1'];
 
 const ALLOWED_ROLES = ['internal', 'admin', 'client'] as const;
 
-const statusConfig = {
+const statusConfig: Record<string, { dot: string; label: string; className: string }> = {
   phase_1: {
-    icon: Clock,
+    dot: 'bg-blue-500',
     label: 'Awaiting Approval',
-    className: 'border-blue-500/50 text-blue-500 bg-blue-500/5',
+    className: 'text-blue-500 border-blue-500/50',
   },
-} satisfies Partial<Record<Submission['status'], { icon: React.ElementType; label: string; className: string }>>;
+};
 
 const sessionTypeConfig: Record<Submission['sessionType'], { icon: React.ElementType; label: string }> = {
   workshop:      { icon: Briefcase,    label: 'Workshop' },
@@ -45,111 +50,13 @@ const sessionTypeConfig: Record<Submission['sessionType'], { icon: React.Element
   'info-session': { icon: Presentation, label: 'Info Session' },
 };
 
-// ─── Session Review Card ──────────────────────────────────────────────────────
-
-function SessionReviewCard({ submission }: { submission: Submission }) {
-  const { updateSubmission } = useSubmissions();
-  const { toast } = useToast();
-  const { users } = useUserProfiles();
-  const [approvingId, setApprovingId] = useState<string | null>(null);
-
-  const statusCfg = statusConfig[submission.status as keyof typeof statusConfig] ?? statusConfig.phase_1;
-  const StatusIcon = statusCfg.icon;
-  const sessionCfg = sessionTypeConfig[submission.sessionType];
-  const SessionIcon = sessionCfg.icon;
-
-  const submitter = users?.find(u => u.id === submission.userId);
-
-  const handleApprove = async () => {
-    setApprovingId(submission.id);
-    try {
-      const updated = { ...submission, status: 'phase_2' as Submission['status'] };
-      await updateSubmission(updated);
-      if (submitter?.email) {
-        await sendStatusUpdateEmail(updated, submitter.email);
-        await sendSessionApprovedEmail(updated, submitter.email);
-      }
-      toast({
-        title: 'Session Approved',
-        description: `"${submission.title}" has been moved to Phase 2.`,
-      });
-    } catch {
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not approve the session. Please try again.' });
-    } finally {
-      setApprovingId(null);
-    }
-  };
-
-  const isApproving = approvingId === submission.id;
-
-  return (
-    <Card className="flex flex-col overflow-hidden transition-shadow duration-200 hover:shadow-md">
-      <CardHeader className="pb-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 flex-1 space-y-1">
-            <CardTitle className="font-headline text-lg leading-snug">{submission.title}</CardTitle>
-            {submitter && (
-              <p className="text-xs text-muted-foreground">
-                Submitted by {submitter.name || submitter.email}
-              </p>
-            )}
-          </div>
-          <Badge
-            variant="outline"
-            className={cn('shrink-0 whitespace-nowrap self-start font-medium', statusCfg.className)}
-          >
-            <StatusIcon className="mr-1.5 h-3.5 w-3.5" />
-            {statusCfg.label}
-          </Badge>
-        </div>
-
-        <CardDescription className="flex flex-wrap gap-2 pt-2">
-          <Badge variant="secondary" className="gap-1.5">
-            <SessionIcon className="h-3.5 w-3.5" />
-            {sessionCfg.label}
-          </Badge>
-          {submission.pillar && <Badge variant="secondary">{submission.pillar}</Badge>}
-          {submission.format && <Badge variant="secondary">{submission.format}</Badge>}
-          {(() => {
-            const audiences = Array.isArray(submission.audience)
-              ? submission.audience
-              : submission.audience ? [submission.audience] : [];
-            return audiences.map((a) => (
-              <Badge key={a} variant="secondary">{a}</Badge>
-            ));
-          })()}
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent className="flex flex-1 flex-col gap-4">
-        <p className="line-clamp-3 text-sm text-muted-foreground">{submission.description}</p>
-
-        <div className="mt-auto flex flex-col gap-2 sm:flex-row">
-          <Button
-            onClick={handleApprove}
-            disabled={isApproving}
-            className="flex-1 gap-2 bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-600"
-            id={`approve-${submission.id}`}
-          >
-            {isApproving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4" />
-            )}
-            {isApproving ? 'Approving…' : 'Approve'}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ReviewPage() {
   const { user, isUserLoading } = useUser();
   const { profile, isLoading: isProfileLoading } = useUserProfile(user?.uid);
   const { submissions, loading: submissionsLoading } = useSubmissions();
+  const { users } = useUserProfiles();
   const router = useRouter();
 
   const isLoading = isUserLoading || isProfileLoading;
@@ -159,7 +66,7 @@ export default function ReviewPage() {
     profile &&
     (ALLOWED_ROLES as readonly string[]).includes(profile.role);
 
-  // Route guard — same pattern as /all-sessions
+  // Route guard
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
@@ -176,7 +83,7 @@ export default function ReviewPage() {
     REVIEWABLE_STATUSES.includes(s.status)
   );
 
-  const phase1Count = submissions.filter(s => s.status === 'phase_1').length;
+  const phase1Count = pendingSessions.length;
 
   return (
     <AppLayout>
@@ -185,11 +92,11 @@ export default function ReviewPage() {
         <div className="flex flex-col gap-1">
           <h1 className="font-headline text-3xl font-semibold">Review Sessions</h1>
           <p className="text-muted-foreground">
-          Approve Phase 1 submissions.
+            Approve Phase 1 submissions.
           </p>
         </div>
 
-        {/* Summary badges */}
+        {/* Summary badge */}
         {canViewPage && !submissionsLoading && (
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/5 px-4 py-2">
@@ -206,7 +113,7 @@ export default function ReviewPage() {
           </div>
         )}
 
-        {/* Access denied (loading complete, not authorized) */}
+        {/* Access denied */}
         {!isLoading && !canViewPage && (
           <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
             <AlertCircle className="h-10 w-10 text-muted-foreground" />
@@ -214,13 +121,77 @@ export default function ReviewPage() {
           </div>
         )}
 
-        {/* Session grid */}
+        {/* Sessions table */}
         {canViewPage && !submissionsLoading && pendingSessions.length > 0 && (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {pendingSessions.map(submission => (
-              <SessionReviewCard key={submission.id} submission={submission} />
-            ))}
-          </div>
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Submitter</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                      <TableHead>Pillar</TableHead>
+                      <TableHead>Format</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingSessions.map((item) => {
+                      const statusCfg = statusConfig[item.status] ?? statusConfig['phase_1'];
+                      const SessionTypeIcon = sessionTypeConfig[item.sessionType]?.icon || Briefcase;
+                      const sessionTypeLabel = sessionTypeConfig[item.sessionType]?.label || 'Workshop';
+                      const submitter = users?.find(u => u.id === item.userId);
+                      const userName = submitter
+                        ? (submitter.name && submitter.name !== 'New Member' ? submitter.name : submitter.email)
+                        : 'Unknown User';
+                      const fallbackInitial = userName?.charAt(0) || '';
+
+                      return (
+                        <TableRow
+                          key={item.id}
+                          className="cursor-pointer"
+                          onClick={() => router.push(`/submit/${item.sessionType}/${item.id}?from=review`)}
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-9 w-9">
+                                <AvatarImage src={submitter?.avatar || ''} alt={submitter?.name || ''} />
+                                <AvatarFallback>{fallbackInitial}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{userName}</div>
+                                <div className="text-xs text-muted-foreground">{submitter?.email}</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">{item.title}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <SessionTypeIcon className="h-4 w-4 text-muted-foreground" />
+                              {sessionTypeLabel}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge
+                              variant="outline"
+                              className={cn('whitespace-nowrap font-medium gap-1.5', statusCfg.className)}
+                            >
+                              <span className={cn('inline-block h-2 w-2 rounded-full shrink-0', statusCfg.dot)} />
+                              {statusCfg.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{item.pillar}</TableCell>
+                          <TableCell>{item.format}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Empty state */}

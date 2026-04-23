@@ -2,7 +2,7 @@
 
 import AppLayout from '@/components/layout/app-layout';
 import SessionDetailView from '@/components/submit/session-detail-view';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useSubmissions } from '@/components/submissions-provider';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useFirestore } from '@/firebase';
@@ -13,6 +13,8 @@ import type { Submission } from '@/lib/types';
 export default function ReceptionDetailPage() {
   const params = useParams();
   const id = params.id as string;
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from') ?? undefined;
   const { getSubmission } = useSubmissions();
   const firestore = useFirestore();
 
@@ -29,7 +31,7 @@ export default function ReceptionDetailPage() {
   return (
     <AppLayout>
       {submission ? (
-        <SessionDetailView submission={submission} />
+        <SessionDetailView submission={submission} from={from} />
       ) : isLoading ? (
         <div className="text-center text-muted-foreground py-16">Loading…</div>
       ) : (

@@ -5,6 +5,7 @@ import { useSubmissions } from '@/components/submissions-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import {
   Clock,
@@ -24,8 +25,10 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import AVPackageSelector from './av-package-selector';
@@ -33,6 +36,8 @@ import PresenterSection from './presenter-section';
 import { AV_OPEN_DATE } from '@/lib/av-packages';
 import { useUser } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { useUserProfiles } from '@/hooks/use-user-profiles';
+import { sendStatusUpdateEmail, sendSessionApprovedEmail } from '@/lib/actions';
 
 // ─── Phase config — single source of truth for labels, icons, colours ────────
 
@@ -65,6 +70,13 @@ const phaseConfig: Record<
     bannerClassName: 'border-green-500/30 bg-green-500/5',
   },
 };
+
+const phaseMenuItems: { phase: Submission['status']; label: string }[] = [
+  { phase: 'phase_1', label: 'Move to Phase 1 — Awaiting Approval' },
+  { phase: 'phase_2', label: 'Move to Phase 2 — Action Required' },
+  { phase: 'phase_3', label: 'Move to Phase 3 — Submitted, Awaiting Room Assignment' },
+  { phase: 'phase_4', label: 'Move to Phase 4 — Locked' },
+];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -431,7 +443,19 @@ function SubmissionSummaryCard({ submission }: { submission: Submission }) {
 
 // ─── Phase 1: Awaiting Approval ───────────────────────────────────────────────
 
-function Phase1View({ submission }: { submission: Submission }) {
+function Phase1View({
+  submission,
+  showApproveButton = false,
+  onApprove,
+  isApproving = false,
+  approved = false,
+}: {
+  submission: Submission;
+  showApproveButton?: boolean;
+  onApprove?: () => Promise<void>;
+  isApproving?: boolean;
+  approved?: boolean;
+}) {
   const cfg = phaseConfig.phase_1;
   const Icon = cfg.icon;
   return (
@@ -450,6 +474,31 @@ function Phase1View({ submission }: { submission: Submission }) {
       </Card>
 
       <SubmissionSummaryCard submission={submission} />
+
+      {showApproveButton && (
+        <div className="flex justify-end">
+          {approved ? (
+            <div className="inline-flex items-center gap-2 rounded-lg border border-green-500/50 bg-green-500/10 px-5 py-3 text-sm font-semibold text-green-600">
+              <CheckCircle2 className="h-4 w-4" />
+              Session Approved ✓
+            </div>
+          ) : (
+            <Button
+              onClick={onApprove}
+              disabled={isApproving}
+              className="gap-2 bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-600 px-8 py-5 text-base"
+              id={`approve-${submission.id}`}
+            >
+              {isApproving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+              {isApproving ? 'Approving…' : 'Approve Session'}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -671,26 +720,87 @@ function Phase4View({ submission, isAdmin }: { submission: Submission; isAdmin: 
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
-export default function SessionDetailView({ submission }: { submission: Submission }) {
+export default function SessionDetailView({
+  submission,
+  from,
+}: {
+  submission: Submission;
+  from?: string;
+}) {
   const { user } = useUser();
   const { profile } = useUserProfile(user?.uid);
+  const { users } = useUserProfiles();
+  const { updateSubmission } = useSubmissions();
+  const { toast } = useToast();
+  const router = useRouter();
   const isAdmin = ['internal', 'admin'].includes(profile?.role ?? '');
+  const isClient = profile?.role === 'client';
+
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [approved, setApproved] = useState(false);
 
   // Access check: original owner OR listed in authorizedEmails (OR logic, not replacement)
   const userEmail = user?.email?.toLowerCase();
   const isAuthorized =
     isAdmin ||
+    isClient ||
     (user && submission.userId === user.uid) ||
     (userEmail && (submission.authorizedEmails ?? []).map(e => e.toLowerCase()).includes(userEmail));
 
   const cfg = phaseConfig[submission.status] ?? phaseConfig.phase_1;
   const StatusIcon = cfg.icon;
 
+  const handleApprove = async () => {
+    setApprovingId(submission.id);
+    try {
+      const updated = { ...submission, status: 'phase_2' as Submission['status'] };
+      await updateSubmission(updated);
+      const submitter = users?.find(u => u.id === submission.userId);
+      if (submitter?.email) {
+        await sendStatusUpdateEmail(updated, submitter.email);
+        await sendSessionApprovedEmail(updated, submitter.email);
+      }
+      setApproved(true);
+      toast({
+        title: 'Session Approved',
+        description: `"${submission.title}" has been moved to Phase 2.`,
+      });
+      setTimeout(() => router.push('/review'), 1500);
+    } catch {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not approve the session. Please try again.' });
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handlePhaseChange = async (newPhase: Submission['status']) => {
+    try {
+      const updated = { ...submission, status: newPhase };
+      await updateSubmission(updated);
+      const submitter = users?.find(u => u.id === submission.userId);
+      if (submitter?.email) {
+        await sendStatusUpdateEmail(updated, submitter.email);
+        if (newPhase === 'phase_2') {
+          await sendSessionApprovedEmail(updated, submitter.email);
+        }
+      }
+      toast({
+        title: 'Phase Updated',
+        description: `“${submission.title}” moved to ${phaseConfig[newPhase].label}.`,
+      });
+    } catch {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not update the phase. Please try again.' });
+    }
+  };
+
+  const isApproving = approvingId === submission.id;
+  const showApproveButton = isClient && from === 'review' && submission.status === 'phase_1';
+
   if (!isAuthorized) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
         <ShieldCheck className="h-10 w-10 text-muted-foreground" />
-        <p className="text-muted-foreground">You don’t have access to this session.</p>
+        <p className="text-muted-foreground">You don't have access to this session.</p>
         <Link href="/dashboard" className="text-sm underline text-muted-foreground hover:text-foreground">Back to Dashboard</Link>
       </div>
     );
@@ -702,26 +812,60 @@ export default function SessionDetailView({ submission }: { submission: Submissi
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <Link
-            href="/dashboard"
+            href={from === 'review' ? '/review' : from === 'all-sessions' ? '/all-sessions' : '/dashboard'}
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back to Dashboard
+            {from === 'review' ? 'Back to Review Sessions' : from === 'all-sessions' ? 'Back to All Sessions' : 'Back to Dashboard'}
           </Link>
           <h1 className="font-headline text-3xl font-semibold">{submission.title}</h1>
           <p className="text-muted-foreground capitalize">{submission.sessionType.replace('-', ' ')} Submission</p>
         </div>
-        <Badge variant="outline" className={cn('self-start whitespace-nowrap px-3 py-1.5 text-sm', cfg.className)}>
-          <StatusIcon className="mr-1.5 h-4 w-4" />
-          {cfg.label}
-        </Badge>
+        <div className="flex items-center gap-2 self-start flex-wrap">
+          <Badge variant="outline" className={cn('whitespace-nowrap px-3 py-1.5 text-sm', cfg.className)}>
+            <StatusIcon className="mr-1.5 h-4 w-4" />
+            {cfg.label}
+          </Badge>
+          {isAdmin && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8">
+                  Change Phase
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Move to Phase</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {phaseMenuItems.map(({ phase, label }) => (
+                  <DropdownMenuItem
+                    key={phase}
+                    onSelect={() => handlePhaseChange(phase)}
+                    disabled={submission.status === phase}
+                  >
+                    {label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
 
       {/* Phase content — partners see human-readable labels only, never phase keys */}
-      {submission.status === 'phase_1' && <Phase1View submission={submission} />}
+      {submission.status === 'phase_1' && (
+        <Phase1View
+          submission={submission}
+          showApproveButton={showApproveButton}
+          onApprove={handleApprove}
+          isApproving={isApproving}
+          approved={approved}
+        />
+      )}
       {submission.status === 'phase_2' && <Phase2View submission={submission} />}
       {submission.status === 'phase_3' && <Phase3View submission={submission} isAdmin={isAdmin} />}
       {submission.status === 'phase_4' && <Phase4View submission={submission} isAdmin={isAdmin} />}
     </div>
   );
 }
+

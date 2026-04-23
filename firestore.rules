@@ -55,11 +55,12 @@ service cloud.firestore {
     match /submissions/{submissionId} {
       // Allow create for any signed in user
       allow create: if isSignedIn();
-      // Allow get if owner, delegate (authorizedEmails), or internal/admin
+      // Allow get if owner, delegate (authorizedEmails), internal/admin, or client
       allow get: if isSignedIn() && (
         resource.data.userId == request.auth.uid ||
         isAuthorizedEmail() ||
-        isInternalOrAdmin()
+        isInternalOrAdmin() ||
+        isClient()
       );
       // Allow list if internal/admin, client (for /review page), or owner
       allow list: if isSignedIn() && (isInternalOrAdmin() || isClient() || resource.data.userId == request.auth.uid);
