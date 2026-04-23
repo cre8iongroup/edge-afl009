@@ -64,11 +64,12 @@ service cloud.firestore {
       );
       // Allow list if internal/admin, client (for /review page), or owner
       allow list: if isSignedIn() && (isInternalOrAdmin() || isClient() || resource.data.userId == request.auth.uid);
-      // Allow update/delete if owner, delegate, or internal/admin
+      // Allow update/delete if owner, delegate, internal/admin, or client
       allow update, delete: if isSignedIn() && (
         resource.data.userId == request.auth.uid ||
         isAuthorizedEmail() ||
-        isInternalOrAdmin()
+        isInternalOrAdmin() ||
+        isClient()
       );
     }
 
