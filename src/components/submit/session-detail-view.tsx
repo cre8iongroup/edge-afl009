@@ -454,6 +454,12 @@ function SubmissionSummaryCard({ submission }: { submission: Submission }) {
                 <p className="text-sm">{submission.format}</p>
               </div>
             )}
+            {submission.expectedAttendance != null && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Expected Attendance</p>
+                <p className="text-sm">{submission.expectedAttendance}</p>
+              </div>
+            )}
             {isWorkshop && (
               <div className="space-y-1">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">CPE Credit</p>
@@ -636,7 +642,7 @@ function Phase3View({ submission, isAdmin }: { submission: Submission; isAdmin: 
             <p className="font-semibold text-indigo-600">Submitted — Awaiting Room Assignment</p>
             <p className="text-sm text-muted-foreground">
               All required information has been submitted. The ALPFA team is finalizing room and time
-              assignments. You'll receive confirmation by July 1.
+              assignments. You'll receive confirmation by July 6.
             </p>
           </div>
         </CardContent>
@@ -645,7 +651,7 @@ function Phase3View({ submission, isAdmin }: { submission: Submission; isAdmin: 
       {/* Submission Summary */}
       <SubmissionSummaryCard submission={submission} />
 
-      {/* Presenters — editable until July 1 (hidden for receptions) */}
+      {/* Presenters — editable until July 6 (hidden for receptions) */}
       {!isReception && (
         <Card className="border-green-500/40">
           <CardHeader className="pb-3">
@@ -654,7 +660,7 @@ function Phase3View({ submission, isAdmin }: { submission: Submission; isAdmin: 
               <CardTitle className="text-base font-semibold text-green-700">Presenters Added</CardTitle>
             </div>
             <CardDescription className="text-sm text-muted-foreground">
-              You can update presenter details and headshots until July 1.
+              You can update presenter details and headshots until July 6.
             </CardDescription>
           </CardHeader>
           <CardContent>

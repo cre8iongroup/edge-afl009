@@ -635,7 +635,7 @@ export default function PresenterSection({ submission }: PresenterSectionProps) 
       {/* Empty state when locked with no presenters */}
       {locked && drafts.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-4">
-          No presenters were added before the July 1 deadline.
+          No presenters were added before the July 6 deadline.
         </p>
       )}
 
@@ -653,7 +653,7 @@ export default function PresenterSection({ submission }: PresenterSectionProps) 
 
       {/* Footer note */}
       <p className="text-xs text-muted-foreground pt-1">
-        Presenter information can be updated until July 1, {LOCK_DATE.getFullYear()}.{' '}
+        Presenter information can be updated until July 6, {LOCK_DATE.getFullYear()}.{' '}
         After that date, contact{' '}
         <a
           href="mailto:connect@cre8iongroup.com"

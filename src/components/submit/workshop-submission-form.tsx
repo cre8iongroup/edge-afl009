@@ -93,6 +93,16 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
   const [inventory, setInventory] = useState<Inventory | null>(null);
   const [inventoryLoading, setInventoryLoading] = useState(!submission); // only load for new submissions
 
+  // ─── Expected attendance (format-reactive slider) ────────────────────────────
+  const FORMAT_RANGES: Record<string, { min: number; max: number }> = {
+    'Presentation':        { min: 100, max: 250 },
+    'Interactive Session': { min: 50,  max: 100 },
+    'Workshop':            { min: 60,  max: 120 },
+  };
+  const [expectedAttendance, setExpectedAttendance] = useState<number>(
+    submission?.expectedAttendance ?? 100
+  );
+
   const form = useForm<WorkshopSubmissionFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: submission ? {
@@ -137,6 +147,14 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
 
   const selectedDate1 = form.watch('preferredDate');
   const selectedDate2 = form.watch('preferredDate2');
+  const selectedFormat = form.watch('format');
+
+  // Reset slider to range minimum whenever format changes
+  useEffect(() => {
+    const range = FORMAT_RANGES[selectedFormat];
+    if (range) setExpectedAttendance(range.min);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFormat]);
 
   const filteredSlots = useMemo(() => {
     return availableSlots.filter(slot => slot.sessionTypes.includes(sessionType));
@@ -172,6 +190,7 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
         preferredDate: values.preferredDate ? new Date(values.preferredDate) : undefined,
         preferredDate2: values.preferredDate2 ? new Date(values.preferredDate2) : undefined,
         sessionType,
+        expectedAttendance,
       };
 
       if (submission) {
@@ -312,57 +331,6 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
                 )}
               />
 
-              {/* Format Section */}
-              <FormField
-                control={form.control}
-                name="format"
-                render={({ field }) => (
-                  <FormItem className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <FormLabel className="text-xl font-semibold font-headline">Session Format</FormLabel>
-                      <Tooltip>
-                        <TooltipTrigger asChild><button type="button"><TooltipIcon /></button></TooltipTrigger>
-                        <TooltipContent><p>Select the format that best describes your session's structure and participant experience.</p></TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-                      >
-                        {submissionFormConfig.formats.map((format) => (
-                          <FormItem key={format.value}>
-                            <Label className="flex items-start gap-3 rounded-md border p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:border-primary has-[input:checked]:bg-primary/5 has-[input:checked]:shadow-sm bg-background/50">
-                              <FormControl>
-                                <RadioGroupItem value={format.value} className="sr-only" />
-                              </FormControl>
-                              <div className="flex-1 space-y-1">
-                                <div className="font-semibold flex items-center gap-2">
-                                  {format.label}
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <button type="button" onClick={(e) => e.preventDefault()}><TooltipIcon /></button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-xs" side="top" align="start">
-                                      <p className="font-bold">{format.label}</p>
-                                      <p className="text-sm">{format.description}</p>
-                                      <p className="text-xs mt-2 italic text-muted-foreground">Setup: {format.roomSetup}</p>
-                                      <p className="text-sm mt-2"><span className="font-semibold">Key Feature:</span> {format.features}</p>
-                                      <p className="text-sm"><span className="font-semibold">Room Setup:</span> {format.roomSetup}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </div>
-                              </div>
-                            </Label>
-                          </FormItem>
-                        ))}
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               {/* Audience Section */}
               <div className="space-y-6">
@@ -641,6 +609,76 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
                   </FormItem>
                 )}
               />
+
+              {/* Session Format — format selection + capacity slider */}
+              <div className="space-y-6 rounded-lg border p-6 bg-muted/30">
+                <h3 className="text-xl font-semibold font-headline">Session Format</h3>
+
+                <FormField
+                  control={form.control}
+                  name="format"
+                  render={({ field }) => (
+                    <FormItem className="space-y-4">
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                        >
+                          {submissionFormConfig.formats.map((format) => (
+                            <FormItem key={format.value}>
+                              <Label className="flex items-start gap-3 rounded-md border p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground has-[input:checked]:border-primary has-[input:checked]:bg-primary/5 has-[input:checked]:shadow-sm bg-background/50">
+                                <FormControl>
+                                  <RadioGroupItem value={format.value} className="sr-only" />
+                                </FormControl>
+                                <div className="flex-1 space-y-1">
+                                  <div className="font-semibold flex items-center gap-2">
+                                    {format.label}
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button type="button" onClick={(e) => e.preventDefault()}><TooltipIcon /></button>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-xs" side="top" align="start">
+                                        <p className="font-bold">{format.label}</p>
+                                        <p className="text-sm">{format.description}</p>
+                                        <p className="text-xs mt-2 italic text-muted-foreground">Setup: {format.roomSetup}</p>
+                                        <p className="text-sm mt-2"><span className="font-semibold">Key Feature:</span> {format.features}</p>
+                                        <p className="text-sm"><span className="font-semibold">Room Setup:</span> {format.roomSetup}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                </div>
+                              </Label>
+                            </FormItem>
+                          ))}
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <hr className="border-border" />
+
+                <div className="space-y-3 max-w-sm">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Expected Attendance</label>
+                    <span className="text-sm font-semibold tabular-nums text-primary">{expectedAttendance}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={FORMAT_RANGES[selectedFormat]?.min ?? 50}
+                    max={FORMAT_RANGES[selectedFormat]?.max ?? 250}
+                    value={expectedAttendance}
+                    onChange={(e) => setExpectedAttendance(Number(e.target.value))}
+                    className="w-full accent-primary"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{FORMAT_RANGES[selectedFormat]?.min ?? 50}</span>
+                    <span>{FORMAT_RANGES[selectedFormat]?.max ?? 250}</span>
+                  </div>
+                </div>
+              </div>
 
               {/* Schedule Section */}
               <div className="space-y-8 rounded-lg border p-6 bg-muted/30">

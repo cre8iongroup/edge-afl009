@@ -225,15 +225,15 @@ export type PricingTier = {
  *
  * Standard  → now through May 15      → ×1.00
  * +15%      → May 16 – June 14        → ×1.15
- * +25%      → June 15 – June 20       → ×1.25
- * Closed    → after June 20           → no orders accepted
+ * +25%      → June 15 – June 26       → ×1.25
+ * Closed    → after June 26           → no orders accepted
  */
 export function getPricingTier(now: Date = new Date()): PricingTier {
   const y = now.getFullYear();
 
-  const lateStart  = new Date(y, 4, 16); // May 16
+  const lateStart = new Date(y, 4, 16); // May 16
   const finalStart = new Date(y, 5, 15); // Jun 15
-  const closeEnd   = new Date(y, 5, 21); // Jun 21 00:00 → treats Jun 20 as last full day
+  const closeEnd = new Date(y, 5, 27); // Jun 27 00:00 → treats Jun 26 as last full day
 
   if (now >= closeEnd) {
     return {
@@ -251,8 +251,8 @@ export function getPricingTier(now: Date = new Date()): PricingTier {
       name: 'Final',
       multiplier: 1.25,
       label: 'Final Pricing — +25%',
-      description: 'Final deadline is June 20. No AV orders accepted after this date.',
-      deadlineLabel: 'Closes June 20',
+      description: 'Final deadline is June 26. No AV orders accepted after this date.',
+      deadlineLabel: 'Closes June 26',
       isClosed: false,
     };
   }

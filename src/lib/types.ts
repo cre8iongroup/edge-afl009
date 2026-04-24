@@ -60,6 +60,7 @@ export type Submission = {
   preferredTimes?: string[];
   secondaryAudience?: string | string[];
   specialSetup?: string;
+  expectedAttendance?: number;
   presenterName?: string;
   presenterEmail?: string;
   presenterPocName?: string;

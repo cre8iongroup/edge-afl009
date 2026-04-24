@@ -7,7 +7,7 @@ const processSteps = [
   {
     icon: FilePlus,
     title: '1. Draft & Submit',
-    dateLine: 'Submit by May 9',
+    dateLine: 'Submit by June 1',
     description: 'Fill out your session information including title, description, session type, and top 3 time preferences for ALPFA approval.',
   },
   {
@@ -19,13 +19,13 @@ const processSteps = [
   {
     icon: FileText,
     title: '3. Add Details',
-    dateLine: 'Complete by June 20',
+    dateLine: 'Complete by June 26',
     description: "Once approved, you'll complete your presenter information, select your AV package, and finalize payment.",
   },
   {
     icon: CheckCircle,
     title: '4. Finalize & Confirm',
-    dateLine: 'Assignment sent by July 1',
+    dateLine: 'Assignment sent by July 6',
     description: "With all information complete, your session is confirmed and ready for the convention schedule! You'll receive your time and room assignment.",
   },
 ];

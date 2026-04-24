@@ -61,6 +61,10 @@ export default function ReceptionForm({ submission }: ReceptionFormProps) {
   const { addSubmission, updateSubmission } = useSubmissions();
   const sessionType = 'reception';
 
+  const [expectedAttendance, setExpectedAttendance] = useState<number>(
+    submission?.expectedAttendance ?? 140
+  );
+
   const form = useForm<ReceptionFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: submission ? {
@@ -118,6 +122,7 @@ export default function ReceptionForm({ submission }: ReceptionFormProps) {
         preferredDate: values.preferredDate ? new Date(values.preferredDate) : undefined,
         preferredDate2: values.preferredDate2 ? new Date(values.preferredDate2) : undefined,
         sessionType,
+        expectedAttendance,
       };
 
       if (submission) {
@@ -327,6 +332,35 @@ export default function ReceptionForm({ submission }: ReceptionFormProps) {
                     </FormItem>
                   )}
                 />
+              </div>
+
+              {/* Reception Setup */}
+              <div className="space-y-4 rounded-lg border p-6 bg-muted/30">
+                <div className="space-y-1">
+                  <h3 className="text-xl font-semibold font-headline">Session Format</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Your reception includes dedicated use of an assigned space sized to your expected attendance.
+                    AV packages will be available to select after your session is approved.
+                  </p>
+                </div>
+                <div className="space-y-3 max-w-sm">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Expected Attendance</label>
+                    <span className="text-sm font-semibold tabular-nums text-primary">{expectedAttendance}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={140}
+                    max={220}
+                    value={expectedAttendance}
+                    onChange={(e) => setExpectedAttendance(Number(e.target.value))}
+                    className="w-full accent-primary"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>140</span>
+                    <span>220</span>
+                  </div>
+                </div>
               </div>
 
               {/* Schedule Section */}
