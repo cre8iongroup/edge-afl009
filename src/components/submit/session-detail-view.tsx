@@ -35,7 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import AVPackageSelector from './av-package-selector';
 import PresenterSection from './presenter-section';
 import { AV_OPEN_DATE } from '@/lib/av-packages';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { getDoc, doc } from 'firebase/firestore';
 import { sendStatusUpdateEmail, sendSessionApprovedEmail } from '@/lib/actions';
