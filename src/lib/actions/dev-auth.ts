@@ -1,10 +1,10 @@
 'use server';
 
 export async function getDevCredentials(role: 'admin' | 'user' | 'client') {
-  // Triple check: only allow this in development
-  if (process.env.NODE_ENV !== 'development') {
-    return null;
-  }
+  // Only allow in development or when explicitly enabled for staging
+  const isDevEnvironment = process.env.NODE_ENV === 'development';
+  const isStagingEnabled = process.env.NEXT_PUBLIC_ENABLE_DEV_AUTH === 'true';
+  if (!isDevEnvironment && !isStagingEnabled) return null;
 
   const credentials = {
     admin: {

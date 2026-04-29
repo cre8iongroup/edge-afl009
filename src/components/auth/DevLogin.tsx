@@ -13,9 +13,9 @@ const DevLogin = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
 
-  if (process.env.NODE_ENV !== "development") {
-    return null;
-  }
+  const isDevEnvironment = process.env.NODE_ENV === 'development';
+  const isStagingEnabled = process.env.NEXT_PUBLIC_ENABLE_DEV_AUTH === 'true';
+  if (!isDevEnvironment && !isStagingEnabled) return null;
 
   const handleLogin = async (role: 'admin' | 'user' | 'client') => {
     if (!auth || !firestore) {
