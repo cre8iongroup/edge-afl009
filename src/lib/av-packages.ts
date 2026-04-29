@@ -3,7 +3,7 @@
 // Actual prices and package contents to be updated by client before launch.
 
 /** AV package selection opens on this date. Before this, partners see a coming-soon message. */
-export const AV_OPEN_DATE = new Date('2026-04-29T00:00:00');
+export const AV_OPEN_DATE = new Date('2026-05-08T00:00:00');
 
 export type AVPackage = {
   id: string;

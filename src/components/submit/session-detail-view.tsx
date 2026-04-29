@@ -37,7 +37,7 @@ import PresenterSection from './presenter-section';
 import { AV_OPEN_DATE } from '@/lib/av-packages';
 import { useUser } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { useUserProfiles } from '@/hooks/use-user-profiles';
+import { getDoc, doc } from 'firebase/firestore';
 import { sendStatusUpdateEmail, sendSessionApprovedEmail } from '@/lib/actions';
 
 // ─── Phase config — single source of truth for labels, icons, colours ────────
@@ -613,7 +613,7 @@ function Phase2View({ submission, isAdmin }: { submission: Submission; isAdmin: 
             <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-4">
               <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                AV package selection opens April 29. You'll receive an email when this section is ready to complete.
+                AV package selection opens May 8. You'll receive an email when this section is ready to complete.
               </p>
             </div>
           )}
@@ -783,7 +783,7 @@ export default function SessionDetailView({
 }) {
   const { user } = useUser();
   const { profile } = useUserProfile(user?.uid);
-  const { users } = useUserProfiles();
+  const firestore = useFirestore();
   const { updateSubmission } = useSubmissions();
   const { toast } = useToast();
   const router = useRouter();
@@ -809,10 +809,13 @@ export default function SessionDetailView({
     try {
       const updated = { ...submission, status: 'phase_2' as Submission['status'] };
       await updateSubmission(updated);
-      const submitter = users?.find(u => u.id === submission.userId);
-      if (submitter?.email) {
-        await sendStatusUpdateEmail(updated, submitter.email);
-        await sendSessionApprovedEmail(updated, submitter.email);
+      if (firestore && submission.userId) {
+        const submitterSnap = await getDoc(doc(firestore, 'users', submission.userId));
+        const submitterEmail = submitterSnap.data()?.email as string | undefined;
+        if (submitterEmail) {
+          await sendStatusUpdateEmail(updated, submitterEmail);
+          await sendSessionApprovedEmail(updated, submitterEmail);
+        }
       }
       setApproved(true);
       toast({
@@ -831,11 +834,14 @@ export default function SessionDetailView({
     try {
       const updated = { ...submission, status: newPhase };
       await updateSubmission(updated);
-      const submitter = users?.find(u => u.id === submission.userId);
-      if (submitter?.email) {
-        await sendStatusUpdateEmail(updated, submitter.email);
-        if (newPhase === 'phase_2') {
-          await sendSessionApprovedEmail(updated, submitter.email);
+      if (firestore && submission.userId) {
+        const submitterSnap = await getDoc(doc(firestore, 'users', submission.userId));
+        const submitterEmail = submitterSnap.data()?.email as string | undefined;
+        if (submitterEmail) {
+          await sendStatusUpdateEmail(updated, submitterEmail);
+          if (newPhase === 'phase_2') {
+            await sendSessionApprovedEmail(updated, submitterEmail);
+          }
         }
       }
       toast({

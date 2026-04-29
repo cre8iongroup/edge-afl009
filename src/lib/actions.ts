@@ -150,7 +150,7 @@ export async function sendSessionApprovedEmail(submission: Submission, partnerEm
   const partnerBody = `
     <p>Hi ${partnerEmail},</p>
     <p>Great news — your session submission has been approved!</p>
-    <p>Log in to complete the next steps: add your presenter information and select your AV package. The AV package selection opens April 29.</p>
+    <p>Log in to complete the next steps: add your presenter information and select your AV package. The AV package selection opens May 8.</p>
     <p><a href="${baseUrl}/dashboard">Log in to the Portal</a></p>
     <p>Questions? Contact us at <a href="mailto:connect@cre8iongroup.com">connect@cre8iongroup.com</a>.</p>
     <p>— The cre8ion Edge Team</p>
