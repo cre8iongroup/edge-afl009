@@ -234,7 +234,16 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
                   <button
                     key={pkg.id}
                     type="button"
-                    onClick={() => setSelectedPackageId(pkg.id)}
+                    onClick={() => {
+                      setSelectedPackageId(pkg.id);
+                      // Auto-deselect any add-ons that are already included in the newly selected package
+                      setSelectedAddOnIds((prev) =>
+                        prev.filter((addOnId) => {
+                          const addOn = addOns.find((a) => a.id === addOnId);
+                          return !(addOn?.includedInPackages?.includes(pkg.id) ?? false);
+                        })
+                      );
+                    }}
                     className={cn(
                       'relative flex flex-col gap-3 rounded-lg border p-4 text-left transition-all',
                       isSelected
@@ -283,32 +292,46 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
               </h3>
               <div className="grid gap-2 sm:grid-cols-2">
                 {addOns.map((addon) => {
-                  const isChecked = selectedAddOnIds.includes(addon.id);
+                  const isIncludedInPackage = addon.includedInPackages?.includes(selectedPackage?.id ?? '') ?? false;
+                  const isChecked = !isIncludedInPackage && selectedAddOnIds.includes(addon.id);
                   const addonPrice = applyMultiplier(addon.price, pricingTier.multiplier);
                   return (
                     <button
                       key={addon.id}
                       type="button"
-                      onClick={() => toggleAddOn(addon.id)}
+                      onClick={() => { if (!isIncludedInPackage) toggleAddOn(addon.id); }}
+                      disabled={isIncludedInPackage}
                       className={cn(
                         'flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all',
-                        isChecked
-                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                          : 'border-border bg-background hover:border-primary/40 hover:bg-accent/50'
+                        isIncludedInPackage
+                          ? 'cursor-default border-border bg-muted/40 opacity-60'
+                          : isChecked
+                            ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                            : 'border-border bg-background hover:border-primary/40 hover:bg-accent/50'
                       )}
                     >
                       <span
                         className={cn(
                           'flex h-4 w-4 shrink-0 items-center justify-center rounded border',
-                          isChecked ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'
+                          isIncludedInPackage
+                            ? 'border-muted-foreground/40 bg-muted'
+                            : isChecked
+                              ? 'border-primary bg-primary text-primary-foreground'
+                              : 'border-muted-foreground'
                         )}
                       >
                         {isChecked && <Check className="h-3 w-3" />}
                       </span>
                       <span className="flex-1">{addon.label}</span>
-                      <span className="shrink-0 font-medium tabular-nums">
-                        +{formatPrice(addonPrice)}
-                      </span>
+                      {isIncludedInPackage ? (
+                        <span className="shrink-0 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-700">
+                          Included in your package
+                        </span>
+                      ) : (
+                        <span className="shrink-0 font-medium tabular-nums">
+                          +{formatPrice(addonPrice)}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
