@@ -142,16 +142,32 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
     : 0;
 
   const addOnItems = addOns.filter((a) => selectedAddOnIds.includes(a.id));
+
+  /** Resolve the correct base price for an add-on: use deltaByPackage if the selected package has an entry, else fall back to price. */
+  const resolveAddOnBasePrice = (a: (typeof addOns)[number]) =>
+    (selectedPackage && a.deltaByPackage?.[selectedPackage.id] !== undefined)
+      ? a.deltaByPackage![selectedPackage.id]
+      : a.price;
+
   const addOnsTotal = addOnItems.reduce(
-    (sum, a) => sum + applyMultiplier(a.price, pricingTier.multiplier),
+    (sum, a) => sum + applyMultiplier(resolveAddOnBasePrice(a), pricingTier.multiplier),
     0
   );
   const orderTotal = packageFinalPrice + addOnsTotal;
 
   const toggleAddOn = (id: string) => {
-    setSelectedAddOnIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setSelectedAddOnIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      // If we just deselected an add-on that was satisfying another add-on's requiresAnyOf,
+      // also deselect that dependent add-on.
+      return next.filter((remainingId) => {
+        const remaining = addOns.find((a) => a.id === remainingId);
+        if (!remaining?.requiresAnyOf) return true;
+        const packageSatisfies = remaining.requiresAnyOf.includes(selectedPackage?.id ?? '');
+        const addonSatisfies = remaining.requiresAnyOf.some((reqId) => next.includes(reqId));
+        return packageSatisfies || addonSatisfies;
+      });
+    });
   };
 
   const handleConfirm = async () => {
@@ -236,11 +252,22 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
                     type="button"
                     onClick={() => {
                       setSelectedPackageId(pkg.id);
-                      // Auto-deselect any add-ons that are already included in the newly selected package
+                      // Auto-deselect add-ons that become included in, or locked out by, the newly selected package
                       setSelectedAddOnIds((prev) =>
                         prev.filter((addOnId) => {
                           const addOn = addOns.find((a) => a.id === addOnId);
-                          return !(addOn?.includedInPackages?.includes(pkg.id) ?? false);
+                          // Remove if now included in the new package
+                          if (addOn?.includedInPackages?.includes(pkg.id)) return false;
+                          // Remove if now locked (requiresAnyOf exists and new package satisfies none of them,
+                          // and no other currently-selected add-on satisfies them either)
+                          if (addOn?.requiresAnyOf) {
+                            const packageSatisfies = addOn.requiresAnyOf.includes(pkg.id);
+                            const addonSatisfies = addOn.requiresAnyOf.some(
+                              (reqId) => reqId !== addOnId && prev.includes(reqId)
+                            );
+                            if (!packageSatisfies && !addonSatisfies) return false;
+                          }
+                          return true;
                         })
                       );
                     }}
@@ -269,13 +296,18 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
                       ))}
                     </ul>
                     <div className="mt-auto pt-2 border-t">
-                      <p className="font-bold text-base">
-                        {pkg.basePrice === 0 ? 'Free' : formatPrice(finalPrice)}
-                      </p>
-                      {pricingTier.multiplier > 1 && pkg.basePrice > 0 && (
-                        <p className="text-xs text-muted-foreground line-through">
-                          {formatPrice(pkg.basePrice)} base
-                        </p>
+                      {pkg.basePrice === 0 ? (
+                        <p className="font-bold text-base">Free</p>
+                      ) : pricingTier.multiplier < 1 ? (
+                        // Early bird — show crossed-out full price then discounted price
+                        <>
+                          <p className="text-sm text-muted-foreground line-through">
+                            {formatPrice(pkg.basePrice)}
+                          </p>
+                          <p className="font-bold text-base">{formatPrice(finalPrice)}</p>
+                        </>
+                      ) : (
+                        <p className="font-bold text-base">{formatPrice(finalPrice)}</p>
                       )}
                     </div>
                   </button>
@@ -293,27 +325,35 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
               <div className="grid gap-2 sm:grid-cols-2">
                 {addOns.map((addon) => {
                   const isIncludedInPackage = addon.includedInPackages?.includes(selectedPackage?.id ?? '') ?? false;
-                  const isChecked = !isIncludedInPackage && selectedAddOnIds.includes(addon.id);
-                  const addonPrice = applyMultiplier(addon.price, pricingTier.multiplier);
+                  const isLocked = (() => {
+                    if (!addon.requiresAnyOf) return false;
+                    const hasRequiredPackage = addon.requiresAnyOf.includes(selectedPackage?.id ?? '');
+                    const hasRequiredAddon = addon.requiresAnyOf.some((id) => selectedAddOnIds.includes(id));
+                    return !hasRequiredPackage && !hasRequiredAddon;
+                  })();
+                  const isChecked = !isIncludedInPackage && !isLocked && selectedAddOnIds.includes(addon.id);
+                  const addonPrice = applyMultiplier(resolveAddOnBasePrice(addon), pricingTier.multiplier);
                   return (
                     <button
                       key={addon.id}
                       type="button"
-                      onClick={() => { if (!isIncludedInPackage) toggleAddOn(addon.id); }}
-                      disabled={isIncludedInPackage}
+                      onClick={() => { if (!isIncludedInPackage && !isLocked) toggleAddOn(addon.id); }}
+                      disabled={isIncludedInPackage || isLocked}
                       className={cn(
                         'flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all',
                         isIncludedInPackage
                           ? 'cursor-default border-border bg-muted/40 opacity-60'
-                          : isChecked
-                            ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                            : 'border-border bg-background hover:border-primary/40 hover:bg-accent/50'
+                          : isLocked
+                            ? 'cursor-default border-border bg-muted/20 opacity-70'
+                            : isChecked
+                              ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                              : 'border-border bg-background hover:border-primary/40 hover:bg-accent/50'
                       )}
                     >
                       <span
                         className={cn(
                           'flex h-4 w-4 shrink-0 items-center justify-center rounded border',
-                          isIncludedInPackage
+                          isIncludedInPackage || isLocked
                             ? 'border-muted-foreground/40 bg-muted'
                             : isChecked
                               ? 'border-primary bg-primary text-primary-foreground'
@@ -326,6 +366,10 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
                       {isIncludedInPackage ? (
                         <span className="shrink-0 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-700">
                           Included in your package
+                        </span>
+                      ) : isLocked ? (
+                        <span className="shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700">
+                          Requires a photo backdrop — add one above to unlock
                         </span>
                       ) : (
                         <span className="shrink-0 font-medium tabular-nums">
@@ -356,7 +400,7 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
               {addOnItems.map((a) => (
                 <div key={a.id} className="flex justify-between text-muted-foreground">
                   <span>{a.label}</span>
-                  <span className="tabular-nums">+{formatPrice(applyMultiplier(a.price, pricingTier.multiplier))}</span>
+                  <span className="tabular-nums">+{formatPrice(applyMultiplier(resolveAddOnBasePrice(a), pricingTier.multiplier))}</span>
                 </div>
               ))}
               <div className="flex justify-between border-t pt-2 font-bold text-base">

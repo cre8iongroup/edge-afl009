@@ -16,10 +16,19 @@ export type AVPackage = {
 export type AVAddOn = {
   id: string;
   label: string;
-  price: number; // in cents
+  /** Alternate label shown in the UI when a specific package is selected (e.g. upgrade wording). */
+  upgradeLabel?: string;
+  price: number; // in cents — fallback if no deltaByPackage match
+  /** Per-package delta prices in cents. When selectedPackage.id is a key here, use this value instead of price. */
+  deltaByPackage?: Record<string, number>;
   sessionTypes: Array<'workshop' | 'reception' | 'info-session'>;
   /** Package IDs where this add-on is already included. Row is shown as non-interactive in the selector. */
   includedInPackages?: string[];
+  /**
+   * Add-on IDs or package IDs — at least one must be selected/active for this add-on to be available.
+   * When none match, the row renders as locked with an explanatory note.
+   */
+  requiresAnyOf?: string[];
 };
 
 // ─── Per-session-type packages ─────────────────────────────────────────────
@@ -62,9 +71,6 @@ export const workshopPackages: AVPackage[] = [
       'Sound System with Computer Audio',
       'Four Wireless Microphones',
       'Four Custom Branded Scenic Cubes',
-      'Custom Branded Head Table Cover',
-      'Custom LED Totem',
-      "3'x2' Custom Backdrop",
     ],
   },
 ];
@@ -91,7 +97,7 @@ export const receptionPackages: AVPackage[] = [
       'Two Wireless Microphones',
       'Two Custom Branded Scenic Cubes',
       '(8) RGB Uplights — Static Colors',
-      "3'x2' Custom Backdrop",
+      'Small Photo Backdrop',
     ],
   },
   {
@@ -164,9 +170,6 @@ export const infoSessionPackages: AVPackage[] = [
       'Sound System with Computer Audio',
       'Four Wireless Microphones',
       'Four Custom Branded Scenic Cubes',
-      'Custom Branded Head Table Cover',
-      'Custom LED Totem',
-      "3'x2' Custom Backdrop",
     ],
   },
 ];
@@ -180,17 +183,25 @@ export const infoSessionPackages: AVPackage[] = [
 // Custom LED Totem, 3'x2' Custom Backdrop, Large Photo Backdrop, LED Totem w/Custom Graphics
 export const avAddOns: AVAddOn[] = [
   // ─── Workshop / Info Session add-ons ───────────────────────────────────────
+
+  // PLACEHOLDER PRICING — confirm all delta amounts with Tim before launch
   {
-    id: 'addon-two-mics',
-    label: 'Two Wireless Microphones',
-    price: 40000, // $400
+    id: 'addon-upgrade-to-two-mics',
+    label: 'Upgrade to Two Wireless Microphones',
+    price: 19900, // placeholder — delta price from Starter (adds 1 mic)
     sessionTypes: ['workshop', 'info-session'],
     includedInPackages: ['workshop-pro', 'workshop-elite', 'info-pro', 'info-elite'],
   },
   {
-    id: 'addon-four-mics',
-    label: 'Four Wireless Microphones',
-    price: 120000, // $1,200
+    id: 'addon-upgrade-to-four-mics',
+    label: 'Upgrade to Four Wireless Microphones',
+    deltaByPackage: {
+      'workshop-starter': 39900, // placeholder — adding 3 mics from Starter
+      'workshop-pro':     29900, // placeholder — adding 2 mics from Pro
+      'info-starter':     39900,
+      'info-pro':         29900,
+    },
+    price: 39900, // fallback price if no deltaByPackage match
     sessionTypes: ['workshop', 'info-session'],
     includedInPackages: ['workshop-elite', 'info-elite'],
   },
@@ -199,21 +210,40 @@ export const avAddOns: AVAddOn[] = [
     label: 'Custom Branded Head Table Cover',
     price: 20000, // $200
     sessionTypes: ['workshop', 'info-session'],
-    includedInPackages: ['workshop-elite', 'info-elite'],
   },
   {
     id: 'addon-led-totem',
     label: 'Custom LED Totem',
     price: 200000, // $2,000
     sessionTypes: ['workshop', 'info-session'],
+  },
+
+  // PLACEHOLDER PRICING — confirm all delta amounts with Tim before launch
+  {
+    id: 'addon-upgrade-to-two-cubes',
+    label: 'Upgrade to Two Custom Branded Scenic Cubes',
+    price: 29900, // placeholder — upgrading from 2 generic ALPFA cubes (Starter only)
+    sessionTypes: ['workshop', 'info-session'],
+    includedInPackages: ['workshop-pro', 'workshop-elite', 'info-pro', 'info-elite'],
+  },
+  {
+    id: 'addon-upgrade-to-four-cubes',
+    label: 'Upgrade to Four Custom Branded Scenic Cubes',
+    deltaByPackage: {
+      'workshop-starter': 59900, // placeholder — replacing 2 generic with 4 custom
+      'workshop-pro':     29900, // placeholder — adding 2 more custom
+      'info-starter':     59900,
+      'info-pro':         29900,
+    },
+    price: 59900, // fallback
+    sessionTypes: ['workshop', 'info-session'],
     includedInPackages: ['workshop-elite', 'info-elite'],
   },
   {
-    id: 'addon-four-cubes',
-    label: 'Four Custom Branded Scenic Cubes',
-    price: 120000, // $1,200
+    id: 'addon-backdrop-small',
+    label: "3'x2' Custom Backdrop",
+    price: 22500, // PLACEHOLDER PRICING — confirm with Tim before launch
     sessionTypes: ['workshop', 'info-session'],
-    includedInPackages: ['workshop-elite', 'info-elite'],
   },
 
   // ─── Reception add-ons ─────────────────────────────────────────────────────
@@ -250,6 +280,41 @@ export const avAddOns: AVAddOn[] = [
     price: 320000, // $3,200
     sessionTypes: ['reception'],
     includedInPackages: ['reception-lux'],
+  },
+  {
+    id: 'addon-small-backdrop-reception',
+    label: 'Small Photo Backdrop',
+    price: 30000, // $300
+    sessionTypes: ['reception'],
+    includedInPackages: ['reception-pro'],
+  },
+  {
+    id: 'addon-dedicated-room-tech',
+    label: 'Dedicated Room Tech',
+    price: 60000, // $600
+    sessionTypes: ['reception'],
+    includedInPackages: ['reception-elite', 'reception-lux'],
+  },
+  {
+    id: 'addon-photo-booth',
+    label: 'Branded Photo Booth Kiosk',
+    price: 100000, // $1,000
+    sessionTypes: ['reception'],
+    requiresAnyOf: [
+      'addon-small-backdrop-reception',
+      'addon-large-backdrop',
+      'reception-pro',
+      'reception-elite',
+      'reception-lux',
+    ],
+  },
+
+  // ─── Workshop-only add-ons ─────────────────────────────────────────────────
+  {
+    id: 'addon-ai-translation',
+    label: 'AI Translation',
+    price: 80000, // $800
+    sessionTypes: ['workshop'],
   },
 ];
 
