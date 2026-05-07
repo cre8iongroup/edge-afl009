@@ -4,11 +4,11 @@ import { getXeroClient, storeTokens } from '@/lib/xero';
 /**
  * GET /api/xero/callback
  * Handles the redirect from Xero after the user authorizes the app.
- * Exchanges the authorization code for access + refresh tokens, stores them
- * in Firestore at xero_config/tokens, and returns the Tenant ID.
+ * Exchanges the authorization code for access + refresh tokens and stores
+ * them in Firestore at xero_config/tokens.
  *
- * After a successful connection, copy the tenantId from the response JSON
- * and store it in Firebase secrets as XERO_TENANT_ID.
+ * Tenant ID is read from the XERO_TENANT_ID environment variable (set in
+ * Firebase secrets) rather than being discovered dynamically via updateTenants().
  */
 export async function GET(request: NextRequest) {
   const xero = getXeroClient();
@@ -16,24 +16,16 @@ export async function GET(request: NextRequest) {
 
   try {
     const tokenSet = await xero.apiCallback(url);
-    await xero.updateTenants();
-
-    const tenants = xero.tenants;
-    const tenantId = tenants[0]?.tenantId;
-    const tenantName = tenants[0]?.tenantName;
+    const tenantId = process.env.XERO_TENANT_ID;
 
     await storeTokens(tokenSet, tenantId);
 
-    console.log('✅ Xero connected successfully');
-    console.log('Tenant ID:', tenantId);
-    console.log('Tenant Name:', tenantName);
+    console.log('✅ Xero tokens stored successfully');
 
     return NextResponse.json({
       success: true,
       tenantId,
-      tenantName,
-      message:
-        'Xero connected successfully. Copy the tenantId above into your Firebase secrets as XERO_TENANT_ID.',
+      message: 'Xero connected successfully. Tokens stored in Firestore.',
     });
   } catch (error) {
     console.error('Xero OAuth error:', error);

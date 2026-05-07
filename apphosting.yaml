@@ -13,3 +13,5 @@ environmentVariables:
     secret: XERO_CLIENT_SECRET
   - variable: XERO_REDIRECT_URI
     secret: XERO_REDIRECT_URI
+  - variable: XERO_TENANT_ID
+    secret: XERO_TENANT_ID
