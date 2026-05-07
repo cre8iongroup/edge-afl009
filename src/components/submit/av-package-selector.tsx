@@ -205,7 +205,29 @@ function AVPackageSelectorInner({ submission }: AVPackageSelectorProps) {
 
   const toggleAddOn = (id: string) => {
     setSelectedAddOnIds((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      let next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+
+      // ── Upgrade mutual-exclusion guards ─────────────────────────────────
+      // Selecting a higher upgrade tier automatically deselects the lower one,
+      // and vice versa, so both can never be active simultaneously.
+
+      // If four-mic upgrade selected, remove two-mic upgrade
+      if (id === 'addon-upgrade-to-four-mics') {
+        next = next.filter(i => i !== 'addon-upgrade-to-two-mics');
+      }
+      // If two-mic upgrade selected, remove four-mic upgrade
+      if (id === 'addon-upgrade-to-two-mics') {
+        next = next.filter(i => i !== 'addon-upgrade-to-four-mics');
+      }
+      // If four-cube upgrade selected, remove two-cube upgrade
+      if (id === 'addon-upgrade-to-four-cubes') {
+        next = next.filter(i => i !== 'addon-upgrade-to-two-cubes');
+      }
+      // If two-cube upgrade selected, remove four-cube upgrade
+      if (id === 'addon-upgrade-to-two-cubes') {
+        next = next.filter(i => i !== 'addon-upgrade-to-four-cubes');
+      }
+
       // If we just deselected an add-on that was satisfying another add-on's requiresAnyOf,
       // also deselect that dependent add-on.
       return next.filter((remainingId) => {

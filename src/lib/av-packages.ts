@@ -200,9 +200,9 @@ export const avAddOns: AVAddOn[] = [
     label: 'Upgrade to Four Wireless Microphones',
     deltaByPackage: {
       'workshop-starter': 120000,
-      'workshop-pro':     120000,
+      'workshop-pro':      80000,
       'info-starter':     120000,
-      'info-pro':         120000,
+      'info-pro':          80000,
     },
     price: 120000, // fallback price if no deltaByPackage match
     sessionTypes: ['workshop', 'info-session'],
@@ -238,9 +238,9 @@ export const avAddOns: AVAddOn[] = [
     label: 'Upgrade to Four Custom Branded Scenic Cubes',
     deltaByPackage: {
       'workshop-starter': 120000,
-      'workshop-pro':     120000,
+      'workshop-pro':      60000,
       'info-starter':     120000,
-      'info-pro':         120000,
+      'info-pro':          60000,
     },
     price: 120000, // fallback
     sessionTypes: ['workshop', 'info-session'],
@@ -300,7 +300,7 @@ export const avAddOns: AVAddOn[] = [
     label: 'Small Photo Backdrop',
     price: 30000, // $300
     sessionTypes: ['reception'],
-    includedInPackages: ['reception-pro'],
+    includedInPackages: ['reception-pro', 'reception-elite', 'reception-lux'],
     flatPrice: true,
   },
   {
