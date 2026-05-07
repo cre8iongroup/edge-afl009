@@ -61,6 +61,7 @@ export default function SubmissionsTable() {
             <TableHeader>
               <TableRow>
                 <TableHead>Submitter</TableHead>
+                <TableHead>Company</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead className="text-center">Status</TableHead>
@@ -93,6 +94,7 @@ export default function SubmissionsTable() {
                                 </div>
                             </div>
                         </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{item.companyName || '—'}</TableCell>
                         <TableCell className="font-medium">{item.title}</TableCell>
                         <TableCell>
                             <div className="flex flex-col gap-1">

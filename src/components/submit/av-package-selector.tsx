@@ -150,7 +150,7 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
       : a.price;
 
   const addOnsTotal = addOnItems.reduce(
-    (sum, a) => sum + applyMultiplier(resolveAddOnBasePrice(a), pricingTier.multiplier),
+    (sum, a) => sum + (a.flatPrice ? resolveAddOnBasePrice(a) : applyMultiplier(resolveAddOnBasePrice(a), pricingTier.multiplier)),
     0
   );
   const orderTotal = packageFinalPrice + addOnsTotal;
@@ -332,7 +332,7 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
                     return !hasRequiredPackage && !hasRequiredAddon;
                   })();
                   const isChecked = !isIncludedInPackage && !isLocked && selectedAddOnIds.includes(addon.id);
-                  const addonPrice = applyMultiplier(resolveAddOnBasePrice(addon), pricingTier.multiplier);
+                  const addonPrice = addon.flatPrice ? resolveAddOnBasePrice(addon) : applyMultiplier(resolveAddOnBasePrice(addon), pricingTier.multiplier);
                   return (
                     <button
                       key={addon.id}
@@ -400,7 +400,7 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
               {addOnItems.map((a) => (
                 <div key={a.id} className="flex justify-between text-muted-foreground">
                   <span>{a.label}</span>
-                  <span className="tabular-nums">+{formatPrice(applyMultiplier(resolveAddOnBasePrice(a), pricingTier.multiplier))}</span>
+                  <span className="tabular-nums">+{formatPrice(a.flatPrice ? resolveAddOnBasePrice(a) : applyMultiplier(resolveAddOnBasePrice(a), pricingTier.multiplier))}</span>
                 </div>
               ))}
               <div className="flex justify-between border-t pt-2 font-bold text-base">

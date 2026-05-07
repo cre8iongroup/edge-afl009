@@ -29,6 +29,8 @@ export type AVAddOn = {
    * When none match, the row renders as locked with an explanatory note.
    */
   requiresAnyOf?: string[];
+  /** When true, the pricing tier multiplier is NOT applied — price is used as-is regardless of early-bird status. */
+  flatPrice?: boolean;
 };
 
 // ─── Per-session-type packages ─────────────────────────────────────────────
@@ -191,6 +193,7 @@ export const avAddOns: AVAddOn[] = [
     price: 19900, // placeholder — delta price from Starter (adds 1 mic)
     sessionTypes: ['workshop', 'info-session'],
     includedInPackages: ['workshop-pro', 'workshop-elite', 'info-pro', 'info-elite'],
+    flatPrice: true,
   },
   {
     id: 'addon-upgrade-to-four-mics',
@@ -204,18 +207,21 @@ export const avAddOns: AVAddOn[] = [
     price: 39900, // fallback price if no deltaByPackage match
     sessionTypes: ['workshop', 'info-session'],
     includedInPackages: ['workshop-elite', 'info-elite'],
+    flatPrice: true,
   },
   {
     id: 'addon-head-table',
     label: 'Custom Branded Head Table Cover',
     price: 20000, // $200
     sessionTypes: ['workshop', 'info-session'],
+    flatPrice: true,
   },
   {
     id: 'addon-led-totem',
     label: 'Custom LED Totem',
     price: 200000, // $2,000
     sessionTypes: ['workshop', 'info-session'],
+    flatPrice: true,
   },
 
   // PLACEHOLDER PRICING — confirm all delta amounts with Tim before launch
@@ -225,6 +231,7 @@ export const avAddOns: AVAddOn[] = [
     price: 29900, // placeholder — upgrading from 2 generic ALPFA cubes (Starter only)
     sessionTypes: ['workshop', 'info-session'],
     includedInPackages: ['workshop-pro', 'workshop-elite', 'info-pro', 'info-elite'],
+    flatPrice: true,
   },
   {
     id: 'addon-upgrade-to-four-cubes',
@@ -238,12 +245,14 @@ export const avAddOns: AVAddOn[] = [
     price: 59900, // fallback
     sessionTypes: ['workshop', 'info-session'],
     includedInPackages: ['workshop-elite', 'info-elite'],
+    flatPrice: true,
   },
   {
     id: 'addon-backdrop-small',
     label: "3'x2' Custom Backdrop",
     price: 22500, // PLACEHOLDER PRICING — confirm with Tim before launch
     sessionTypes: ['workshop', 'info-session'],
+    flatPrice: true,
   },
 
   // ─── Reception add-ons ─────────────────────────────────────────────────────
@@ -253,12 +262,14 @@ export const avAddOns: AVAddOn[] = [
     price: 400000, // $4,000
     sessionTypes: ['reception'],
     includedInPackages: ['reception-lux'],
+    flatPrice: true,
   },
   {
     id: 'addon-75-tv',
     label: '75" TV with Stand',
     price: 200000, // $2,000
     sessionTypes: ['reception'],
+    flatPrice: true,
   },
   {
     id: 'addon-led-totem-reception',
@@ -266,6 +277,7 @@ export const avAddOns: AVAddOn[] = [
     price: 200000, // $2,000
     sessionTypes: ['reception'],
     includedInPackages: ['reception-lux'],
+    flatPrice: true,
   },
   {
     id: 'addon-large-backdrop',
@@ -273,6 +285,7 @@ export const avAddOns: AVAddOn[] = [
     price: 60000, // $600
     sessionTypes: ['reception'],
     includedInPackages: ['reception-elite', 'reception-lux'],
+    flatPrice: true,
   },
   {
     id: 'addon-moving-heads',
@@ -280,6 +293,7 @@ export const avAddOns: AVAddOn[] = [
     price: 320000, // $3,200
     sessionTypes: ['reception'],
     includedInPackages: ['reception-lux'],
+    flatPrice: true,
   },
   {
     id: 'addon-small-backdrop-reception',
@@ -287,6 +301,7 @@ export const avAddOns: AVAddOn[] = [
     price: 30000, // $300
     sessionTypes: ['reception'],
     includedInPackages: ['reception-pro'],
+    flatPrice: true,
   },
   {
     id: 'addon-dedicated-room-tech',
@@ -294,6 +309,7 @@ export const avAddOns: AVAddOn[] = [
     price: 60000, // $600
     sessionTypes: ['reception'],
     includedInPackages: ['reception-elite', 'reception-lux'],
+    flatPrice: true,
   },
   {
     id: 'addon-photo-booth',
@@ -307,6 +323,7 @@ export const avAddOns: AVAddOn[] = [
       'reception-elite',
       'reception-lux',
     ],
+    flatPrice: true,
   },
 
   // ─── Workshop-only add-ons ─────────────────────────────────────────────────
@@ -315,6 +332,7 @@ export const avAddOns: AVAddOn[] = [
     label: 'AI Translation',
     price: 80000, // $800
     sessionTypes: ['workshop'],
+    flatPrice: true,
   },
 ];
 
