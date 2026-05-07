@@ -9,6 +9,7 @@ import {
   getPricingTier,
   applyMultiplier,
   formatPrice,
+  consolidateOrderItems,
   type AVPackage,
 } from '@/lib/av-packages';
 import { useSubmissions } from '@/components/submissions-provider';
@@ -45,6 +46,13 @@ function AVLockedView({
 }) {
   const router = useRouter();
 
+  const packages = getPackagesForSessionType(avSelection.sessionType);
+  const packageDetails = packages.find((p) => p.id === avSelection.packageId);
+  const consolidatedItems = consolidateOrderItems(
+    packageDetails?.includes ?? [],
+    avSelection.addOns
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/5 p-4">
@@ -66,10 +74,10 @@ function AVLockedView({
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pricing Tier</p>
           <p className="text-sm">{avSelection.pricingTier}</p>
         </div>
-        {avSelection.addOns.length > 0 && (
+        {consolidatedItems.length > 0 && (
           <div className="space-y-1 sm:col-span-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Add-ons</p>
-            <p className="text-sm">{avSelection.addOns.join(', ')}</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">What You're Getting</p>
+            <p className="text-sm">{consolidatedItems.join(', ')}</p>
           </div>
         )}
         <div className="space-y-1 sm:col-span-2 border-t pt-3">

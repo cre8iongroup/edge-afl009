@@ -418,3 +418,76 @@ export function formatPrice(cents: number): string {
   if (cents === 0) return 'Included';
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 }
+
+// ─── Order consolidation ──────────────────────────────────────────────────────
+
+/**
+ * Consolidates package includes and selected add-on labels into a single
+ * "what you're getting" list. Some add-ons replace package items (upgrades),
+ * others are purely additive. See inline comments for each rule.
+ */
+export function consolidateOrderItems(
+  packageIncludes: string[],
+  addOnLabels: string[]
+): string[] {
+  let items = [...packageIncludes];
+
+  // ── Priority flags ──────────────────────────────────────────────────────
+  // If both mic upgrade tiers are somehow selected, four-mic wins.
+  // If both cube upgrade tiers are somehow selected, four-cube wins.
+  const hasFourMics  = addOnLabels.some(a => a === 'Upgrade to Four Wireless Microphones');
+  const hasTwoMics   = addOnLabels.some(a => a === 'Upgrade to Two Wireless Microphones');
+  const hasFourCubes = addOnLabels.some(a => a === 'Upgrade to Four Custom Branded Scenic Cubes');
+  const hasTwoCubes  = addOnLabels.some(a => a === 'Upgrade to Two Custom Branded Scenic Cubes');
+  const hasLargeBackdrop = addOnLabels.some(a => a === 'Large Photo Backdrop');
+  const has16Uplights    = addOnLabels.some(a => a === '(16) RGB Uplights — Static Colors');
+
+  // ── Mic upgrade (replace any existing mic include) ───────────────────────
+  if (hasFourMics) {
+    items = items.filter(i => !i.includes('Wireless Microphone'));
+    items.push('Four Wireless Microphones');
+  } else if (hasTwoMics) {
+    items = items.filter(i => !i.includes('Wireless Microphone'));
+    items.push('Two Wireless Microphones');
+  }
+
+  // ── Cube upgrade (replace any existing cube include) ────────────────────
+  if (hasFourCubes) {
+    items = items.filter(i => !i.includes('Scenic Cubes'));
+    items.push('Four Custom Branded Scenic Cubes');
+  } else if (hasTwoCubes) {
+    items = items.filter(i => !i.includes('Scenic Cubes'));
+    items.push('Two Custom Branded Scenic Cubes');
+  }
+
+  // ── Uplights upgrade (16 replaces 8, no "Upgrade to" prefix) ────────────
+  if (has16Uplights) {
+    items = items.filter(i => !i.includes('RGB Uplights'));
+    items.push('(16) RGB Uplights — Static Colors');
+  }
+
+  // ── Large backdrop (replaces small if present, additive if no backdrop) ──
+  if (hasLargeBackdrop) {
+    items = items.filter(i => !i.includes('Photo Backdrop'));
+    items.push('Large Photo Backdrop');
+  }
+
+  // ── All remaining additive add-ons ───────────────────────────────────────
+  // Skip any add-ons already handled above as upgrades
+  const handledLabels = new Set([
+    'Upgrade to Four Wireless Microphones',
+    'Upgrade to Two Wireless Microphones',
+    'Upgrade to Four Custom Branded Scenic Cubes',
+    'Upgrade to Two Custom Branded Scenic Cubes',
+    '(16) RGB Uplights — Static Colors',
+    'Large Photo Backdrop',
+  ]);
+
+  for (const label of addOnLabels) {
+    if (!handledLabels.has(label)) {
+      items.push(label);
+    }
+  }
+
+  return items;
+}
