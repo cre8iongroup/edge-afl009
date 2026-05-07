@@ -10,7 +10,10 @@ export function getXeroClient() {
     clientSecret: process.env.XERO_CLIENT_SECRET!,
     redirectUris: [process.env.XERO_REDIRECT_URI!],
     scopes: [
-      'accounting.transactions',
+      'openid',
+      'profile',
+      'email',
+      'accounting.invoices',
       'accounting.contacts',
       'offline_access',
     ],
