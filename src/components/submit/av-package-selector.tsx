@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Submission, AVSelection } from '@/lib/types';
 import {
   getPackagesForSessionType,
@@ -33,7 +34,17 @@ const sessionTypeLabel: Record<Submission['sessionType'], string> = {
 
 // ─── Locked read-only view ────────────────────────────────────────────────────
 
-function AVLockedView({ avSelection }: { avSelection: AVSelection }) {
+function AVLockedView({
+  avSelection,
+  paymentComplete,
+  submissionId,
+}: {
+  avSelection: AVSelection;
+  paymentComplete: boolean;
+  submissionId: string;
+}) {
+  const router = useRouter();
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/5 p-4">
@@ -85,16 +96,18 @@ function AVLockedView({ avSelection }: { avSelection: AVSelection }) {
         )}
       </div>
 
-      {/* Always visible — regardless of Stripe fields */}
-      <p className="text-xs text-muted-foreground">
-        Need to update your order?{' '}
-        <a
-          href="mailto:connect@cre8iongroup.com"
-          className="font-medium text-primary hover:underline"
+      {/* Edit button — only shown before payment is captured */}
+      {!paymentComplete && (
+        <button
+          type="button"
+          onClick={() =>
+            router.push(`/submit/${avSelection.sessionType}/${submissionId}?editAV=true`)
+          }
+          className="text-sm font-medium text-primary hover:underline"
         >
-          Contact our team at connect@cre8iongroup.com
-        </a>
-      </p>
+          Edit AV Selection
+        </button>
+      )}
     </div>
   );
 }
@@ -105,34 +118,53 @@ type AVPackageSelectorProps = {
   submission: Submission;
 };
 
-export default function AVPackageSelector({ submission }: AVPackageSelectorProps) {
+function AVPackageSelectorInner({ submission }: AVPackageSelectorProps) {
   const { updateSubmission } = useSubmissions();
   const { toast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEditMode = searchParams.get('editAV') === 'true';
   const [isLoading, setIsLoading] = useState(false);
 
   // Derive locked state reactively from the submission prop.
   // Using useState + useEffect ensures the component re-renders when Firestore
   // pushes the updated document even if the parent's object reference is stale.
+  // When editAV=true the selector starts unlocked regardless of avSelected.
   const [isLocked, setIsLocked] = useState(
-    !!(submission.avSelected && submission.avSelection)
+    isEditMode ? false : !!(submission.avSelected && submission.avSelection)
   );
 
   useEffect(() => {
-    if (submission.avSelected && submission.avSelection) {
-      setIsLocked(true);
-    }
-  }, [submission.avSelected, submission.avSelection]);
+    if (isEditMode) return; // don't re-lock while partner is editing
+    setIsLocked(!!(submission.avSelected && submission.avSelection));
+  }, [submission.avSelected, submission.avSelection, isEditMode]);
 
   const pricingTier = useMemo(() => getPricingTier(), []);
   const packages = useMemo(() => getPackagesForSessionType(submission.sessionType), [submission.sessionType]);
   const addOns = useMemo(() => getAddOnsForSessionType(submission.sessionType), [submission.sessionType]);
 
-  const [selectedPackageId, setSelectedPackageId] = useState<string>(packages[0]?.id ?? '');
-  const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>([]);
+  const [selectedPackageId, setSelectedPackageId] = useState<string>(
+    isEditMode && submission.avSelection?.packageId
+      ? submission.avSelection.packageId
+      : packages[0]?.id ?? ''
+  );
+  const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>(
+    isEditMode && submission.avSelection?.addOns
+      ? addOns
+          .filter((a) => submission.avSelection!.addOns.includes(a.label))
+          .map((a) => a.id)
+      : []
+  );
 
   // Show locked read-only view once confirmed
   if (isLocked && submission.avSelection) {
-    return <AVLockedView avSelection={submission.avSelection} />;
+    return (
+      <AVLockedView
+        avSelection={submission.avSelection}
+        paymentComplete={submission.paymentComplete ?? false}
+        submissionId={submission.id}
+      />
+    );
   }
 
   const selectedPackage = packages.find((p) => p.id === selectedPackageId);
@@ -189,11 +221,14 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
     };
 
     try {
-      await updateSubmission({ ...submission, avSelected: true, paymentComplete: true, avSelection });
+      await updateSubmission({ ...submission, avSelected: true, avSelection });
       toast({
         title: 'AV Package Confirmed',
         description: `${selectedPackage.name} has been locked in. Total: ${formatPrice(orderTotal)}`,
       });
+      if (isEditMode) {
+        router.push(`/submit/${submission.sessionType}/${submission.id}?from=review`);
+      }
     } catch {
       toast({
         variant: 'destructive',
@@ -237,6 +272,16 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
         </Card>
       ) : (
         <>
+          {/* Edit mode banner */}
+          {isEditMode && (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-amber-600">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p className="text-sm">
+                You are editing your AV selection. Re-confirming will update your order at the current pricing rate.
+              </p>
+            </div>
+          )}
+
           {/* Package selection */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -419,5 +464,17 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
         </>
       )}
     </div>
+  );
+}
+
+// ─── Public export: wraps inner component in a Suspense boundary ──────────────
+// Required because AVPackageSelectorInner calls useSearchParams(), which in
+// Next.js App Router must be inside a <Suspense> tree or params always return null.
+
+export default function AVPackageSelector(props: AVPackageSelectorProps) {
+  return (
+    <Suspense fallback={null}>
+      <AVPackageSelectorInner {...props} />
+    </Suspense>
   );
 }

@@ -561,11 +561,15 @@ function Phase2View({ submission, isAdmin }: { submission: Submission; isAdmin: 
 
   const presentersAdded = submission.presentersAdded ?? false;
   const avSelected = submission.avSelected ?? false;
+  const paymentComplete = submission.paymentComplete ?? false;
   const isReception = submission.sessionType === 'reception';
   const avIsOpen = new Date() >= AV_OPEN_DATE;
 
-  // Reception: advance on AV only. Workshop/info-session: need both presenters + AV.
-  const allDone = isReception ? avSelected : (presentersAdded && avSelected);
+  // Reception: advance once AV selected + payment confirmed.
+  // Workshop/info-session: need presenters added + AV selected + payment confirmed.
+  const allDone = isReception
+    ? (avSelected && paymentComplete)
+    : (presentersAdded && avSelected && paymentComplete);
 
   useEffect(() => {
     if (allDone && submission.status === 'phase_2') {
