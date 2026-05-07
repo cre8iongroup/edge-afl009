@@ -147,6 +147,14 @@ function AVPackageSelectorInner({ submission }: AVPackageSelectorProps) {
     setIsLocked(!!(submission.avSelected && submission.avSelection));
   }, [submission.avSelected, submission.avSelection, isEditMode]);
 
+  // Safety net: if search params resolve after first render and isEditMode becomes
+  // true, ensure isLocked is corrected immediately.
+  useEffect(() => {
+    if (isEditMode) {
+      setIsLocked(false);
+    }
+  }, [isEditMode]);
+
   const pricingTier = useMemo(() => getPricingTier(), []);
   const packages = useMemo(() => getPackagesForSessionType(submission.sessionType), [submission.sessionType]);
   const addOns = useMemo(() => getAddOnsForSessionType(submission.sessionType), [submission.sessionType]);
@@ -481,7 +489,7 @@ function AVPackageSelectorInner({ submission }: AVPackageSelectorProps) {
 
 export default function AVPackageSelector(props: AVPackageSelectorProps) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<div className="h-32 animate-pulse rounded-lg bg-muted/40" />}>
       <AVPackageSelectorInner {...props} />
     </Suspense>
   );

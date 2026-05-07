@@ -190,7 +190,7 @@ export const avAddOns: AVAddOn[] = [
   {
     id: 'addon-upgrade-to-two-mics',
     label: 'Upgrade to Two Wireless Microphones',
-    price: 19900, // placeholder — delta price from Starter (adds 1 mic)
+    price: 40000, // delta price from Starter (adds 1 mic)
     sessionTypes: ['workshop', 'info-session'],
     includedInPackages: ['workshop-pro', 'workshop-elite', 'info-pro', 'info-elite'],
     flatPrice: true,
@@ -199,12 +199,12 @@ export const avAddOns: AVAddOn[] = [
     id: 'addon-upgrade-to-four-mics',
     label: 'Upgrade to Four Wireless Microphones',
     deltaByPackage: {
-      'workshop-starter': 39900, // placeholder — adding 3 mics from Starter
-      'workshop-pro':     29900, // placeholder — adding 2 mics from Pro
-      'info-starter':     39900,
-      'info-pro':         29900,
+      'workshop-starter': 120000,
+      'workshop-pro':     120000,
+      'info-starter':     120000,
+      'info-pro':         120000,
     },
-    price: 39900, // fallback price if no deltaByPackage match
+    price: 120000, // fallback price if no deltaByPackage match
     sessionTypes: ['workshop', 'info-session'],
     includedInPackages: ['workshop-elite', 'info-elite'],
     flatPrice: true,
@@ -228,7 +228,7 @@ export const avAddOns: AVAddOn[] = [
   {
     id: 'addon-upgrade-to-two-cubes',
     label: 'Upgrade to Two Custom Branded Scenic Cubes',
-    price: 29900, // placeholder — upgrading from 2 generic ALPFA cubes (Starter only)
+    price: 60000, // upgrading from 2 generic ALPFA cubes (Starter only)
     sessionTypes: ['workshop', 'info-session'],
     includedInPackages: ['workshop-pro', 'workshop-elite', 'info-pro', 'info-elite'],
     flatPrice: true,
@@ -237,12 +237,12 @@ export const avAddOns: AVAddOn[] = [
     id: 'addon-upgrade-to-four-cubes',
     label: 'Upgrade to Four Custom Branded Scenic Cubes',
     deltaByPackage: {
-      'workshop-starter': 59900, // placeholder — replacing 2 generic with 4 custom
-      'workshop-pro':     29900, // placeholder — adding 2 more custom
-      'info-starter':     59900,
-      'info-pro':         29900,
+      'workshop-starter': 120000,
+      'workshop-pro':     120000,
+      'info-starter':     120000,
+      'info-pro':         120000,
     },
-    price: 59900, // fallback
+    price: 120000, // fallback
     sessionTypes: ['workshop', 'info-session'],
     includedInPackages: ['workshop-elite', 'info-elite'],
     flatPrice: true,
