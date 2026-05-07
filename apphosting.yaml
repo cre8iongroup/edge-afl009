@@ -5,3 +5,11 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+
+environmentVariables:
+  - variable: XERO_CLIENT_ID
+    secret: XERO_CLIENT_ID
+  - variable: XERO_CLIENT_SECRET
+    secret: XERO_CLIENT_SECRET
+  - variable: XERO_REDIRECT_URI
+    secret: XERO_REDIRECT_URI
