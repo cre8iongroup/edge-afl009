@@ -59,6 +59,7 @@ export default function OrderPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderFinalized, setOrderFinalized] = useState(false);
   const [xeroResult, setXeroResult] = useState<{ invoiceNumber?: string } | null>(null);
+  const [orderType, setOrderType] = useState<'manual' | 'free' | null>(null);
 
   async function handleRequestInvoice() {
     setIsSubmitting(true);
@@ -74,9 +75,34 @@ export default function OrderPage() {
       );
       if (result.success) {
         setXeroResult({ invoiceNumber: result.invoiceNumber });
+        setOrderType('manual');
         setOrderFinalized(true);
       } else {
         toast({ title: 'Invoice request failed', description: result.error, variant: 'destructive' });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleFreeOrder() {
+    setIsSubmitting(true);
+    try {
+      const sessionIds = pendingPaymentSessions.map((s) => s.id);
+      const result = await createXeroInvoice(
+        pendingPaymentSessions,
+        user?.email ?? '',
+        user?.displayName ?? profile?.name ?? '',
+        `FREE-${Date.now()}`,
+        sessionIds,
+        'free',
+      );
+      if (result.success) {
+        setXeroResult({ invoiceNumber: result.invoiceNumber });
+        setOrderType('free');
+        setOrderFinalized(true);
+      } else {
+        toast({ title: 'Order confirmation failed', description: result.error, variant: 'destructive' });
       }
     } finally {
       setIsSubmitting(false);
@@ -271,13 +297,17 @@ export default function OrderPage() {
                 <div className="flex flex-col items-center gap-3 rounded-lg border border-green-500/40 bg-green-500/10 p-5 text-center">
                   <CheckCircle2 className="h-6 w-6 text-green-600" />
                   <div className="space-y-1">
-                    <p className="font-semibold text-green-800">Invoice Requested</p>
+                    <p className="font-semibold text-green-800">
+                      {orderType === 'free' ? 'Order Confirmed' : 'Invoice Requested'}
+                    </p>
                     <p className="text-sm text-green-700">
-                      Your invoice is on its way. Our team will follow up shortly with payment details and next steps.
+                      {orderType === 'free'
+                        ? "Your free order has been confirmed. We'll be in touch with next steps."
+                        : 'Your invoice is on its way. Our team will follow up shortly with payment details and next steps.'}
                     </p>
                     {xeroResult?.invoiceNumber && (
                       <p className="text-xs text-muted-foreground pt-1">
-                        Invoice reference:{' '}
+                        {orderType === 'free' ? 'Confirmation reference:' : 'Invoice reference:'}{' '}
                         <span className="font-mono font-medium">{xeroResult.invoiceNumber}</span>
                       </p>
                     )}
@@ -291,15 +321,14 @@ export default function OrderPage() {
                   </div>
                   <Button
                     className="w-full"
-                    onClick={() => {
-                      // TODO: wire to Xero API $0 invoice + write paymentComplete: true
-                      toast({
-                        title: 'Free order confirmation coming soon.',
-                        description: 'Contact connect@cre8iongroup.com to finalize your free order.',
-                      });
-                    }}
+                    onClick={handleFreeOrder}
+                    disabled={isSubmitting}
                   >
-                    Confirm Free Order
+                    {isSubmitting ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Confirming…</>
+                    ) : (
+                      'Confirm Free Order'
+                    )}
                   </Button>
                   <p className="text-center text-xs text-muted-foreground">
                     Clicking confirm finalizes your AV selection. No payment is required.

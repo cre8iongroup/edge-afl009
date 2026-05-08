@@ -124,7 +124,10 @@ export async function createXeroInvoice(
     // Write payment fields back to each Firestore session document in parallel
     const db = getFirestore(adminApp);
     const now = new Date().toISOString();
-    const paymentStatus = paymentMethod === 'manual' ? 'awaiting_manual' : 'pending';
+    const paymentStatus =
+      paymentMethod === 'manual' ? 'awaiting_manual' :
+      paymentMethod === 'free'   ? 'complete' :
+                                   'pending';
     await Promise.all(
       sessionIds.map((id) =>
         db.doc(`submissions/${id}`).update({
@@ -133,6 +136,7 @@ export async function createXeroInvoice(
           paymentStatus,
           invoiceId: created.invoiceID,
           invoiceNumber: created.invoiceNumber ?? null,
+          ...(paymentMethod === 'free' ? { paymentComplete: true } : {}),
         })
       )
     );
