@@ -107,10 +107,13 @@ export async function createXeroInvoice(
     const response = await xero.accountingApi.createInvoices(
       tenantId,
       { invoices: [invoice] },
-      false
+      true  // summarizeErrors — changed to true to surface validation errors
     );
 
-    console.log('Xero createInvoices raw response:', JSON.stringify(response.body, null, 2));
+    console.log('Xero full response:', JSON.stringify({
+      invoices: response.body.invoices,
+      statusCode: response.response?.statusCode,
+    }, null, 2));
     const created = response.body.invoices?.[0];
 
     if (!created?.invoiceID) {
