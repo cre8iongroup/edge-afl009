@@ -39,7 +39,7 @@ import { AV_OPEN_DATE } from '@/lib/av-packages';
 import { useUser, useFirestore } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { getDoc, doc } from 'firebase/firestore';
-import { sendStatusUpdateEmail, sendSessionApprovedEmail } from '@/lib/actions';
+import { sendStatusUpdateEmail, sendSessionApprovedEmail, sendPaymentConfirmedEmail, sendRoomAssignedEmail, sendPresenterUpdateEmail } from '@/lib/actions';
 
 // ─── Phase config — single source of truth for labels, icons, colours ────────
 
@@ -215,6 +215,7 @@ function AdminPanel({ submission }: { submission: Submission }) {
         paymentMarkedAt: new Date().toISOString(),
       });
       toast({ title: 'Payment marked as received' });
+      await sendPaymentConfirmedEmail({ ...submission, paymentReference: paymentRef.trim() });
     } catch {
       toast({ variant: 'destructive', title: 'Save failed', description: 'Could not update payment status.' });
     } finally {
@@ -1047,9 +1048,13 @@ export default function SessionDetailView({
         const submitterSnap = await getDoc(doc(firestore, 'users', submission.userId));
         const submitterEmail = submitterSnap.data()?.email as string | undefined;
         if (submitterEmail) {
-          await sendStatusUpdateEmail(updated, submitterEmail);
-          if (newPhase === 'phase_2') {
-            await sendSessionApprovedEmail(updated, submitterEmail);
+          if (newPhase === 'phase_4') {
+            await sendRoomAssignedEmail(updated);
+          } else {
+            await sendStatusUpdateEmail(updated, submitterEmail);
+            if (newPhase === 'phase_2') {
+              await sendSessionApprovedEmail(updated, submitterEmail);
+            }
           }
         }
       }

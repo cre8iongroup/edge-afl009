@@ -6,6 +6,7 @@ import type { Submission } from '@/lib/types';
 import { avAddOns, workshopPackages, receptionPackages, infoSessionPackages } from '@/lib/av-packages';
 import { getFirestore } from 'firebase-admin/firestore';
 import { adminApp } from '@/firebase/admin';
+import { sendPaymentConfirmedEmail } from '@/lib/actions';
 
 // Placeholder account code — replace with Corey's confirmed code before launch
 const XERO_ACCOUNT_CODE = '402.03';
@@ -140,6 +141,11 @@ export async function createXeroInvoice(
         })
       )
     );
+
+    // Send payment confirmation emails for free orders
+    if (paymentMethod === 'free') {
+      await Promise.all(sessions.map(s => sendPaymentConfirmedEmail(s)));
+    }
 
     return {
       success: true,
