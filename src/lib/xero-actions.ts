@@ -133,18 +133,3 @@ export async function createXeroInvoice(
   }
 }
 
-/**
- * Smoke-test action — verifies the stored tokens are valid and returns the
- * connected Xero organisation name. Safe to call from an admin page.
- */
-export async function testXeroConnection(): Promise<{ success: boolean; message: string }> {
-  try {
-    const { xero, tenantId } = await getAuthenticatedXeroClient();
-    // Simple test — fetch organisation info
-    const response = await xero.accountingApi.getOrganisations(tenantId);
-    const orgName = response.body.organisations?.[0]?.name ?? 'Unknown';
-    return { success: true, message: `Connected to Xero org: ${orgName}` };
-  } catch (error) {
-    return { success: false, message: String(error) };
-  }
-}

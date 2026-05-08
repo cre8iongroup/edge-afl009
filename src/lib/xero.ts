@@ -50,5 +50,7 @@ export async function getAuthenticatedXeroClient() {
     (tokens as any).refresh_token
   );
   await storeTokens(validTokens);
-  return { xero, tenantId: (tokens as any).tenantId as string };
+  const tenantId = (tokens as any).tenantId ?? process.env.XERO_TENANT_ID;
+  if (!tenantId) throw new Error('Xero tenant ID not found — check XERO_TENANT_ID secret or re-run OAuth flow');
+  return { xero, tenantId: tenantId as string };
 }

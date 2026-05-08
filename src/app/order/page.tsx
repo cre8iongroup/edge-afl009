@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, AlertTriangle, ShoppingCart, ExternalLink, CreditCard, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { testXeroConnection, createXeroInvoice } from '@/lib/xero-actions';
+import { createXeroInvoice } from '@/lib/xero-actions';
 
 const sessionTypeLabel: Record<string, string> = {
   workshop:      'Workshop',
@@ -347,16 +347,6 @@ export default function OrderPage() {
           <div className="border border-yellow-500/30 rounded-lg p-4 bg-yellow-500/5">
             <p className="text-xs text-yellow-500 font-mono mb-3">DEV ONLY — Xero Integration Tests</p>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  const result = await testXeroConnection();
-                  toast({ title: result.success ? '✅ Xero Connected' : '❌ Xero Error', description: result.message });
-                }}
-              >
-                Test Xero Connection
-              </Button>
               <Button
                 variant="outline"
                 size="sm"
