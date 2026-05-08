@@ -62,7 +62,7 @@ export async function createXeroInvoice(
         unitAmount: finalPrice / 100,
         accountCode: XERO_ACCOUNT_CODE,
         itemCode: session.avSelection.packageId,
-        tracking: [{ name: 'Show', option: SHOW_TAG }],
+        // TODO: re-add tracking once 'Show' tracking category is configured in Xero org
       });
 
       // Add-on line items
@@ -73,7 +73,7 @@ export async function createXeroInvoice(
             quantity: 1.0,
             unitAmount: 0, // TODO: store individual add-on prices on avSelection for line item breakdown
             accountCode: XERO_ACCOUNT_CODE,
-            tracking: [{ name: 'Show', option: SHOW_TAG }],
+            // TODO: re-add tracking once 'Show' tracking category is configured in Xero org
           });
         }
         // Add-ons subtotal line item
@@ -82,7 +82,7 @@ export async function createXeroInvoice(
           quantity: 1.0,
           unitAmount: addOnsTotal / 100,
           accountCode: XERO_ACCOUNT_CODE,
-          tracking: [{ name: 'Show', option: SHOW_TAG }],
+          // TODO: re-add tracking once 'Show' tracking category is configured in Xero org
         });
       }
     }
