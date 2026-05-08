@@ -3,6 +3,7 @@
 import { getAuthenticatedXeroClient } from '@/lib/xero';
 import { Invoice, LineItem, Contact, LineAmountTypes } from 'xero-node';
 import type { Submission } from '@/lib/types';
+import { avAddOns, workshopPackages, receptionPackages, infoSessionPackages } from '@/lib/av-packages';
 import { getFirestore } from 'firebase-admin/firestore';
 import { adminApp } from '@/firebase/admin';
 
@@ -11,6 +12,9 @@ const XERO_ACCOUNT_CODE = '402.03';
 
 // Show tag for filtering in Xero reporting
 const SHOW_TAG = 'ALF009';
+const TRACKING_ENABLED = false; // set true once 'Show' tracking category is confirmed in Xero org
+
+const allPackages = [...workshopPackages, ...receptionPackages, ...infoSessionPackages];
 
 export interface XeroInvoiceResult {
   success: boolean;
@@ -52,41 +56,37 @@ export async function createXeroInvoice(
     for (const session of sessions) {
       if (!session.avSelection) continue;
 
-      const {
-        packageName,
-        finalPrice,
-        addOns,
-        addOnsTotal,
-      } = session.avSelection;
+      const { packageId, finalPrice, addOns } = session.avSelection;
 
-      // Package line item
+      // Resolve display name from av-packages source of truth
+      const pkg = allPackages.find(p => p.id === packageId);
+      const packageDisplayName = pkg?.name ?? packageId;
+
+      // 1. Package line item
       lineItems.push({
-        description: `${packageName} — ${session.title} (${session.sessionType})`,
+        description: `${packageDisplayName} — ${session.title}`,
         quantity: 1.0,
         unitAmount: finalPrice / 100,
         accountCode: XERO_ACCOUNT_CODE,
-        // TODO: re-add tracking once 'Show' tracking category is configured in Xero org
+        ...(TRACKING_ENABLED ? { tracking: [{ name: 'Show', option: SHOW_TAG }] } : {}),
       });
 
-      // Add-on line items
+      // 2. Individual add-on line items (priced via av-packages lookup)
       if (addOns && addOns.length > 0) {
-        for (const addOn of addOns) {
+        for (const label of addOns) {
+          const addOnDef = avAddOns.find(a => a.label === label);
+          const priceCents = addOnDef?.deltaByPackage?.[packageId] ?? addOnDef?.price ?? null;
           lineItems.push({
-            description: `Add-on: ${addOn} — ${session.title}`,
+            description: priceCents !== null
+              ? `${label} — ${session.title}`
+              : `${label} — ${session.title} (price lookup failed)`,
             quantity: 1.0,
-            unitAmount: 0, // TODO: store individual add-on prices on avSelection for line item breakdown
+            unitAmount: (priceCents ?? 0) / 100,
             accountCode: XERO_ACCOUNT_CODE,
-            // TODO: re-add tracking once 'Show' tracking category is configured in Xero org
+            ...(TRACKING_ENABLED ? { tracking: [{ name: 'Show', option: SHOW_TAG }] } : {}),
           });
         }
-        // Add-ons subtotal line item
-        lineItems.push({
-          description: `Add-ons subtotal — ${session.title}`,
-          quantity: 1.0,
-          unitAmount: addOnsTotal / 100,
-          accountCode: XERO_ACCOUNT_CODE,
-          // TODO: re-add tracking once 'Show' tracking category is configured in Xero org
-        });
+        // NOTE: no aggregate subtotal line — individual lines replace it
       }
     }
 
