@@ -109,10 +109,6 @@ export async function createXeroInvoice(
       true  // summarizeErrors — changed to true to surface validation errors
     );
 
-    console.log('Xero full response:', JSON.stringify({
-      invoices: response.body.invoices,
-      statusCode: response.response?.statusCode,
-    }, null, 2));
     const created = response.body.invoices?.[0];
 
     if (!created?.invoiceID) {
