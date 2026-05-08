@@ -53,6 +53,8 @@ export type Submission = {
   orderFinalizedAt?: string;
   invoiceId?: string;
   invoiceNumber?: string;
+  paymentMarkedBy?: string;
+  paymentMarkedAt?: string;
   pillar: string;
   format: string;
   audience: string | string[];

@@ -27,6 +27,7 @@ import {
   ChevronUp,
   FileText,
   Loader2,
+  CreditCard,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -108,6 +109,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
 function AdminPanel({ submission }: { submission: Submission }) {
   const { updateSubmission } = useSubmissions();
   const { toast } = useToast();
+  const { user } = useUser();
 
   // ─ Community tag ───────────────────────────────────────────────────────
   const [communityValue, setCommunityValue] = useState(submission.community ?? false);
@@ -175,6 +177,29 @@ function AdminPanel({ submission }: { submission: Submission }) {
       toast({ title: 'Access removed', description: `${email} no longer has delegate access.` });
     } catch {
       toast({ variant: 'destructive', title: 'Remove failed' });
+    }
+  };
+
+  // ─ Payment ────────────────────────────────────────────────────────────
+  const [paymentRef, setPaymentRef] = useState(submission.paymentReference ?? '');
+  const [paymentSaving, setPaymentSaving] = useState(false);
+
+  const handleMarkPaid = async () => {
+    setPaymentSaving(true);
+    try {
+      await updateSubmission({
+        ...submission,
+        paymentComplete: true,
+        paymentStatus: 'complete',
+        paymentReference: paymentRef.trim(),
+        paymentMarkedBy: user?.email ?? 'admin',
+        paymentMarkedAt: new Date().toISOString(),
+      });
+      toast({ title: 'Payment marked as received' });
+    } catch {
+      toast({ variant: 'destructive', title: 'Save failed', description: 'Could not update payment status.' });
+    } finally {
+      setPaymentSaving(false);
     }
   };
 
@@ -276,6 +301,148 @@ function AdminPanel({ submission }: { submission: Submission }) {
             </div>
           </div>
         )}
+
+        {/* Payment Management — only when an order has been finalized */}
+        {submission.paymentMethod && (() => {
+          const formatTs = (iso?: string) =>
+            iso
+              ? new Date(iso).toLocaleDateString('en-US', {
+                  month: 'short', day: 'numeric', year: 'numeric',
+                } as Intl.DateTimeFormatOptions) +
+                ' ' +
+                new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+              : '—';
+
+          const methodLabel =
+            submission.paymentMethod === 'manual' ? 'Invoice / Manual' :
+            submission.paymentMethod === 'free'   ? 'Free Order' :
+            submission.paymentMethod === 'stripe' ? 'Online (Stripe)' :
+                                                    submission.paymentMethod;
+
+          return (
+            <div className="space-y-2 pt-4 border-t">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+                Payment
+              </label>
+
+              {/* ── awaiting_manual ── */}
+              {submission.paymentStatus === 'awaiting_manual' && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/8 p-4 space-y-3">
+                  <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Status</p>
+                      <p className="text-amber-700 font-medium">Awaiting Manual Payment</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Method</p>
+                      <p>{methodLabel}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Invoice Number</p>
+                      <p className="font-mono">{submission.invoiceNumber ?? '—'}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Order Finalized</p>
+                      <p>{formatTs(submission.orderFinalizedAt)}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Reference</p>
+                    <input
+                      type="text"
+                      value={paymentRef}
+                      onChange={e => setPaymentRef(e.target.value)}
+                      placeholder="Check number, wire confirmation ID, etc."
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    onClick={handleMarkPaid}
+                    disabled={paymentSaving || !paymentRef.trim()}
+                  >
+                    {paymentSaving ? (
+                      <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Saving…</>
+                    ) : (
+                      <><CheckCircle2 className="mr-2 h-3.5 w-3.5" /> Mark Payment Received</>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* ── complete (manual or any) ── */}
+              {submission.paymentStatus === 'complete' && submission.paymentMethod !== 'free' && (
+                <div className="rounded-lg border border-green-500/40 bg-green-500/8 p-4 space-y-2">
+                  <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Status</p>
+                      <p className="text-green-700 font-medium">Payment Received ✓</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Method</p>
+                      <p>{methodLabel}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Invoice Number</p>
+                      <p className="font-mono">{submission.invoiceNumber ?? '—'}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Reference</p>
+                      <p>{submission.paymentReference ?? '—'}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Marked by</p>
+                      <p>{submission.paymentMarkedBy ?? '—'}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Marked at</p>
+                      <p>{formatTs(submission.paymentMarkedAt)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── free ── */}
+              {submission.paymentMethod === 'free' && (
+                <div className="rounded-lg border border-green-500/40 bg-green-500/8 p-4 space-y-2">
+                  <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                    <div className="space-y-0.5 sm:col-span-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Status</p>
+                      <p className="text-green-700 font-medium">Free Order — No Payment Required</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Order Finalized</p>
+                      <p>{formatTs(submission.orderFinalizedAt)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── stripe (read-only) ── */}
+              {submission.paymentMethod === 'stripe' && (
+                <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+                  <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Status</p>
+                      <p>Online Payment</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
+                      <p>{submission.paymentStatus ?? '—'}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Invoice Number</p>
+                      <p className="font-mono">{submission.invoiceNumber ?? '—'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          );
+        })()}
 
       </CardContent>
     </Card>
