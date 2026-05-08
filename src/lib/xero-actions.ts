@@ -110,6 +110,7 @@ export async function createXeroInvoice(
       false
     );
 
+    console.log('Xero createInvoices raw response:', JSON.stringify(response.body, null, 2));
     const created = response.body.invoices?.[0];
 
     if (!created?.invoiceID) {
