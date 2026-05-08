@@ -47,6 +47,12 @@ export type Submission = {
   avSelected?: boolean;
   avSelection?: AVSelection;
   paymentComplete?: boolean;
+  paymentMethod?: 'stripe' | 'manual' | 'free' | null;
+  paymentStatus?: 'pending' | 'awaiting_manual' | 'complete';
+  paymentReference?: string;
+  orderFinalizedAt?: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
   pillar: string;
   format: string;
   audience: string | string[];

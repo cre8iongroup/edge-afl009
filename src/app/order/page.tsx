@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 import AppLayout from '@/components/layout/app-layout';
 import { useSubmissions } from '@/components/submissions-provider';
 import { useUser } from '@/firebase';
@@ -10,7 +12,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, AlertTriangle, ShoppingCart, ExternalLink, CreditCard, FileText } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, ShoppingCart, ExternalLink, CreditCard, FileText, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { createXeroInvoice } from '@/lib/xero-actions';
 
@@ -53,6 +55,33 @@ export default function OrderPage() {
 
   // All pending sessions are $0 — free confirmation flow
   const isFreeOrder = grandTotal === 0 && pendingPaymentSessions.length > 0;
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderFinalized, setOrderFinalized] = useState(false);
+  const [xeroResult, setXeroResult] = useState<{ invoiceNumber?: string } | null>(null);
+
+  async function handleRequestInvoice() {
+    setIsSubmitting(true);
+    try {
+      const sessionIds = pendingPaymentSessions.map((s) => s.id);
+      const result = await createXeroInvoice(
+        pendingPaymentSessions,
+        user?.email ?? '',
+        user?.displayName ?? profile?.name ?? '',
+        `INV-${Date.now()}`,
+        sessionIds,
+        'manual',
+      );
+      if (result.success) {
+        setXeroResult({ invoiceNumber: result.invoiceNumber });
+        setOrderFinalized(true);
+      } else {
+        toast({ title: 'Invoice request failed', description: result.error, variant: 'destructive' });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
 
   return (
@@ -238,7 +267,23 @@ export default function OrderPage() {
               </p>
 
               {/* Payment options — conditional on free vs paid order */}
-              {isFreeOrder ? (
+              {orderFinalized ? (
+                <div className="flex flex-col items-center gap-3 rounded-lg border border-green-500/40 bg-green-500/10 p-5 text-center">
+                  <CheckCircle2 className="h-6 w-6 text-green-600" />
+                  <div className="space-y-1">
+                    <p className="font-semibold text-green-800">Invoice Requested</p>
+                    <p className="text-sm text-green-700">
+                      Your invoice is on its way. Our team will follow up shortly with payment details and next steps.
+                    </p>
+                    {xeroResult?.invoiceNumber && (
+                      <p className="text-xs text-muted-foreground pt-1">
+                        Invoice reference:{' '}
+                        <span className="font-mono font-medium">{xeroResult.invoiceNumber}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : isFreeOrder ? (
                 <div className="space-y-3 pt-1">
                   <div className="flex items-start gap-3 rounded-lg border border-green-500/40 bg-green-500/10 p-3 text-green-700">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
@@ -289,11 +334,18 @@ export default function OrderPage() {
                     <p className="text-xs text-muted-foreground">
                       We'll generate an invoice and send you payment instructions.
                     </p>
-                    <Button className="w-full mt-auto" variant="outline" disabled>
-                      {/* TODO: wire to Xero API + ZeptoMail notification */}
-                      Request Invoice →
+                    <Button
+                      className="w-full mt-auto"
+                      variant="outline"
+                      onClick={handleRequestInvoice}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Requesting…</>
+                      ) : (
+                        'Request Invoice →'
+                      )}
                     </Button>
-                    <p className="text-center text-xs text-muted-foreground">Invoice request coming soon.</p>
                   </div>
 
                 </div>
@@ -359,7 +411,9 @@ export default function OrderPage() {
                     pendingPaymentSessions,
                     user?.email ?? 'test@example.com',
                     user?.displayName ?? 'Test Partner',
-                    `TEST-${Date.now()}`
+                    `TEST-${Date.now()}`,
+                    pendingPaymentSessions.map((s) => s.id),
+                    'manual',
                   );
                   toast({
                     title: result.success ? '✅ Invoice Created' : '❌ Invoice Failed',

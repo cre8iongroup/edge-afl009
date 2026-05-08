@@ -3,6 +3,8 @@
 import { getAuthenticatedXeroClient } from '@/lib/xero';
 import { Invoice, LineItem, Contact, LineAmountTypes } from 'xero-node';
 import type { Submission } from '@/lib/types';
+import { getFirestore } from 'firebase-admin/firestore';
+import { adminApp } from '@/firebase/admin';
 
 // Placeholder account code — replace with Corey's confirmed code before launch
 const XERO_ACCOUNT_CODE = '402.03';
@@ -37,7 +39,9 @@ export async function createXeroInvoice(
   sessions: Submission[],
   partnerEmail: string,
   partnerName: string,
-  orderId: string
+  orderId: string,
+  sessionIds: string[],
+  paymentMethod: 'manual' | 'free' | 'stripe',
 ): Promise<XeroInvoiceResult> {
   try {
     const { xero, tenantId } = await getAuthenticatedXeroClient();
@@ -116,6 +120,22 @@ export async function createXeroInvoice(
     }
 
     console.log('✅ Xero invoice created:', created.invoiceID);
+
+    // Write payment fields back to each Firestore session document in parallel
+    const db = getFirestore(adminApp);
+    const now = new Date().toISOString();
+    const paymentStatus = paymentMethod === 'manual' ? 'awaiting_manual' : 'pending';
+    await Promise.all(
+      sessionIds.map((id) =>
+        db.doc(`submissions/${id}`).update({
+          orderFinalizedAt: now,
+          paymentMethod,
+          paymentStatus,
+          invoiceId: created.invoiceID,
+          invoiceNumber: created.invoiceNumber ?? null,
+        })
+      )
+    );
 
     return {
       success: true,
