@@ -5,7 +5,7 @@ import { Invoice, LineItem, Contact, LineAmountTypes } from 'xero-node';
 import type { Submission } from '@/lib/types';
 
 // Placeholder account code — replace with Corey's confirmed code before launch
-const XERO_ACCOUNT_CODE = '200';
+const XERO_ACCOUNT_CODE = '402.03';
 
 // Show tag for filtering in Xero reporting
 const SHOW_TAG = 'ALF009';
@@ -61,7 +61,6 @@ export async function createXeroInvoice(
         quantity: 1.0,
         unitAmount: finalPrice / 100,
         accountCode: XERO_ACCOUNT_CODE,
-        itemCode: session.avSelection.packageId,
         // TODO: re-add tracking once 'Show' tracking category is configured in Xero org
       });
 
