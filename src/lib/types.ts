@@ -82,6 +82,7 @@ export type Submission = {
   roomAssignment?: string;        // free-text room/time set by admin (e.g. "Workshop 2 (W206ABC) — Monday August 10, 3:00 PM")
   authorizedEmails?: string[];    // additional emails granted read/edit access; original owner always retains access
   community?: boolean;            // workshop-only community tag set by admin
+  isProxy?: boolean;              // session submitted by admin on behalf of partner
 };
 
     

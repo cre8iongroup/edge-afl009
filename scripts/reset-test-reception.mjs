@@ -12,7 +12,7 @@ const ADMIN_EMAIL = 'dev-admin@cre8iongroup.com';
 const ADMIN_PASSWORD = 'cre8ionadmin';
 
 // Document ID confirmed from server logs
-const DOC_ID = 'CNjEAuz05vddliRVxiWt';
+const DOC_ID = 'Ozr3yogWf39blK2rZhlz';
 const DOC_NAME = `projects/${PROJECT_ID}/databases/(default)/documents/submissions/${DOC_ID}`;
 
 // ── Step 1: Sign in ───────────────────────────────────────────────────────────
@@ -40,7 +40,15 @@ async function resetDoc(idToken) {
     `?updateMask.fieldPaths=status` +
     `&updateMask.fieldPaths=avSelected` +
     `&updateMask.fieldPaths=paymentComplete` +
-    `&updateMask.fieldPaths=avSelection`;
+    `&updateMask.fieldPaths=avSelection` +
+    `&updateMask.fieldPaths=paymentMethod` +
+    `&updateMask.fieldPaths=paymentStatus` +
+    `&updateMask.fieldPaths=paymentReference` +
+    `&updateMask.fieldPaths=orderFinalizedAt` +
+    `&updateMask.fieldPaths=invoiceId` +
+    `&updateMask.fieldPaths=invoiceNumber` +
+    `&updateMask.fieldPaths=paymentMarkedBy` +
+    `&updateMask.fieldPaths=paymentMarkedAt`;
 
   const body = {
     fields: {
@@ -48,6 +56,14 @@ async function resetDoc(idToken) {
       avSelected:      { booleanValue: false },
       paymentComplete: { booleanValue: false },
       avSelection:     { nullValue: null },
+      paymentMethod:     { nullValue: null },
+      paymentStatus:     { nullValue: null },
+      paymentReference:  { nullValue: null },
+      orderFinalizedAt:  { nullValue: null },
+      invoiceId:         { nullValue: null },
+      invoiceNumber:     { nullValue: null },
+      paymentMarkedBy:   { nullValue: null },
+      paymentMarkedAt:   { nullValue: null },
     },
   };
 

@@ -180,6 +180,25 @@ function AdminPanel({ submission }: { submission: Submission }) {
     }
   };
 
+  // ─ Proxy Submission ──────────────────────────────────────────────────────
+  const [proxyValue, setProxyValue] = useState(submission.isProxy ?? false);
+  const [proxySaving, setProxySaving] = useState(false);
+
+  const handleProxyToggle = async (checked: boolean | string) => {
+    const bool = checked === true;
+    setProxyValue(bool);
+    setProxySaving(true);
+    try {
+      await updateSubmission({ ...submission, isProxy: bool });
+      toast({ title: bool ? 'Marked as proxy submission' : 'Proxy flag removed' });
+    } catch {
+      setProxyValue(!bool);
+      toast({ variant: 'destructive', title: 'Save failed', description: 'Could not update proxy status.' });
+    } finally {
+      setProxySaving(false);
+    }
+  };
+
   // ─ Payment ────────────────────────────────────────────────────────────
   const [paymentRef, setPaymentRef] = useState(submission.paymentReference ?? '');
   const [paymentSaving, setPaymentSaving] = useState(false);
@@ -301,6 +320,25 @@ function AdminPanel({ submission }: { submission: Submission }) {
             </div>
           </div>
         )}
+
+        {/* Proxy Submission */}
+        <div className="space-y-2 pt-4 border-t">
+          <label className="text-sm font-medium flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+            Proxy Submission
+          </label>
+          <div className="flex items-center gap-3">
+            <Checkbox
+              id="proxy-tag"
+              checked={proxyValue}
+              onCheckedChange={handleProxyToggle}
+              disabled={proxySaving}
+            />
+            <label htmlFor="proxy-tag" className="text-sm text-muted-foreground cursor-pointer">
+              This session was submitted by an admin on behalf of a partner who cannot access the portal.
+            </label>
+          </div>
+        </div>
 
         {/* Payment Management — only when an order has been finalized */}
         {submission.paymentMethod && (() => {
