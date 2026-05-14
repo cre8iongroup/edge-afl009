@@ -103,7 +103,7 @@ export async function createXeroInvoice(
         quantity: 1.0,
         unitAmount: finalPrice / 100,
         accountCode: XERO_ACCOUNT_CODE,
-        ...(PACKAGE_ITEM_CODES[packageId] ? { item: { code: PACKAGE_ITEM_CODES[packageId] } } : {}),
+        ...(PACKAGE_ITEM_CODES[packageId] ? { itemCode: PACKAGE_ITEM_CODES[packageId] } : {}),
         ...(TRACKING_ENABLED ? { tracking: [{ name: 'Show', option: SHOW_TAG }] } : {}),
       });
 
@@ -119,7 +119,7 @@ export async function createXeroInvoice(
             quantity: 1.0,
             unitAmount: (priceCents ?? 0) / 100,
             accountCode: XERO_ACCOUNT_CODE,
-            ...(ADDON_ITEM_CODES[label] ? { item: { code: ADDON_ITEM_CODES[label] } } : {}),
+            ...(ADDON_ITEM_CODES[label] ? { itemCode: ADDON_ITEM_CODES[label] } : {}),
             ...(TRACKING_ENABLED ? { tracking: [{ name: 'Show', option: SHOW_TAG }] } : {}),
           });
         }
