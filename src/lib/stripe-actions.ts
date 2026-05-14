@@ -13,6 +13,7 @@ export async function createStripeCheckoutSession(
   sessions: Submission[],
   userEmail: string,
   sessionIds: string[],
+  appUrl: string,
 ): Promise<{ url: string | null; error?: string }> {
   try {
     // Build one line item per session
@@ -41,8 +42,8 @@ export async function createStripeCheckoutSession(
       line_items,
       mode: 'payment',
       customer_email: userEmail,
-      success_url: 'https://alpfa26.cre8ionedge.com/order?success=true',
-      cancel_url: 'https://alpfa26.cre8ionedge.com/order',
+      success_url: `${appUrl}/order?success=true`,
+      cancel_url: `${appUrl}/order`,
       metadata: {
         sessionIds: sessionIds.join(','),
         source: 'alf009-edge',

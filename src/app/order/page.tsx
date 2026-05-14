@@ -127,6 +127,7 @@ export default function OrderPage() {
         pendingPaymentSessions,
         user?.email ?? '',
         sessionIds,
+        window.location.origin,
       );
       if (result.url) {
         window.location.href = result.url;
