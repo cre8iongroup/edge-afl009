@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import AppLayout from '@/components/layout/app-layout';
 import { useSubmissions } from '@/components/submissions-provider';
@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, AlertTriangle, ShoppingCart, ExternalLink, CreditCard, FileText, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { createXeroInvoice } from '@/lib/xero-actions';
+import { createStripeCheckoutSession } from '@/lib/stripe-actions';
 
 const sessionTypeLabel: Record<string, string> = {
   workshop:      'Workshop',
@@ -59,7 +60,16 @@ export default function OrderPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderFinalized, setOrderFinalized] = useState(false);
   const [xeroResult, setXeroResult] = useState<{ invoiceNumber?: string } | null>(null);
-  const [orderType, setOrderType] = useState<'manual' | 'free' | null>(null);
+  const [orderType, setOrderType] = useState<'manual' | 'free' | 'stripe' | null>(null);
+
+  // Detect Stripe success redirect (?success=true) and show confirmation panel
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'true') {
+      setOrderType('stripe');
+      setOrderFinalized(true);
+    }
+  }, []);
 
   async function handleRequestInvoice() {
     setIsSubmitting(true);
@@ -103,6 +113,25 @@ export default function OrderPage() {
         setOrderFinalized(true);
       } else {
         toast({ title: 'Order confirmation failed', description: result.error, variant: 'destructive' });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleStripeCheckout() {
+    setIsSubmitting(true);
+    try {
+      const sessionIds = pendingPaymentSessions.map((s) => s.id);
+      const result = await createStripeCheckoutSession(
+        pendingPaymentSessions,
+        user?.email ?? '',
+        sessionIds,
+      );
+      if (result.url) {
+        window.location.href = result.url;
+      } else {
+        toast({ title: 'Payment failed', description: result.error, variant: 'destructive' });
       }
     } finally {
       setIsSubmitting(false);
@@ -298,14 +327,20 @@ export default function OrderPage() {
                   <CheckCircle2 className="h-6 w-6 text-green-600" />
                   <div className="space-y-1">
                     <p className="font-semibold text-green-800">
-                      {orderType === 'free' ? 'Order Confirmed' : 'Invoice Requested'}
+                      {orderType === 'stripe'
+                        ? 'Payment Complete!'
+                        : orderType === 'free'
+                        ? 'Order Confirmed'
+                        : 'Invoice Requested'}
                     </p>
                     <p className="text-sm text-green-700">
-                      {orderType === 'free'
+                      {orderType === 'stripe'
+                        ? "Your payment was processed successfully. You're all set! Our team will be in touch with room assignment details by July 1."
+                        : orderType === 'free'
                         ? "Your free order has been confirmed. We'll be in touch with next steps."
                         : 'Your invoice is on its way. Our team will follow up shortly with payment details and next steps.'}
                     </p>
-                    {xeroResult?.invoiceNumber && (
+                    {orderType !== 'stripe' && xeroResult?.invoiceNumber && (
                       <p className="text-xs text-muted-foreground pt-1">
                         {orderType === 'free' ? 'Confirmation reference:' : 'Invoice reference:'}{' '}
                         <span className="font-mono font-medium">{xeroResult.invoiceNumber}</span>
@@ -347,11 +382,17 @@ export default function OrderPage() {
                     <p className="text-xs text-muted-foreground">
                       Secure online payment. Pricing locks in immediately upon completion.
                     </p>
-                    <Button className="w-full mt-auto" disabled>
-                      {/* TODO: wire to Stripe payment link */}
-                      Pay Now →
+                    <Button
+                      className="w-full mt-auto"
+                      onClick={handleStripeCheckout}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…</>
+                      ) : (
+                        'Pay Now →'
+                      )}
                     </Button>
-                    <p className="text-center text-xs text-muted-foreground">Online payment coming soon.</p>
                   </div>
 
                   {/* Card 2 — Pay by Check or Wire */}
