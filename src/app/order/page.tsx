@@ -465,41 +465,6 @@ export default function OrderPage() {
         )}
 
 
-        {/* ── DEV ONLY — Xero integration tests ───────────────────────── */}
-        {process.env.NEXT_PUBLIC_ENABLE_DEV_AUTH === 'true' && (
-          <div className="border border-yellow-500/30 rounded-lg p-4 bg-yellow-500/5">
-            <p className="text-xs text-yellow-500 font-mono mb-3">DEV ONLY — Xero Integration Tests</p>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  if (pendingPaymentSessions.length === 0) {
-                    toast({ title: 'No sessions to invoice', description: 'Confirm an AV selection first.' });
-                    return;
-                  }
-                  const result = await createXeroInvoice(
-                    pendingPaymentSessions,
-                    user?.email ?? 'test@example.com',
-                    user?.displayName ?? 'Test Partner',
-                    `TEST-${Date.now()}`,
-                    pendingPaymentSessions.map((s) => s.id),
-                    'manual',
-                  );
-                  toast({
-                    title: result.success ? '✅ Invoice Created' : '❌ Invoice Failed',
-                    description: result.success
-                      ? `Invoice ${result.invoiceNumber} created in Xero sandbox`
-                      : result.error,
-                  });
-                }}
-              >
-                Test Create Invoice
-              </Button>
-            </div>
-          </div>
-        )}
-
       </div>
     </AppLayout>
   );
