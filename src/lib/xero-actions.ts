@@ -17,6 +17,40 @@ const TRACKING_ENABLED = false; // set true once 'Show' tracking category is con
 
 const allPackages = [...workshopPackages, ...receptionPackages, ...infoSessionPackages];
 
+// ─── Xero inventory item code mappings ───────────────────────────────────────
+
+const PACKAGE_ITEM_CODES: Record<string, string> = {
+  'workshop-starter':  'ALF009-WS-Starter',
+  'workshop-pro':      'ALF009-WS-Pro',
+  'workshop-elite':    'ALF009-WS-Elite',
+  'info-starter':      'ALF009-Info-Starter',
+  'info-pro':          'ALF009-Info-Pro',
+  'info-elite':        'ALF009-Info-Elite',
+  'reception-starter': 'ALF009-Rec-Starter',
+  'reception-pro':     'ALF009-Rec-Pro',
+  'reception-elite':   'ALF009-Rec-Elite',
+  'reception-lux':     'ALF009-Rec-Lux',
+};
+
+const ADDON_ITEM_CODES: Record<string, string> = {
+  'Upgrade to Two Wireless Microphones':          'ALF009-Add-2Mics',
+  'Upgrade to Four Wireless Microphones':         'ALF009-Add-4Mics',
+  'Custom Branded Head Table Cover':              'ALF009-Add-HeadTable',
+  'Custom LED Totem':                             'ALF009-Add-LEDTotem-WS',
+  'Upgrade to Two Custom Branded Scenic Cubes':   'ALF009-Add-2Cubes',
+  'Upgrade to Four Custom Branded Scenic Cubes':  'ALF009-Add-4Cubes',
+  "3'x2' Custom Backdrop":                        'ALF009-Add-BackdropSM-WS',
+  'AI Translation':                               'ALF009-Add-AITrans',
+  '(16) RGB Uplights — Static Colors':            'ALF009-Add-Uplights16',
+  '75" TV with Stand':                            'ALF009-Add-75TV',
+  'LED Totem w/Custom Graphics':                  'ALF009-Add-LEDTotem-Rec',
+  'Large Photo Backdrop':                         'ALF009-Add-BackdropLG',
+  '(4) RGB Moving Head Lights w/stands':          'ALF009-Add-MovingHeads',
+  'Small Photo Backdrop':                         'ALF009-Add-BackdropSM-Rec',
+  'Dedicated Room Tech':                          'ALF009-Add-RoomTech',
+  'Branded Photo Booth Kiosk':                    'ALF009-Add-PhotoBooth',
+};
+
 export interface XeroInvoiceResult {
   success: boolean;
   invoiceId?: string;
@@ -69,6 +103,7 @@ export async function createXeroInvoice(
         quantity: 1.0,
         unitAmount: finalPrice / 100,
         accountCode: XERO_ACCOUNT_CODE,
+        ...(PACKAGE_ITEM_CODES[packageId] ? { itemCode: PACKAGE_ITEM_CODES[packageId] } : {}),
         ...(TRACKING_ENABLED ? { tracking: [{ name: 'Show', option: SHOW_TAG }] } : {}),
       });
 
@@ -84,6 +119,7 @@ export async function createXeroInvoice(
             quantity: 1.0,
             unitAmount: (priceCents ?? 0) / 100,
             accountCode: XERO_ACCOUNT_CODE,
+            ...(ADDON_ITEM_CODES[label] ? { itemCode: ADDON_ITEM_CODES[label] } : {}),
             ...(TRACKING_ENABLED ? { tracking: [{ name: 'Show', option: SHOW_TAG }] } : {}),
           });
         }
