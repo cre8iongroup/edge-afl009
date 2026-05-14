@@ -62,6 +62,13 @@ export default function OrderPage() {
   const [xeroResult, setXeroResult] = useState<{ invoiceNumber?: string } | null>(null);
   const [orderType, setOrderType] = useState<'manual' | 'free' | 'stripe' | null>(null);
 
+  // True if all pending sessions already have a paymentMethod — order was finalized in a prior session
+  const alreadyFinalized = pendingPaymentSessions.length > 0 &&
+    pendingPaymentSessions.every((s) => s.paymentMethod != null);
+
+  // Derive order type from state (in-session flow) or from Firestore data (returning user)
+  const derivedOrderType = orderType ?? pendingPaymentSessions[0]?.paymentMethod ?? null;
+
   // Detect Stripe success redirect (?success=true) and show confirmation panel
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -323,27 +330,27 @@ export default function OrderPage() {
               </p>
 
               {/* Payment options — conditional on free vs paid order */}
-              {orderFinalized ? (
+              {(orderFinalized || alreadyFinalized) ? (
                 <div className="flex flex-col items-center gap-3 rounded-lg border border-green-500/40 bg-green-500/10 p-5 text-center">
                   <CheckCircle2 className="h-6 w-6 text-green-600" />
                   <div className="space-y-1">
                     <p className="font-semibold text-green-800">
-                      {orderType === 'stripe'
+                      {derivedOrderType === 'stripe'
                         ? 'Payment Complete!'
-                        : orderType === 'free'
+                        : derivedOrderType === 'free'
                         ? 'Order Confirmed'
                         : 'Invoice Requested'}
                     </p>
                     <p className="text-sm text-green-700">
-                      {orderType === 'stripe'
+                      {derivedOrderType === 'stripe'
                         ? "Your payment was processed successfully. You're all set! Our team will be in touch with room assignment details by July 1."
-                        : orderType === 'free'
+                        : derivedOrderType === 'free'
                         ? "Your free order has been confirmed. We'll be in touch with next steps."
                         : 'Your invoice is on its way. Our team will follow up shortly with payment details and next steps.'}
                     </p>
-                    {orderType !== 'stripe' && xeroResult?.invoiceNumber && (
+                    {derivedOrderType !== 'stripe' && xeroResult?.invoiceNumber && (
                       <p className="text-xs text-muted-foreground pt-1">
-                        {orderType === 'free' ? 'Confirmation reference:' : 'Invoice reference:'}{' '}
+                        {derivedOrderType === 'free' ? 'Confirmation reference:' : 'Invoice reference:'}{' '}
                         <span className="font-mono font-medium">{xeroResult.invoiceNumber}</span>
                       </p>
                     )}
