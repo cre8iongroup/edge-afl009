@@ -27,6 +27,7 @@ import {
   ChevronUp,
   FileText,
   Loader2,
+  CreditCard,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -38,7 +39,7 @@ import { AV_OPEN_DATE } from '@/lib/av-packages';
 import { useUser, useFirestore } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { getDoc, doc } from 'firebase/firestore';
-import { sendStatusUpdateEmail, sendSessionApprovedEmail } from '@/lib/actions';
+import { sendStatusUpdateEmail, sendSessionApprovedEmail, sendPaymentConfirmedEmail, sendRoomAssignedEmail, sendPresenterUpdateEmail } from '@/lib/actions';
 
 // ─── Phase config — single source of truth for labels, icons, colours ────────
 
@@ -108,6 +109,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
 function AdminPanel({ submission }: { submission: Submission }) {
   const { updateSubmission } = useSubmissions();
   const { toast } = useToast();
+  const { user } = useUser();
 
   // ─ Community tag ───────────────────────────────────────────────────────
   const [communityValue, setCommunityValue] = useState(submission.community ?? false);
@@ -175,6 +177,49 @@ function AdminPanel({ submission }: { submission: Submission }) {
       toast({ title: 'Access removed', description: `${email} no longer has delegate access.` });
     } catch {
       toast({ variant: 'destructive', title: 'Remove failed' });
+    }
+  };
+
+  // ─ Proxy Submission ──────────────────────────────────────────────────────
+  const [proxyValue, setProxyValue] = useState(submission.isProxy ?? false);
+  const [proxySaving, setProxySaving] = useState(false);
+
+  const handleProxyToggle = async (checked: boolean | string) => {
+    const bool = checked === true;
+    setProxyValue(bool);
+    setProxySaving(true);
+    try {
+      await updateSubmission({ ...submission, isProxy: bool });
+      toast({ title: bool ? 'Marked as proxy submission' : 'Proxy flag removed' });
+    } catch {
+      setProxyValue(!bool);
+      toast({ variant: 'destructive', title: 'Save failed', description: 'Could not update proxy status.' });
+    } finally {
+      setProxySaving(false);
+    }
+  };
+
+  // ─ Payment ────────────────────────────────────────────────────────────
+  const [paymentRef, setPaymentRef] = useState(submission.paymentReference ?? '');
+  const [paymentSaving, setPaymentSaving] = useState(false);
+
+  const handleMarkPaid = async () => {
+    setPaymentSaving(true);
+    try {
+      await updateSubmission({
+        ...submission,
+        paymentComplete: true,
+        paymentStatus: 'complete',
+        paymentReference: paymentRef.trim(),
+        paymentMarkedBy: user?.email ?? 'admin',
+        paymentMarkedAt: new Date().toISOString(),
+      });
+      toast({ title: 'Payment marked as received' });
+      await sendPaymentConfirmedEmail({ ...submission, paymentReference: paymentRef.trim() });
+    } catch {
+      toast({ variant: 'destructive', title: 'Save failed', description: 'Could not update payment status.' });
+    } finally {
+      setPaymentSaving(false);
     }
   };
 
@@ -276,6 +321,167 @@ function AdminPanel({ submission }: { submission: Submission }) {
             </div>
           </div>
         )}
+
+        {/* Proxy Submission */}
+        <div className="space-y-2 pt-4 border-t">
+          <label className="text-sm font-medium flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+            Proxy Submission
+          </label>
+          <div className="flex items-center gap-3">
+            <Checkbox
+              id="proxy-tag"
+              checked={proxyValue}
+              onCheckedChange={handleProxyToggle}
+              disabled={proxySaving}
+            />
+            <label htmlFor="proxy-tag" className="text-sm text-muted-foreground cursor-pointer">
+              This session was submitted by an admin on behalf of a partner who cannot access the portal.
+            </label>
+          </div>
+        </div>
+
+        {/* Payment Management — only when an order has been finalized */}
+        {submission.paymentMethod && (() => {
+          const formatTs = (iso?: string) =>
+            iso
+              ? new Date(iso).toLocaleDateString('en-US', {
+                  month: 'short', day: 'numeric', year: 'numeric',
+                } as Intl.DateTimeFormatOptions) +
+                ' ' +
+                new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+              : '—';
+
+          const methodLabel =
+            submission.paymentMethod === 'manual' ? 'Invoice / Manual' :
+            submission.paymentMethod === 'free'   ? 'Free Order' :
+            submission.paymentMethod === 'stripe' ? 'Online (Stripe)' :
+                                                    submission.paymentMethod;
+
+          return (
+            <div className="space-y-2 pt-4 border-t">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+                Payment
+              </label>
+
+              {/* ── awaiting_manual ── */}
+              {submission.paymentStatus === 'awaiting_manual' && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/8 p-4 space-y-3">
+                  <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Status</p>
+                      <p className="text-amber-700 font-medium">Awaiting Manual Payment</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Method</p>
+                      <p>{methodLabel}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Invoice Number</p>
+                      <p className="font-mono">{submission.invoiceNumber ?? '—'}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Order Finalized</p>
+                      <p>{formatTs(submission.orderFinalizedAt)}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Reference</p>
+                    <input
+                      type="text"
+                      value={paymentRef}
+                      onChange={e => setPaymentRef(e.target.value)}
+                      placeholder="Check number, wire confirmation ID, etc."
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    onClick={handleMarkPaid}
+                    disabled={paymentSaving || !paymentRef.trim()}
+                  >
+                    {paymentSaving ? (
+                      <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Saving…</>
+                    ) : (
+                      <><CheckCircle2 className="mr-2 h-3.5 w-3.5" /> Mark Payment Received</>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* ── complete (manual or any) ── */}
+              {submission.paymentStatus === 'complete' && submission.paymentMethod !== 'free' && (
+                <div className="rounded-lg border border-green-500/40 bg-green-500/8 p-4 space-y-2">
+                  <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Status</p>
+                      <p className="text-green-700 font-medium">Payment Received ✓</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Method</p>
+                      <p>{methodLabel}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Invoice Number</p>
+                      <p className="font-mono">{submission.invoiceNumber ?? '—'}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Reference</p>
+                      <p>{submission.paymentReference ?? '—'}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Marked by</p>
+                      <p>{submission.paymentMarkedBy ?? '—'}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Marked at</p>
+                      <p>{formatTs(submission.paymentMarkedAt)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── free ── */}
+              {submission.paymentMethod === 'free' && (
+                <div className="rounded-lg border border-green-500/40 bg-green-500/8 p-4 space-y-2">
+                  <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                    <div className="space-y-0.5 sm:col-span-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Status</p>
+                      <p className="text-green-700 font-medium">Free Order — No Payment Required</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Order Finalized</p>
+                      <p>{formatTs(submission.orderFinalizedAt)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── stripe (read-only) ── */}
+              {submission.paymentMethod === 'stripe' && (
+                <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+                  <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Status</p>
+                      <p>Online Payment</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
+                      <p>{submission.paymentStatus ?? '—'}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Invoice Number</p>
+                      <p className="font-mono">{submission.invoiceNumber ?? '—'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          );
+        })()}
 
       </CardContent>
     </Card>
@@ -561,11 +767,15 @@ function Phase2View({ submission, isAdmin }: { submission: Submission; isAdmin: 
 
   const presentersAdded = submission.presentersAdded ?? false;
   const avSelected = submission.avSelected ?? false;
+  const paymentComplete = submission.paymentComplete ?? false;
   const isReception = submission.sessionType === 'reception';
   const avIsOpen = new Date() >= AV_OPEN_DATE;
 
-  // Reception: advance on AV only. Workshop/info-session: need both presenters + AV.
-  const allDone = isReception ? avSelected : (presentersAdded && avSelected);
+  // Reception: advance once AV selected + payment confirmed.
+  // Workshop/info-session: need presenters added + AV selected + payment confirmed.
+  const allDone = isReception
+    ? (avSelected && paymentComplete)
+    : (presentersAdded && avSelected && paymentComplete);
 
   useEffect(() => {
     if (allDone && submission.status === 'phase_2') {
@@ -838,9 +1048,13 @@ export default function SessionDetailView({
         const submitterSnap = await getDoc(doc(firestore, 'users', submission.userId));
         const submitterEmail = submitterSnap.data()?.email as string | undefined;
         if (submitterEmail) {
-          await sendStatusUpdateEmail(updated, submitterEmail);
-          if (newPhase === 'phase_2') {
-            await sendSessionApprovedEmail(updated, submitterEmail);
+          if (newPhase === 'phase_4') {
+            await sendRoomAssignedEmail(updated);
+          } else {
+            await sendStatusUpdateEmail(updated, submitterEmail);
+            if (newPhase === 'phase_2') {
+              await sendSessionApprovedEmail(updated, submitterEmail);
+            }
           }
         }
       }

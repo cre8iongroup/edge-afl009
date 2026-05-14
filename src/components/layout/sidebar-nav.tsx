@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/sidebar';
 import { useUser } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { LayoutDashboard, Users, FilePlus, Briefcase, Handshake, Presentation, Loader2, BookText, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, Users, FilePlus, Briefcase, Handshake, Presentation, Loader2, BookText, ClipboardCheck, Receipt } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import React from 'react';
@@ -23,6 +23,12 @@ export default function SidebarNav() {
       icon: LayoutDashboard,
       label: 'Dashboard',
       roles: ['regular', 'client', 'internal', 'admin'],
+    },
+    {
+      href: '/order',
+      icon: Receipt,
+      label: 'Order Summary',
+      roles: ['regular'],
     },
     {
       href: '/review',

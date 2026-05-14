@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Submission, AVSelection } from '@/lib/types';
 import {
   getPackagesForSessionType,
@@ -8,6 +9,7 @@ import {
   getPricingTier,
   applyMultiplier,
   formatPrice,
+  consolidateOrderItems,
   type AVPackage,
 } from '@/lib/av-packages';
 import { useSubmissions } from '@/components/submissions-provider';
@@ -33,7 +35,24 @@ const sessionTypeLabel: Record<Submission['sessionType'], string> = {
 
 // ─── Locked read-only view ────────────────────────────────────────────────────
 
-function AVLockedView({ avSelection }: { avSelection: AVSelection }) {
+function AVLockedView({
+  avSelection,
+  paymentComplete,
+  submissionId,
+}: {
+  avSelection: AVSelection;
+  paymentComplete: boolean;
+  submissionId: string;
+}) {
+  const router = useRouter();
+
+  const packages = getPackagesForSessionType(avSelection.sessionType);
+  const packageDetails = packages.find((p) => p.id === avSelection.packageId);
+  const consolidatedItems = consolidateOrderItems(
+    packageDetails?.includes ?? [],
+    avSelection.addOns
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/5 p-4">
@@ -55,10 +74,10 @@ function AVLockedView({ avSelection }: { avSelection: AVSelection }) {
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pricing Tier</p>
           <p className="text-sm">{avSelection.pricingTier}</p>
         </div>
-        {avSelection.addOns.length > 0 && (
+        {consolidatedItems.length > 0 && (
           <div className="space-y-1 sm:col-span-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Add-ons</p>
-            <p className="text-sm">{avSelection.addOns.join(', ')}</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">What You're Getting</p>
+            <p className="text-sm">{consolidatedItems.join(', ')}</p>
           </div>
         )}
         <div className="space-y-1 sm:col-span-2 border-t pt-3">
@@ -85,16 +104,18 @@ function AVLockedView({ avSelection }: { avSelection: AVSelection }) {
         )}
       </div>
 
-      {/* Always visible — regardless of Stripe fields */}
-      <p className="text-xs text-muted-foreground">
-        Need to update your order?{' '}
-        <a
-          href="mailto:connect@cre8iongroup.com"
-          className="font-medium text-primary hover:underline"
+      {/* Edit button — only shown before payment is captured */}
+      {!paymentComplete && (
+        <button
+          type="button"
+          onClick={() =>
+            router.push(`/submit/${avSelection.sessionType}/${submissionId}?editAV=true`)
+          }
+          className="text-sm font-medium text-primary hover:underline"
         >
-          Contact our team at connect@cre8iongroup.com
-        </a>
-      </p>
+          Edit AV Selection
+        </button>
+      )}
     </div>
   );
 }
@@ -105,34 +126,61 @@ type AVPackageSelectorProps = {
   submission: Submission;
 };
 
-export default function AVPackageSelector({ submission }: AVPackageSelectorProps) {
+function AVPackageSelectorInner({ submission }: AVPackageSelectorProps) {
   const { updateSubmission } = useSubmissions();
   const { toast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEditMode = searchParams.get('editAV') === 'true';
   const [isLoading, setIsLoading] = useState(false);
 
   // Derive locked state reactively from the submission prop.
   // Using useState + useEffect ensures the component re-renders when Firestore
   // pushes the updated document even if the parent's object reference is stale.
+  // When editAV=true the selector starts unlocked regardless of avSelected.
   const [isLocked, setIsLocked] = useState(
-    !!(submission.avSelected && submission.avSelection)
+    isEditMode ? false : !!(submission.avSelected && submission.avSelection)
   );
 
   useEffect(() => {
-    if (submission.avSelected && submission.avSelection) {
-      setIsLocked(true);
+    if (isEditMode) return; // don't re-lock while partner is editing
+    setIsLocked(!!(submission.avSelected && submission.avSelection));
+  }, [submission.avSelected, submission.avSelection, isEditMode]);
+
+  // Safety net: if search params resolve after first render and isEditMode becomes
+  // true, ensure isLocked is corrected immediately.
+  useEffect(() => {
+    if (isEditMode) {
+      setIsLocked(false);
     }
-  }, [submission.avSelected, submission.avSelection]);
+  }, [isEditMode]);
 
   const pricingTier = useMemo(() => getPricingTier(), []);
   const packages = useMemo(() => getPackagesForSessionType(submission.sessionType), [submission.sessionType]);
   const addOns = useMemo(() => getAddOnsForSessionType(submission.sessionType), [submission.sessionType]);
 
-  const [selectedPackageId, setSelectedPackageId] = useState<string>(packages[0]?.id ?? '');
-  const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>([]);
+  const [selectedPackageId, setSelectedPackageId] = useState<string>(
+    isEditMode && submission.avSelection?.packageId
+      ? submission.avSelection.packageId
+      : packages[0]?.id ?? ''
+  );
+  const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>(
+    isEditMode && submission.avSelection?.addOns
+      ? addOns
+          .filter((a) => submission.avSelection!.addOns.includes(a.label))
+          .map((a) => a.id)
+      : []
+  );
 
   // Show locked read-only view once confirmed
   if (isLocked && submission.avSelection) {
-    return <AVLockedView avSelection={submission.avSelection} />;
+    return (
+      <AVLockedView
+        avSelection={submission.avSelection}
+        paymentComplete={submission.paymentComplete ?? false}
+        submissionId={submission.id}
+      />
+    );
   }
 
   const selectedPackage = packages.find((p) => p.id === selectedPackageId);
@@ -142,16 +190,54 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
     : 0;
 
   const addOnItems = addOns.filter((a) => selectedAddOnIds.includes(a.id));
+
+  /** Resolve the correct base price for an add-on: use deltaByPackage if the selected package has an entry, else fall back to price. */
+  const resolveAddOnBasePrice = (a: (typeof addOns)[number]) =>
+    (selectedPackage && a.deltaByPackage?.[selectedPackage.id] !== undefined)
+      ? a.deltaByPackage![selectedPackage.id]
+      : a.price;
+
   const addOnsTotal = addOnItems.reduce(
-    (sum, a) => sum + applyMultiplier(a.price, pricingTier.multiplier),
+    (sum, a) => sum + (a.flatPrice ? resolveAddOnBasePrice(a) : applyMultiplier(resolveAddOnBasePrice(a), pricingTier.multiplier)),
     0
   );
   const orderTotal = packageFinalPrice + addOnsTotal;
 
   const toggleAddOn = (id: string) => {
-    setSelectedAddOnIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setSelectedAddOnIds((prev) => {
+      let next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+
+      // ── Upgrade mutual-exclusion guards ─────────────────────────────────
+      // Selecting a higher upgrade tier automatically deselects the lower one,
+      // and vice versa, so both can never be active simultaneously.
+
+      // If four-mic upgrade selected, remove two-mic upgrade
+      if (id === 'addon-upgrade-to-four-mics') {
+        next = next.filter(i => i !== 'addon-upgrade-to-two-mics');
+      }
+      // If two-mic upgrade selected, remove four-mic upgrade
+      if (id === 'addon-upgrade-to-two-mics') {
+        next = next.filter(i => i !== 'addon-upgrade-to-four-mics');
+      }
+      // If four-cube upgrade selected, remove two-cube upgrade
+      if (id === 'addon-upgrade-to-four-cubes') {
+        next = next.filter(i => i !== 'addon-upgrade-to-two-cubes');
+      }
+      // If two-cube upgrade selected, remove four-cube upgrade
+      if (id === 'addon-upgrade-to-two-cubes') {
+        next = next.filter(i => i !== 'addon-upgrade-to-four-cubes');
+      }
+
+      // If we just deselected an add-on that was satisfying another add-on's requiresAnyOf,
+      // also deselect that dependent add-on.
+      return next.filter((remainingId) => {
+        const remaining = addOns.find((a) => a.id === remainingId);
+        if (!remaining?.requiresAnyOf) return true;
+        const packageSatisfies = remaining.requiresAnyOf.includes(selectedPackage?.id ?? '');
+        const addonSatisfies = remaining.requiresAnyOf.some((reqId) => next.includes(reqId));
+        return packageSatisfies || addonSatisfies;
+      });
+    });
   };
 
   const handleConfirm = async () => {
@@ -173,11 +259,14 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
     };
 
     try {
-      await updateSubmission({ ...submission, avSelected: true, paymentComplete: true, avSelection });
+      await updateSubmission({ ...submission, avSelected: true, avSelection });
       toast({
         title: 'AV Package Confirmed',
         description: `${selectedPackage.name} has been locked in. Total: ${formatPrice(orderTotal)}`,
       });
+      if (isEditMode) {
+        router.push(`/submit/${submission.sessionType}/${submission.id}?from=review`);
+      }
     } catch {
       toast({
         variant: 'destructive',
@@ -221,6 +310,16 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
         </Card>
       ) : (
         <>
+          {/* Edit mode banner */}
+          {isEditMode && (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-amber-600">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p className="text-sm">
+                You are editing your AV selection. Re-confirming will update your order at the current pricing rate.
+              </p>
+            </div>
+          )}
+
           {/* Package selection */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -234,7 +333,27 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
                   <button
                     key={pkg.id}
                     type="button"
-                    onClick={() => setSelectedPackageId(pkg.id)}
+                    onClick={() => {
+                      setSelectedPackageId(pkg.id);
+                      // Auto-deselect add-ons that become included in, or locked out by, the newly selected package
+                      setSelectedAddOnIds((prev) =>
+                        prev.filter((addOnId) => {
+                          const addOn = addOns.find((a) => a.id === addOnId);
+                          // Remove if now included in the new package
+                          if (addOn?.includedInPackages?.includes(pkg.id)) return false;
+                          // Remove if now locked (requiresAnyOf exists and new package satisfies none of them,
+                          // and no other currently-selected add-on satisfies them either)
+                          if (addOn?.requiresAnyOf) {
+                            const packageSatisfies = addOn.requiresAnyOf.includes(pkg.id);
+                            const addonSatisfies = addOn.requiresAnyOf.some(
+                              (reqId) => reqId !== addOnId && prev.includes(reqId)
+                            );
+                            if (!packageSatisfies && !addonSatisfies) return false;
+                          }
+                          return true;
+                        })
+                      );
+                    }}
                     className={cn(
                       'relative flex flex-col gap-3 rounded-lg border p-4 text-left transition-all',
                       isSelected
@@ -260,13 +379,18 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
                       ))}
                     </ul>
                     <div className="mt-auto pt-2 border-t">
-                      <p className="font-bold text-base">
-                        {pkg.basePrice === 0 ? 'Free' : formatPrice(finalPrice)}
-                      </p>
-                      {pricingTier.multiplier > 1 && pkg.basePrice > 0 && (
-                        <p className="text-xs text-muted-foreground line-through">
-                          {formatPrice(pkg.basePrice)} base
-                        </p>
+                      {pkg.basePrice === 0 ? (
+                        <p className="font-bold text-base">Free</p>
+                      ) : pricingTier.multiplier < 1 ? (
+                        // Early bird — show crossed-out full price then discounted price
+                        <>
+                          <p className="text-sm text-muted-foreground line-through">
+                            {formatPrice(pkg.basePrice)}
+                          </p>
+                          <p className="font-bold text-base">{formatPrice(finalPrice)}</p>
+                        </>
+                      ) : (
+                        <p className="font-bold text-base">{formatPrice(finalPrice)}</p>
                       )}
                     </div>
                   </button>
@@ -283,32 +407,58 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
               </h3>
               <div className="grid gap-2 sm:grid-cols-2">
                 {addOns.map((addon) => {
-                  const isChecked = selectedAddOnIds.includes(addon.id);
-                  const addonPrice = applyMultiplier(addon.price, pricingTier.multiplier);
+                  const isIncludedInPackage = addon.includedInPackages?.includes(selectedPackage?.id ?? '') ?? false;
+                  const isLocked = (() => {
+                    if (!addon.requiresAnyOf) return false;
+                    const hasRequiredPackage = addon.requiresAnyOf.includes(selectedPackage?.id ?? '');
+                    const hasRequiredAddon = addon.requiresAnyOf.some((id) => selectedAddOnIds.includes(id));
+                    return !hasRequiredPackage && !hasRequiredAddon;
+                  })();
+                  const isChecked = !isIncludedInPackage && !isLocked && selectedAddOnIds.includes(addon.id);
+                  const addonPrice = addon.flatPrice ? resolveAddOnBasePrice(addon) : applyMultiplier(resolveAddOnBasePrice(addon), pricingTier.multiplier);
                   return (
                     <button
                       key={addon.id}
                       type="button"
-                      onClick={() => toggleAddOn(addon.id)}
+                      onClick={() => { if (!isIncludedInPackage && !isLocked) toggleAddOn(addon.id); }}
+                      disabled={isIncludedInPackage || isLocked}
                       className={cn(
                         'flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all',
-                        isChecked
-                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                          : 'border-border bg-background hover:border-primary/40 hover:bg-accent/50'
+                        isIncludedInPackage
+                          ? 'cursor-default border-border bg-muted/40 opacity-60'
+                          : isLocked
+                            ? 'cursor-default border-border bg-muted/20 opacity-70'
+                            : isChecked
+                              ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                              : 'border-border bg-background hover:border-primary/40 hover:bg-accent/50'
                       )}
                     >
                       <span
                         className={cn(
                           'flex h-4 w-4 shrink-0 items-center justify-center rounded border',
-                          isChecked ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'
+                          isIncludedInPackage || isLocked
+                            ? 'border-muted-foreground/40 bg-muted'
+                            : isChecked
+                              ? 'border-primary bg-primary text-primary-foreground'
+                              : 'border-muted-foreground'
                         )}
                       >
                         {isChecked && <Check className="h-3 w-3" />}
                       </span>
                       <span className="flex-1">{addon.label}</span>
-                      <span className="shrink-0 font-medium tabular-nums">
-                        +{formatPrice(addonPrice)}
-                      </span>
+                      {isIncludedInPackage ? (
+                        <span className="shrink-0 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-700">
+                          Included in your package
+                        </span>
+                      ) : isLocked ? (
+                        <span className="shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700">
+                          Requires a photo backdrop — add one above to unlock
+                        </span>
+                      ) : (
+                        <span className="shrink-0 font-medium tabular-nums">
+                          +{formatPrice(addonPrice)}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -333,7 +483,7 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
               {addOnItems.map((a) => (
                 <div key={a.id} className="flex justify-between text-muted-foreground">
                   <span>{a.label}</span>
-                  <span className="tabular-nums">+{formatPrice(applyMultiplier(a.price, pricingTier.multiplier))}</span>
+                  <span className="tabular-nums">+{formatPrice(a.flatPrice ? resolveAddOnBasePrice(a) : applyMultiplier(resolveAddOnBasePrice(a), pricingTier.multiplier))}</span>
                 </div>
               ))}
               <div className="flex justify-between border-t pt-2 font-bold text-base">
@@ -352,5 +502,17 @@ export default function AVPackageSelector({ submission }: AVPackageSelectorProps
         </>
       )}
     </div>
+  );
+}
+
+// ─── Public export: wraps inner component in a Suspense boundary ──────────────
+// Required because AVPackageSelectorInner calls useSearchParams(), which in
+// Next.js App Router must be inside a <Suspense> tree or params always return null.
+
+export default function AVPackageSelector(props: AVPackageSelectorProps) {
+  return (
+    <Suspense fallback={<div className="h-32 animate-pulse rounded-lg bg-muted/40" />}>
+      <AVPackageSelectorInner {...props} />
+    </Suspense>
   );
 }

@@ -47,6 +47,14 @@ export type Submission = {
   avSelected?: boolean;
   avSelection?: AVSelection;
   paymentComplete?: boolean;
+  paymentMethod?: 'stripe' | 'manual' | 'free' | null;
+  paymentStatus?: 'pending' | 'awaiting_manual' | 'complete';
+  paymentReference?: string;
+  orderFinalizedAt?: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  paymentMarkedBy?: string;
+  paymentMarkedAt?: string;
   pillar: string;
   format: string;
   audience: string | string[];
@@ -74,6 +82,7 @@ export type Submission = {
   roomAssignment?: string;        // free-text room/time set by admin (e.g. "Workshop 2 (W206ABC) — Monday August 10, 3:00 PM")
   authorizedEmails?: string[];    // additional emails granted read/edit access; original owner always retains access
   community?: boolean;            // workshop-only community tag set by admin
+  isProxy?: boolean;              // session submitted by admin on behalf of partner
 };
 
     

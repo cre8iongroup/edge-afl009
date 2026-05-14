@@ -4,6 +4,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { adminApp } from '@/firebase/admin';
 import type { Submission } from './types';
 import { sendEmail } from './email';
+import { formatPrice } from '@/lib/av-packages';
 
 if (!adminApp) {
   console.warn("Firebase Admin SDK is not initialized. Server-side actions may fail.");
@@ -15,6 +16,20 @@ const auth = adminApp ? getAuth(adminApp) : null;
 const INTERNAL_SUBMISSIONS_EMAIL = process.env.INTERNAL_SUBMISSIONS_EMAIL;
 const INTERNAL_NOTIFY_EMAIL = process.env.INTERNAL_NOTIFY_EMAIL;
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
+// ─── POC helper ──────────────────────────────────────────────────────────────
+
+function getPocInfo(submission: Submission) {
+  const isWorkshop = submission.sessionType === 'workshop';
+  return {
+    name: isWorkshop
+      ? (submission.presenterPocName ?? submission.pocName ?? '')
+      : (submission.pocName ?? ''),
+    email: isWorkshop
+      ? (submission.presenterPocEmail ?? submission.pocEmail ?? '')
+      : (submission.pocEmail ?? ''),
+  };
+}
 
 // ─── Sign-In Link ─────────────────────────────────────────────────────────────
 
@@ -74,7 +89,7 @@ export async function sendStatusUpdateEmail(submission: Submission, recipientEma
   console.log(`Preparing status update email to ${recipientEmail} for "${submission.title}" — status: ${statusLabel}`);
 
   const emailSubject = `Update on your ALPFA submission: ${submission.title}`;
-  const emailBody = `<p>Hello,</p><p>The status of your submission, "${submission.title}," has been updated to: <strong>${statusLabel}</strong>.</p><p>You can view your submission dashboard for more details.</p>`;
+  const emailBody = `<p>Hello,</p><p>The status of your submission, "${submission.title}," has been updated to: <strong>${statusLabel}</strong>.</p><p>You can view your submission dashboard for more details.</p><p><a href="https://alpfa26.cre8ionedge.com/dashboard">Go to your dashboard &rarr;</a></p>`;
   const emailResult = await sendEmail(recipientEmail, emailSubject, emailBody);
 
   if (emailResult.success) {
@@ -103,9 +118,10 @@ export async function sendSessionSubmittedEmail(params: {
   // Email A — partner confirmation
   const partnerSubject = 'We received your session submission — ALPFA 2026';
   const partnerBody = `
-    <p>Hi ${partnerEmail},</p>
-    <p>Thank you for submitting your session for the ALPFA 2026 National Convention. Our team will review your submission and you'll hear back once it's been approved.</p>
+    <p>Hi there,</p>
+    <p>Thank you for submitting <strong>${title}</strong> for the ALPFA 2026 National Convention. Our team will review your submission and you'll hear back once it's been approved.</p>
     <p>If you have any questions in the meantime, reach out to us at <a href="mailto:connect@cre8iongroup.com">connect@cre8iongroup.com</a>.</p>
+    <p><a href="https://alpfa26.cre8ionedge.com/dashboard">Go to your dashboard &rarr;</a></p>
     <p>— The cre8ion Edge Team</p>
   `;
 
@@ -146,14 +162,19 @@ export async function sendSessionSubmittedEmail(params: {
 
 export async function sendSessionApprovedEmail(submission: Submission, partnerEmail: string) {
   // Email A — partner notification
-  const partnerSubject = 'Your session has been approved — action required';
+  const partnerSubject = "Your ALPFA session is approved! Here's what to do next \u2726";
   const partnerBody = `
-    <p>Hi ${partnerEmail},</p>
-    <p>Great news — your session submission has been approved!</p>
-    <p>Log in to complete the next steps: add your presenter information and select your AV package. The AV package selection opens May 8.</p>
-    <p><a href="${baseUrl}/dashboard">Log in to the Portal</a></p>
-    <p>Questions? Contact us at <a href="mailto:connect@cre8iongroup.com">connect@cre8iongroup.com</a>.</p>
-    <p>— The cre8ion Edge Team</p>
+    <p>Hi there,</p>
+    <p>Great news — your session has been approved by the ALPFA programs team! We're so excited to have you at the 2026 Convention.</p>
+    <p>Here's what's next: you'll need to complete two things by <strong>June 26th</strong>:</p>
+    <ul>
+      <li>Add your presenter information</li>
+      <li>Select your AV package and complete payment</li>
+    </ul>
+    <p>Both are waiting for you in your dashboard. The sooner you complete them, the better your room placement options — AV pricing also increases after May 15, so it's worth jumping on it!</p>
+    <p><a href="https://alpfa26.cre8ionedge.com/dashboard">Go to your dashboard &rarr;</a></p>
+    <p>Need help or have a question? Reply directly to this email or reach us at <a href="mailto:connect@cre8iongroup.com">connect@cre8iongroup.com</a> — we're always happy to help.</p>
+    <p>— The cre8ion Team</p>
   `;
 
   // Email B — internal notify only (not submissions@)
@@ -181,5 +202,118 @@ export async function sendSessionApprovedEmail(submission: Submission, partnerEm
   } catch (error) {
     console.error('sendSessionApprovedEmail: error sending emails', error);
     return { success: false, error: 'Could not send approval emails.' };
+  }
+}
+
+// ─── Payment Confirmed (PN-03) ────────────────────────────────────────────────
+
+export async function sendPaymentConfirmedEmail(submission: Submission) {
+  const poc = getPocInfo(submission);
+  const adminUrl = `https://alpfa26.cre8ionedge.com/submit/${submission.sessionType}/${submission.id}?from=all-sessions`;
+
+  // Email A — partner confirmation
+  const partnerSubject = 'Payment received — you\u2019re all set! \u2726';
+  const partnerBody = `
+    <p>Hi there,</p>
+    <p>Your AV order for <strong>${submission.title}</strong> has been confirmed and everything looks great.</p>
+    <p>Here's where things stand: as long as your presenter information is complete, you're done with the hard part! Our team will finalize room assignments between June 20 and June 30, and you'll receive your full session details — date, time, and room — by July 1.</p>
+    <p>Sit tight, and we'll be in touch soon.</p>
+    <p><a href="https://alpfa26.cre8ionedge.com/dashboard">Go to your dashboard &rarr;</a></p>
+    <p>Need help or have a question? Reply directly to this email or reach us at <a href="mailto:connect@cre8iongroup.com">connect@cre8iongroup.com</a> — we're always happy to help.</p>
+    <p>— The cre8ion Team</p>
+  `;
+
+  // Email B — internal alert
+  const internalSubject = `AV order confirmed \u2014 ${submission.title}`;
+  const orderTotal = submission.avSelection?.orderTotal
+    ? formatPrice(submission.avSelection.orderTotal)
+    : '\u2014';
+  const paymentRef = submission.paymentReference ?? submission.invoiceNumber ?? '\u2014';
+  const internalBody = `
+    <p>An AV order has been confirmed.</p>
+    <ul>
+      <li><strong>Session:</strong> ${submission.title}</li>
+      <li><strong>Partner:</strong> ${poc.name || '\u2014'}</li>
+      <li><strong>Email:</strong> ${poc.email || '\u2014'}</li>
+      <li><strong>Payment method:</strong> ${submission.paymentMethod ?? '\u2014'}</li>
+      <li><strong>Payment reference:</strong> ${paymentRef}</li>
+      <li><strong>Order total:</strong> ${orderTotal}</li>
+    </ul>
+    <p><a href="${adminUrl}">View session in admin panel &rarr;</a></p>
+  `;
+
+  const sends: Promise<{ success: boolean; error?: string }>[] = [];
+  if (poc.email) sends.push(sendEmail(poc.email, partnerSubject, partnerBody));
+  if (INTERNAL_NOTIFY_EMAIL) sends.push(sendEmail(INTERNAL_NOTIFY_EMAIL, internalSubject, internalBody));
+
+  try {
+    await Promise.all(sends);
+    console.log(`sendPaymentConfirmedEmail: emails sent for "${submission.title}"`);
+    return { success: true };
+  } catch (error) {
+    console.error('sendPaymentConfirmedEmail: error', error);
+    return { success: false, error: 'Could not send payment confirmation emails.' };
+  }
+}
+
+// ─── Room Assigned (PN-04) ────────────────────────────────────────────────────
+
+export async function sendRoomAssignedEmail(submission: Submission) {
+  const poc = getPocInfo(submission);
+  if (!poc.email) {
+    console.warn(`sendRoomAssignedEmail: no POC email for "${submission.title}" — skipping`);
+    return { success: false, error: 'No POC email found.' };
+  }
+
+  const partnerSubject = 'Your ALPFA session room has been assigned \u2014 here are your details! \u2726';
+  const partnerBody = `
+    <p>Hi there,</p>
+    <p>The moment you've been waiting for has arrived — your room has been assigned and your session is officially locked in. Here's everything you need:</p>
+    <p><strong>${submission.title}</strong><br>${submission.roomAssignment ?? ''}</p>
+    <p>You're all set! Your full session details are also saved in your dashboard any time you want to reference them. We cannot wait to see you at the ALPFA 2026 Convention.</p>
+    <p><a href="https://alpfa26.cre8ionedge.com/dashboard">Go to your dashboard &rarr;</a></p>
+    <p>Need help or have a question? Reply directly to this email or reach us at <a href="mailto:connect@cre8iongroup.com">connect@cre8iongroup.com</a> — we're always happy to help.</p>
+    <p>— The cre8ion Team</p>
+  `;
+
+  try {
+    await sendEmail(poc.email, partnerSubject, partnerBody);
+    console.log(`sendRoomAssignedEmail: sent to ${poc.email} for "${submission.title}"`);
+    return { success: true };
+  } catch (error) {
+    console.error('sendRoomAssignedEmail: error', error);
+    return { success: false, error: 'Could not send room assignment email.' };
+  }
+}
+
+// ─── Presenter Update (IN-02) ─────────────────────────────────────────────────
+
+export async function sendPresenterUpdateEmail(
+  submission: Submission,
+  action: 'added' | 'removed'
+) {
+  if (!INTERNAL_NOTIFY_EMAIL) return { success: true };
+
+  const poc = getPocInfo(submission);
+  const adminUrl = `https://alpfa26.cre8ionedge.com/submit/${submission.sessionType}/${submission.id}?from=all-sessions`;
+  const subject = `Presenter ${action} \u2014 ${submission.title}`;
+  const body = `
+    <p>A presenter has been ${action}.</p>
+    <ul>
+      <li><strong>Session:</strong> ${submission.title}</li>
+      <li><strong>Action:</strong> Presenter ${action}</li>
+      <li><strong>POC Email:</strong> ${poc.email || '\u2014'}</li>
+      <li><strong>Current presenter count:</strong> ${submission.presenters?.length ?? 0}</li>
+    </ul>
+    <p><a href="${adminUrl}">View session in admin panel &rarr;</a></p>
+  `;
+
+  try {
+    await sendEmail(INTERNAL_NOTIFY_EMAIL, subject, body);
+    console.log(`sendPresenterUpdateEmail: sent for "${submission.title}" — ${action}`);
+    return { success: true };
+  } catch (error) {
+    console.error('sendPresenterUpdateEmail: error', error);
+    return { success: false, error: 'Could not send presenter update email.' };
   }
 }

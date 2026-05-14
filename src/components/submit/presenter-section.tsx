@@ -6,6 +6,7 @@ import { useSubmissions } from '@/components/submissions-provider';
 import { useStorage } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
+import { sendPresenterUpdateEmail } from '@/lib/actions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -522,6 +523,7 @@ export default function PresenterSection({ submission }: PresenterSectionProps) 
         presenters: firestorePresenters,
         // presentersAdded stays as-is — never reverts
       });
+      await sendPresenterUpdateEmail(submission, 'removed');
     },
     [drafts, submission, updateSubmission]
   );
@@ -595,6 +597,7 @@ export default function PresenterSection({ submission }: PresenterSectionProps) 
           title: shouldSetPresentersAdded ? 'Presenter saved' : 'Presenter updated',
           description: `${savedPresenter.name}'s information has been ${shouldSetPresentersAdded ? 'saved' : 'updated'}.`,
         });
+        await sendPresenterUpdateEmail(submission, 'added');
       } catch (err) {
         console.error('Presenter save error:', err);
         updateDraft(id, { _saving: false });
