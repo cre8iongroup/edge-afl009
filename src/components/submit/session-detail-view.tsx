@@ -762,7 +762,7 @@ function Phase1View({
 
 // ─── Phase 2: Needs Information ───────────────────────────────────────────────
 
-function Phase2View({ submission, isAdmin }: { submission: Submission; isAdmin: boolean }) {
+function Phase2View({ submission, isAdmin, isClient }: { submission: Submission; isAdmin: boolean; isClient: boolean }) {
   const { updateSubmission } = useSubmissions();
 
   const presentersAdded = submission.presentersAdded ?? false;
@@ -815,19 +815,21 @@ function Phase2View({ submission, isAdmin }: { submission: Submission; isAdmin: 
           </TaskPill>
         )}
 
-        {/* Task 2 – AV Package & Payment */}
-        <TaskPill complete={avSelected} icon={Monitor} label="AV Package &amp; Payment" alwaysShowChildren>
-          {avIsOpen ? (
-            <AVPackageSelector submission={submission} />
-          ) : (
-            <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-4">
-              <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                AV package selection opens May 8. You'll receive an email when this section is ready to complete.
-              </p>
-            </div>
-          )}
-        </TaskPill>
+        {/* Task 2 – AV Package & Payment (hidden from client users) */}
+        {!isClient && (
+          <TaskPill complete={avSelected} icon={Monitor} label="AV Package &amp; Payment" alwaysShowChildren>
+            {avIsOpen ? (
+              <AVPackageSelector submission={submission} />
+            ) : (
+              <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-4">
+                <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  AV package selection opens May 8. You'll receive an email when this section is ready to complete.
+                </p>
+              </div>
+            )}
+          </TaskPill>
+        )}
       </div>
 
       {/* Admin panel — admin only */}
@@ -838,7 +840,7 @@ function Phase2View({ submission, isAdmin }: { submission: Submission; isAdmin: 
 
 // ─── Phase 3: Submitted – Awaiting Assignment ─────────────────────────────────
 
-function Phase3View({ submission, isAdmin }: { submission: Submission; isAdmin: boolean }) {
+function Phase3View({ submission, isAdmin, isClient }: { submission: Submission; isAdmin: boolean; isClient: boolean }) {
   const cfg = phaseConfig.phase_3;
   const Icon = cfg.icon;
   const isReception = submission.sessionType === 'reception';
@@ -879,18 +881,20 @@ function Phase3View({ submission, isAdmin }: { submission: Submission; isAdmin: 
         </Card>
       )}
 
-      {/* AV Package — locked read-only view (avSelected is true so AVLockedView renders) */}
-      <Card className="border-green-500/40">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
-            <CardTitle className="text-base font-semibold text-green-700">AV Package &amp; Payment</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <AVPackageSelector submission={submission} />
-        </CardContent>
-      </Card>
+      {/* AV Package — locked read-only view (hidden from client users) */}
+      {!isClient && (
+        <Card className="border-green-500/40">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+              <CardTitle className="text-base font-semibold text-green-700">AV Package &amp; Payment</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <AVPackageSelector submission={submission} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Room assignment — shown to partner only when filled in by admin */}
       {submission.roomAssignment && (
@@ -1137,8 +1141,8 @@ export default function SessionDetailView({
           approved={approved}
         />
       )}
-      {submission.status === 'phase_2' && <Phase2View submission={submission} isAdmin={isAdmin} />}
-      {submission.status === 'phase_3' && <Phase3View submission={submission} isAdmin={isAdmin} />}
+      {submission.status === 'phase_2' && <Phase2View submission={submission} isAdmin={isAdmin} isClient={isClient} />}
+      {submission.status === 'phase_3' && <Phase3View submission={submission} isAdmin={isAdmin} isClient={isClient} />}
       {submission.status === 'phase_4' && <Phase4View submission={submission} isAdmin={isAdmin} />}
     </div>
   );
