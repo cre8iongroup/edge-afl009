@@ -72,7 +72,7 @@ export const availableSlots: ScheduleDay[] = [
     sessionTypes: ['reception'],
     times: [
       { time: '07:30 AM - 09:00 AM', capacity: 6 },
-      { time: '05:00 PM - 06:30 PM', capacity: 6 },
+      { time: '06:00 PM - 07:30 PM', capacity: 6 },
     ],
   },
 ];
