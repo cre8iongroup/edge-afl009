@@ -33,7 +33,7 @@ import { useSubmissions } from '../submissions-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { availableSlots } from '@/lib/schedule';
-import { sendSessionSubmittedEmail } from '@/lib/actions';
+import { sendSessionSubmittedEmail, addToZohoCampaigns } from '@/lib/actions';
 import { useFirestore } from '@/firebase';
 import { doc, collection, onSnapshot, runTransaction } from 'firebase/firestore';
 
@@ -242,6 +242,10 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
           title: values.title,
           sessionType,
           partnerEmail: user.email || '',
+        });
+        void addToZohoCampaigns({
+          email: user.email || '',
+          firstName: values.presenterPocName,
         });
         toast({
           title: 'Workshop Submitted!',

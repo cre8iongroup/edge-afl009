@@ -269,7 +269,8 @@ export async function sendRoomAssignedEmail(submission: Submission) {
   const partnerBody = `
     <p>Hi there,</p>
     <p>The moment you've been waiting for has arrived — your room has been assigned and your session is officially locked in. Here's everything you need:</p>
-    <p><strong>${submission.title}</strong><br>${submission.roomAssignment ?? ''}</p>
+    <p><strong>${submission.title}</strong></p>
+    <p style="border-left: 3px solid #cccccc; padding-left: 12px; margin: 16px 0; color: #333333; font-size: 14px;">${submission.roomAssignment ?? 'Details coming soon'}</p>
     <p>You're all set! Your full session details are also saved in your dashboard any time you want to reference them. We cannot wait to see you at the ALPFA 2026 Convention.</p>
     <p><a href="https://alpfa26.cre8ionedge.com/dashboard">Go to your dashboard &rarr;</a></p>
     <p>Need help or have a question? Reply directly to this email or reach us at <a href="mailto:connect@cre8iongroup.com">connect@cre8iongroup.com</a> — we're always happy to help.</p>
@@ -315,5 +316,46 @@ export async function sendPresenterUpdateEmail(
   } catch (error) {
     console.error('sendPresenterUpdateEmail: error', error);
     return { success: false, error: 'Could not send presenter update email.' };
+  }
+}
+
+// ─── Zoho Campaigns Subscribe ─────────────────────────────────────────────────
+
+export async function addToZohoCampaigns(params: {
+  email: string;
+  firstName?: string;
+  company?: string;
+}) {
+  const { email, firstName, company } = params;
+
+  if (!email) {
+    console.warn('addToZohoCampaigns: email is required — skipping');
+    return { success: false };
+  }
+
+  const listkey = process.env.ZOHO_CAMPAIGNS_LIST_KEY;
+  if (!listkey) {
+    console.warn('addToZohoCampaigns: ZOHO_CAMPAIGNS_LIST_KEY is not set — skipping');
+    return { success: false };
+  }
+
+  const contactinfo = JSON.stringify({
+    'Contact Email': email,
+    'First Name': firstName ?? '',
+    'Company': company ?? '',
+  });
+
+  const url = new URL('https://campaigns.zoho.com/api/v1.1/json/listsubscribe');
+  url.searchParams.set('resfmt', 'JSON');
+  url.searchParams.set('listkey', listkey);
+  url.searchParams.set('contactinfo', contactinfo);
+
+  try {
+    const res = await fetch(url.toString(), { method: 'POST' });
+    console.log(`addToZohoCampaigns: subscribed ${email} — HTTP ${res.status}`);
+    return { success: true };
+  } catch (error) {
+    console.warn('addToZohoCampaigns failed:', error);
+    return { success: false };
   }
 }

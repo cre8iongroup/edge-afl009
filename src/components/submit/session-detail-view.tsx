@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import {
   Clock,
@@ -256,6 +257,9 @@ function AdminPanel({ submission }: { submission: Submission }) {
               {roomSaving ? 'Saving…' : 'Save'}
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            The partner will not be notified until this session is moved to Phase 4.
+          </p>
         </div>
 
         {/* Authorized Emails */}
@@ -1006,6 +1010,8 @@ export default function SessionDetailView({
 
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [approved, setApproved] = useState(false);
+  const [pendingPhase, setPendingPhase] = useState<Submission['status'] | null>(null);
+  const [phaseDialogOpen, setPhaseDialogOpen] = useState(false);
 
   // Access check: original owner OR listed in authorizedEmails (OR logic, not replacement)
   const userEmail = user?.email?.toLowerCase();
@@ -1044,7 +1050,26 @@ export default function SessionDetailView({
     }
   };
 
-  const handlePhaseChange = async (newPhase: Submission['status']) => {
+  const handlePhaseChange = (newPhase: Submission['status']) => {
+    if (newPhase === 'phase_4') {
+      if (!submission.roomAssignment?.trim()) {
+        toast({
+          variant: 'destructive',
+          title: 'Room assignment required',
+          description: 'Please save a room assignment before moving to Phase 4.',
+        });
+        return;
+      }
+      // Room is populated — open the confirmation dialog
+      setPendingPhase('phase_4');
+      setPhaseDialogOpen(true);
+      return;
+    }
+    // All other phase transitions proceed immediately (existing behaviour preserved)
+    void executePhaseChange(newPhase);
+  };
+
+  const executePhaseChange = async (newPhase: Submission['status']) => {
     try {
       const updated = { ...submission, status: newPhase };
       await updateSubmission(updated);
@@ -1086,6 +1111,40 @@ export default function SessionDetailView({
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Phase 4 confirmation dialog */}
+      <AlertDialog open={phaseDialogOpen} onOpenChange={setPhaseDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send room assignment notification?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Moving to Phase 4 will send a room assignment notification to the partner.
+                </p>
+                <div className="rounded-md border border-border bg-muted/50 px-4 py-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Room</p>
+                  <p className="text-sm font-medium text-foreground">{submission.roomAssignment}</p>
+                </div>
+                <p>Do you want to proceed?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setPhaseDialogOpen(false); setPendingPhase(null); }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setPhaseDialogOpen(false);
+                if (pendingPhase) void executePhaseChange(pendingPhase);
+                setPendingPhase(null);
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">

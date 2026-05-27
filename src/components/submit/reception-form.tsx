@@ -31,7 +31,7 @@ import { useSubmissions } from '../submissions-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { availableSlots } from '@/lib/schedule';
-import { sendSessionSubmittedEmail } from '@/lib/actions';
+import { sendSessionSubmittedEmail, addToZohoCampaigns } from '@/lib/actions';
 
 const formSchema = z.object({
   companyName: z.string().min(1, 'Company name is required.'),
@@ -137,6 +137,11 @@ export default function ReceptionForm({ submission }: ReceptionFormProps) {
           title: values.receptionTitle,
           sessionType,
           partnerEmail: user.email || '',
+        });
+        void addToZohoCampaigns({
+          email: user.email || '',
+          firstName: values.pocName,
+          company: values.companyName,
         });
         toast({
           title: 'Reception Submitted!',
