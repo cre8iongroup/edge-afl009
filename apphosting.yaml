@@ -21,3 +21,5 @@ environmentVariables:
     secret: STRIPE_WEBHOOK_SECRET
   - variable: STRIPE_PUBLISHABLE_KEY
     secret: STRIPE_PUBLISHABLE_KEY
+  - variable: ZOHO_CAMPAIGNS_LIST_KEY
+    secret: ZOHO_CAMPAIGNS_LIST_KEY

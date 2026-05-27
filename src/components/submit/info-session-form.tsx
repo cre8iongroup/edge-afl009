@@ -27,7 +27,7 @@ import { useSubmissions } from '../submissions-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { availableSlots } from '@/lib/schedule';
 import { useEffect, useMemo, useState } from 'react';
-import { sendSessionSubmittedEmail } from '@/lib/actions';
+import { sendSessionSubmittedEmail, addToZohoCampaigns } from '@/lib/actions';
 import { Submission } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -154,6 +154,11 @@ export default function InfoSessionForm({ submission }: InfoSessionFormProps) {
                     title: values.sessionTitle,
                     sessionType,
                     partnerEmail: user.email || '',
+                });
+                void addToZohoCampaigns({
+                    email: user.email || '',
+                    firstName: values.pocName,
+                    company: values.companyName,
                 });
                 toast({
                     title: 'Info Session Submitted!',
