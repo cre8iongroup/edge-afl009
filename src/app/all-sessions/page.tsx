@@ -1,7 +1,7 @@
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
-import SubmissionsTable from '@/components/admin/submissions-table';
+import SessionsTable from '@/components/shared/sessions-table';
 import { useUser } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useRouter } from 'next/navigation';
@@ -33,7 +33,7 @@ export default function AllSessionsPage() {
           <h1 className="font-headline text-3xl font-semibold">All Sessions</h1>
           <p className="text-muted-foreground">View and manage all workshop submissions.</p>
         </div>
-        {canViewPage && <SubmissionsTable />}
+        {canViewPage && <SessionsTable role="admin" />}
       </div>
     </AppLayout>
   );

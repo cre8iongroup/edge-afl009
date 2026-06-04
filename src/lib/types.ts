@@ -75,7 +75,7 @@ export type Submission = {
   presenterPocEmail?: string;
   pocName?: string;          // reception & info-session POC name
   pocEmail?: string;         // reception & info-session POC email
-  companyName?: string;      // reception & info-session company name
+  companyName?: string;      // company / organization name (all session types)
   presenterBio?: string;
   presenterHeadshot?: string;
   // ─── Admin-only fields ───────────────────────────────────────────────────────
