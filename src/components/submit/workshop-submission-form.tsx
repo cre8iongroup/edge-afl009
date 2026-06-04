@@ -38,6 +38,7 @@ import { useFirestore } from '@/firebase';
 import { doc, collection, onSnapshot, runTransaction } from 'firebase/firestore';
 
 const formSchema = z.object({
+  companyName: z.string().optional(),
   pillar: z.string().min(1, 'Please select a pillar.'),
   format: z.string().min(1, 'Please select a session format.'),
   audience: z.string().min(1, 'Please select an intended audience.'),
@@ -107,10 +108,12 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
     resolver: zodResolver(formSchema),
     defaultValues: submission ? {
       ...submission,
+      companyName: submission.companyName || '',
       secondaryAudience: Array.isArray(submission.secondaryAudience) ? submission.secondaryAudience : [submission.secondaryAudience].filter(Boolean) as string[],
       preferredDate: submission.preferredDate ? new Date(submission.preferredDate).toISOString() : undefined,
       preferredDate2: submission.preferredDate2 ? new Date(submission.preferredDate2).toISOString() : undefined,
     } : {
+      companyName: '',
       title: '',
       description: '',
       objectives: [],
@@ -523,6 +526,24 @@ export default function WorkshopSubmissionForm({ submission }: WorkshopSubmissio
                 />
               </div>
 
+
+              {/* Company Name — optional */}
+              <FormField
+                control={form.control}
+                name="companyName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-lg font-semibold font-headline">
+                      Company Name{' '}
+                      <span className="text-muted-foreground font-normal">(Optional)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Acme Corp" {...field} className="bg-background/50" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* Point of Contact — always visible, required */}
               <div className="grid md:grid-cols-2 gap-6">
