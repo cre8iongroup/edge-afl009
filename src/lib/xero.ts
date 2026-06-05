@@ -15,6 +15,7 @@ export function getXeroClient() {
       'email',
       'accounting.invoices',
       'accounting.contacts',
+      'accounting.transactions',
       'offline_access',
     ],
   });

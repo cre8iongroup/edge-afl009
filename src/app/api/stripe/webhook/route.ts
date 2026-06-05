@@ -8,6 +8,9 @@ import Stripe from 'stripe';
 import { getFirestore } from 'firebase-admin/firestore';
 import { adminApp } from '@/firebase/admin';
 import { sendPaymentConfirmedEmail } from '@/lib/actions';
+import { createXeroInvoice } from '@/lib/xero-actions';
+import { getAuthenticatedXeroClient } from '@/lib/xero';
+import { Invoice, Payment } from 'xero-node';
 import type { Submission } from '@/lib/types';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -82,8 +85,56 @@ export async function POST(req: Request) {
       })
   );
 
-  // TODO (follow-up): create Xero invoice for each session here
-  // createXeroInvoice(sessions, partnerEmail, partnerName, orderId, sessionIds, 'manual')
+  // ─── Xero: create AUTHORISED invoice and record payment ─────────────────────
+  try {
+    const xeroSessionDocs = await Promise.all(
+      firestoreSessionIds.map((id) => db.doc(`submissions/${id}`).get())
+    );
+    const xeroSessions = xeroSessionDocs
+      .filter((doc) => doc.exists)
+      .map((doc) => ({ id: doc.id, ...doc.data() } as Submission));
+
+    if (xeroSessions.length === 0) {
+      console.warn('⚠️ Xero: no session docs found — skipping invoice creation');
+    } else {
+      const firstSession = xeroSessions[0];
+      const isWorkshop = firstSession.sessionType === 'workshop';
+      const partnerEmail = isWorkshop
+        ? (firstSession.presenterPocEmail ?? firstSession.presenterEmail ?? '')
+        : (firstSession.pocEmail ?? '');
+      const partnerName = firstSession.companyName ?? '';
+
+      const xeroResult = await createXeroInvoice(
+        xeroSessions,
+        partnerEmail,
+        partnerName,
+        checkoutSession.id,
+        firestoreSessionIds,
+        'stripe',
+        Invoice.StatusEnum.AUTHORISED,
+      );
+
+      if (xeroResult.success && xeroResult.invoiceId) {
+        const { xero, tenantId } = await getAuthenticatedXeroClient();
+        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        await xero.accountingApi.createPayment(tenantId, {
+          payments: [{
+            invoice: { invoiceID: xeroResult.invoiceId },
+            account: { code: '022' },
+            amount: (checkoutSession.amount_total ?? 0) / 100,
+            date: today,
+            reference: paymentIntentId ?? undefined,
+            type: Payment.PaymentTypeEnum.ACCRECPAYMENT,
+          }],
+        });
+        console.log('✅ Xero payment recorded for invoice:', xeroResult.invoiceId);
+      } else if (!xeroResult.success) {
+        console.error('❌ Xero invoice creation failed:', xeroResult.error);
+      }
+    }
+  } catch (xeroErr) {
+    console.error('❌ Xero block failed (non-fatal):', xeroErr);
+  }
 
   return NextResponse.json({ received: true }, { status: 200 });
 }

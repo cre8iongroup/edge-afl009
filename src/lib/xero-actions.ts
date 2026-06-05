@@ -81,6 +81,8 @@ export async function createXeroInvoice(
   orderId: string,
   sessionIds: string[],
   paymentMethod: 'manual' | 'free' | 'stripe',
+  invoiceStatus: Invoice.StatusEnum = Invoice.StatusEnum.DRAFT,
+  dueDateOverride?: string,   // ISO date string YYYY-MM-DD; defaults to today
 ): Promise<XeroInvoiceResult> {
   try {
     const { xero, tenantId } = await getAuthenticatedXeroClient();
@@ -133,14 +135,17 @@ export async function createXeroInvoice(
       emailAddress: partnerEmail,
     };
 
+    const dueDate = dueDateOverride ?? new Date().toISOString().slice(0, 10);
+
     // Build invoice
     const invoice: Invoice = {
       type: Invoice.TypeEnum.ACCREC,
       contact,
       lineItems,
       lineAmountTypes: LineAmountTypes.Exclusive,
-      status: Invoice.StatusEnum.DRAFT,
+      status: invoiceStatus,
       reference: orderId,
+      dueDate: dueDate,
       url: `https://alpfa26.cre8ionedge.com/order`,
     };
 
