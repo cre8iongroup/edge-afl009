@@ -81,6 +81,7 @@ export async function createXeroInvoice(
   orderId: string,
   sessionIds: string[],
   paymentMethod: 'manual' | 'free' | 'stripe',
+  invoiceStatus: Invoice.StatusEnum = Invoice.StatusEnum.DRAFT,
 ): Promise<XeroInvoiceResult> {
   try {
     const { xero, tenantId } = await getAuthenticatedXeroClient();
@@ -139,7 +140,7 @@ export async function createXeroInvoice(
       contact,
       lineItems,
       lineAmountTypes: LineAmountTypes.Exclusive,
-      status: Invoice.StatusEnum.DRAFT,
+      status: invoiceStatus,
       reference: orderId,
       url: `https://alpfa26.cre8ionedge.com/order`,
     };
