@@ -21,11 +21,13 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
   const { profile } = useUserProfile(user?.uid);
   const firestore = useFirestore();
 
-  const submissionsQuery = useMemoFirebase(() => {
+  // ── Query 1: sessions owned by (or visible to) the user ─────────────────────
+  // admin/internal/client → full collection; regular → owned only
+  const ownedQuery = useMemoFirebase(() => {
     if (!firestore || !user || !profile) return null;
-    
+
     const submissionsCol = collection(firestore, 'submissions') as CollectionReference<Submission>;
-    
+
     if (['admin', 'internal', 'client'].includes(profile.role)) {
       return submissionsCol;
     } else {
@@ -33,32 +35,57 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
     }
   }, [firestore, user, profile]);
 
-  const { data: rawSubmissions, isLoading } = useCollection<Submission>(submissionsQuery);
+  // ── Query 2 (regular role only): sessions where this user is a delegate ──────
+  // Uses array-contains on authorizedEmails. Requires the Firestore list rule
+  // to allow isAuthorizedEmail() — see firestore.rules.
+  const delegateQuery = useMemoFirebase(() => {
+    if (!firestore || !user || !profile) return null;
+    // admin/internal/client already get everything from ownedQuery
+    if (['admin', 'internal', 'client'].includes(profile.role)) return null;
+    // Only run if we have an email to query against
+    if (!user.email) return null;
+
+    const submissionsCol = collection(firestore, 'submissions') as CollectionReference<Submission>;
+    return query(submissionsCol, where('authorizedEmails', 'array-contains', user.email));
+  }, [firestore, user, profile]);
+
+  const { data: rawOwned,    isLoading: loadingOwned }    = useCollection<Submission>(ownedQuery);
+  const { data: rawDelegate, isLoading: loadingDelegate } = useCollection<Submission>(delegateQuery);
 
   // Transform Firestore Timestamps to JS Dates
-  const submissions = useMemo(() => {
-    if (!rawSubmissions) return [] as Submission[];
-    
-    return rawSubmissions.map(sub => {
-        const transformed = { ...sub };
-        
-        // Handle createdAt
-        if (transformed.createdAt && (transformed.createdAt as any).toDate) {
-            transformed.createdAt = (transformed.createdAt as any).toDate();
-        } else if (typeof transformed.createdAt === 'string' || typeof transformed.createdAt === 'number') {
-            transformed.createdAt = new Date(transformed.createdAt);
-        }
-        
-        // Handle preferredDate
-        if (transformed.preferredDate && (transformed.preferredDate as any).toDate) {
-            transformed.preferredDate = (transformed.preferredDate as any).toDate();
-        } else if (typeof transformed.preferredDate === 'string' || typeof transformed.preferredDate === 'number') {
-            transformed.preferredDate = new Date(transformed.preferredDate);
-        }
+  function transformSub(sub: Submission): Submission {
+    const transformed = { ...sub };
 
-        return transformed as Submission;
-    });
-  }, [rawSubmissions]);
+    // Handle createdAt
+    if (transformed.createdAt && (transformed.createdAt as any).toDate) {
+      transformed.createdAt = (transformed.createdAt as any).toDate();
+    } else if (typeof transformed.createdAt === 'string' || typeof transformed.createdAt === 'number') {
+      transformed.createdAt = new Date(transformed.createdAt);
+    }
+
+    // Handle preferredDate
+    if (transformed.preferredDate && (transformed.preferredDate as any).toDate) {
+      transformed.preferredDate = (transformed.preferredDate as any).toDate();
+    } else if (typeof transformed.preferredDate === 'string' || typeof transformed.preferredDate === 'number') {
+      transformed.preferredDate = new Date(transformed.preferredDate);
+    }
+
+    return transformed as Submission;
+  }
+
+  // Merge owned + delegate results, deduplicate by id (owned takes precedence)
+  const submissions = useMemo(() => {
+    const owned    = (rawOwned    ?? []).map(transformSub);
+    const delegate = (rawDelegate ?? []).map(transformSub);
+
+    if (delegate.length === 0) return owned;
+
+    // Build a set of IDs already present in owned to avoid duplicates
+    const ownedIds = new Set(owned.map(s => s.id));
+    const dedupedDelegate = delegate.filter(s => !ownedIds.has(s.id));
+    return [...owned, ...dedupedDelegate];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawOwned, rawDelegate]);
 
   const addSubmission = async (submissionData: Omit<Submission, 'id' | 'createdAt' | 'status'>) => {
     if (!firestore || !user) return;
@@ -82,13 +109,13 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
     if (!firestore || !updatedSubmission.id) return;
 
     const { id, ...data } = updatedSubmission;
-    
-    // Ensure we don't accidentally write a Date back as a Date if Firestore expects Timestamp, 
+
+    // Ensure we don't accidentally write a Date back as a Date if Firestore expects Timestamp,
     // but Firestore usually handles JS Dates fine. However, let's be safe with createdAt if it's already a Date.
     const submissionToUpdate = {
-        ...data,
-        // If it's already a Date from our transformation, Firestore will convert it to Timestamp
-        createdAt: data.createdAt instanceof Date ? data.createdAt : data.createdAt
+      ...data,
+      // If it's already a Date from our transformation, Firestore will convert it to Timestamp
+      createdAt: data.createdAt instanceof Date ? data.createdAt : data.createdAt
     };
 
     try {
@@ -103,6 +130,8 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
   const getSubmission = (id: string) => {
     return submissions.find(sub => sub.id === id);
   };
+
+  const isLoading = loadingOwned || loadingDelegate;
 
   return (
     <SubmissionsContext.Provider value={{ submissions, addSubmission, updateSubmission, getSubmission, loading: isLoading }}>
