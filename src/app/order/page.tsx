@@ -32,7 +32,11 @@ export default function OrderPage() {
 
   const pricingTier = getPricingTier();
 
-  const userSubmissions = submissions.filter((s) => s.userId === user?.uid);
+  const userEmail = user?.email?.toLowerCase();
+  const userSubmissions = submissions.filter((s) =>
+    s.userId === user?.uid ||
+    (userEmail && (s.authorizedEmails ?? []).map(e => e.toLowerCase()).includes(userEmail))
+  );
 
   // Sessions with AV confirmed but payment not yet captured
   const pendingPaymentSessions = userSubmissions.filter(

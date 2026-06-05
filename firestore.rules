@@ -62,8 +62,8 @@ service cloud.firestore {
         isInternalOrAdmin() ||
         isClient()
       );
-      // Allow list if internal/admin, client (for /review page), or owner
-      allow list: if isSignedIn() && (isInternalOrAdmin() || isClient() || resource.data.userId == request.auth.uid);
+      // Allow list if internal/admin, client (for /review page), owner, or delegate
+      allow list: if isSignedIn() && (isInternalOrAdmin() || isClient() || resource.data.userId == request.auth.uid || isAuthorizedEmail());
       // Allow update/delete if owner, delegate, internal/admin, or client
       allow update, delete: if isSignedIn() && (
         resource.data.userId == request.auth.uid ||
