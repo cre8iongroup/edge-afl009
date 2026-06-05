@@ -8,6 +8,7 @@ import { useUserProfiles } from '@/hooks/use-user-profiles';
 import { useToast } from '@/hooks/use-toast';
 import { createXeroInvoice } from '@/lib/xero-actions';
 import { cn } from '@/lib/utils';
+import { submissionFormConfig } from '@/lib/data';
 
 import {
   Table,
@@ -318,6 +319,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
   // ── Filter state ────────────────────────────────────────────────────────────
   const [companyFilter, setCompanyFilter]       = useState('');
   const [typeFilter, setTypeFilter]             = useState<string[]>([]);
+  const [audienceFilter, setAudienceFilter]     = useState<string[]>([]);
   const [statusFilter, setStatusFilter]         = useState<string[]>([]);
   const [dateFilter, setDateFilter]             = useState('');
   const [roomFilter, setRoomFilter]             = useState('');
@@ -328,6 +330,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
   const hasActiveFilters =
     companyFilter !== '' ||
     typeFilter.length > 0 ||
+    audienceFilter.length > 0 ||
     statusFilter.length > 0 ||
     dateFilter !== '' ||
     roomFilter !== '' ||
@@ -338,6 +341,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
   const clearAllFilters = () => {
     setCompanyFilter('');
     setTypeFilter([]);
+    setAudienceFilter([]);
     setStatusFilter([]);
     setDateFilter('');
     setRoomFilter('');
@@ -347,8 +351,9 @@ export default function SessionsTable({ role }: SessionsTableProps) {
   };
 
   // ── Toggle helpers ──────────────────────────────────────────────────────────
-  const toggleType   = (v: string) => setTypeFilter(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
-  const toggleStatus = (v: string) => setStatusFilter(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
+  const toggleType     = (v: string) => setTypeFilter(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
+  const toggleAudience = (v: string) => setAudienceFilter(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
+  const toggleStatus   = (v: string) => setStatusFilter(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
   const toggleSelect = (id: string) => setSelectedIds(prev => {
     const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
   });
@@ -408,6 +413,13 @@ export default function SessionsTable({ role }: SessionsTableProps) {
   const filtered = useMemo(() => sorted.filter(sub => {
     if (companyFilter && sub.companyName?.toLowerCase() !== companyFilter.toLowerCase()) return false;
     if (typeFilter.length > 0 && !typeFilter.includes(sub.sessionType)) return false;
+    if (audienceFilter.length > 0) {
+      const aud = sub.audience;
+      const matches = Array.isArray(aud)
+        ? audienceFilter.some(f => aud.includes(f))
+        : audienceFilter.includes(aud as string);
+      if (!matches) return false;
+    }
     if (statusFilter.length > 0 && !statusFilter.includes(sub.status)) return false;
     if (dateFilter) {
       if (resolveDateKey(sub) !== dateFilter) return false;
@@ -426,7 +438,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
       if (proxyFilter === 'no' && sub.isProxy) return false;
     }
     return true;
-  }), [sorted, companyFilter, typeFilter, statusFilter, dateFilter, roomFilter, avOrderedFilter, avPaidFilter, proxyFilter, isAdmin]);
+  }), [sorted, companyFilter, typeFilter, audienceFilter, statusFilter, dateFilter, roomFilter, avOrderedFilter, avPaidFilter, proxyFilter, isAdmin]);
 
   // ── Proxy invoice generation ─────────────────────────────────────────────────
   const handleGenerateProxyInvoice = async () => {
@@ -493,6 +505,14 @@ export default function SessionsTable({ role }: SessionsTableProps) {
           ]}
           selected={typeFilter}
           onToggle={toggleType}
+        />
+
+        {/* Audience */}
+        <ToggleGroup
+          label="Audience"
+          options={submissionFormConfig.audiences.map(a => ({ value: a.value, label: a.label }))}
+          selected={audienceFilter}
+          onToggle={toggleAudience}
         />
 
         {/* Status */}
@@ -588,6 +608,8 @@ export default function SessionsTable({ role }: SessionsTableProps) {
                   <TableHead>Title</TableHead>
                   {/* Type */}
                   <TableHead>Type</TableHead>
+                  {/* Audience */}
+                  <TableHead>Audience</TableHead>
                   {/* Status */}
                   <TableHead className="text-center">Status</TableHead>
                   {/* 1st Choice */}
@@ -612,7 +634,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
                 {filtered.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={isAdmin ? 14 : 13}
+                      colSpan={isAdmin ? 15 : 14}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       {hasActiveFilters
@@ -702,6 +724,13 @@ export default function SessionsTable({ role }: SessionsTableProps) {
                               </Badge>
                             )}
                           </div>
+                        </TableCell>
+
+                        {/* Audience */}
+                        <TableCell className="text-sm text-muted-foreground">
+                          {Array.isArray(item.audience)
+                            ? item.audience.join(', ')
+                            : (item.audience ?? '—')}
                         </TableCell>
 
                         {/* Status */}
