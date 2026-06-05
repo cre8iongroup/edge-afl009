@@ -1210,18 +1210,6 @@ function Phase3View({ submission, isAdmin, isClient }: { submission: Submission;
         </Card>
       )}
 
-      {/* Room assignment — shown to partner only when filled in by admin */}
-      {submission.roomAssignment && (
-        <Card className="border-green-500/40 bg-green-500/5">
-          <CardContent className="flex items-start gap-3 p-5">
-            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-            <div>
-              <p className="text-sm font-semibold text-green-700">Room Assignment</p>
-              <p className="text-sm mt-0.5">{submission.roomAssignment}</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Admin panel — admin only */}
       {isAdmin && <AdminPanel submission={submission} />}
