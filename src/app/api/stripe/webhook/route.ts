@@ -118,14 +118,12 @@ export async function POST(req: Request) {
         const { xero, tenantId } = await getAuthenticatedXeroClient();
         const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
         await xero.accountingApi.createPayment(tenantId, {
-          payments: [{
-            invoice: { invoiceID: xeroResult.invoiceId },
-            account: { code: '022' },
-            amount: (checkoutSession.amount_total ?? 0) / 100,
-            date: today,
-            reference: paymentIntentId ?? undefined,
-            type: Payment.PaymentTypeEnum.ACCRECPAYMENT,
-          }],
+          invoice: { invoiceID: xeroResult.invoiceId },
+          account: { code: '022' },
+          amount: (checkoutSession.amount_total ?? 0) / 100,
+          date: today,
+          reference: paymentIntentId ?? undefined,
+          type: Payment.PaymentTypeEnum.ACCRECPAYMENT,
         });
         console.log('✅ Xero payment recorded for invoice:', xeroResult.invoiceId);
       } else if (!xeroResult.success) {
