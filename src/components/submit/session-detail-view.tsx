@@ -6,9 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { submissionFormConfig } from '@/lib/data';
 import {
   Clock,
   AlertCircle,
@@ -29,6 +34,7 @@ import {
   FileText,
   Loader2,
   CreditCard,
+  Pencil,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -492,6 +498,308 @@ function AdminPanel({ submission }: { submission: Submission }) {
   );
 }
 
+// ─── Admin Correction Panel ───────────────────────────────────────────────────
+
+/** Converts a Firestore Timestamp, JS Date, or ISO string to YYYY-MM-DD for <input type="date">. */
+function formatDateForInput(date?: Date | string | { toDate(): Date } | null): string {
+  if (!date) return '';
+  try {
+    const d =
+      typeof date === 'object' && 'toDate' in date && typeof (date as { toDate(): Date }).toDate === 'function'
+        ? (date as { toDate(): Date }).toDate()
+        : typeof date === 'string'
+          ? new Date(date)
+          : (date as Date);
+    return d.toISOString().split('T')[0];
+  } catch {
+    return '';
+  }
+}
+
+function AdminCorrectionPanel({ submission }: { submission: Submission }) {
+  const { updateSubmission } = useSubmissions();
+
+  const isWorkshop    = submission.sessionType === 'workshop';
+  const isInfoSession = submission.sessionType === 'info-session';
+
+  // ─ Field state — initialised from submission prop ─────────────────────────
+  const [title,         setTitle]         = useState(submission.title ?? '');
+  const [description,   setDescription]   = useState(submission.description ?? '');
+  const [companyName,   setCompanyName]   = useState(submission.companyName ?? '');
+  const [pillar,        setPillar]        = useState(submission.pillar ?? '');
+
+  // Date/time fields (workshop & reception)
+  const [preferredDate,  setPreferredDate]  = useState(formatDateForInput(submission.preferredDate));
+  const [preferredTime,  setPreferredTime]  = useState(submission.preferredTime ?? '');
+  const [preferredDate2, setPreferredDate2] = useState(formatDateForInput(submission.preferredDate2));
+  const [preferredTime2, setPreferredTime2] = useState(submission.preferredTime2 ?? '');
+
+  // Time slots for info sessions (stored in preferredTimes[])
+  const [preferredTimes, setPreferredTimes] = useState<[string, string]>([
+    submission.preferredTimes?.[0] ?? '',
+    submission.preferredTimes?.[1] ?? '',
+  ]);
+
+  // Audience — string for workshop (radio), string[] for info/reception (checkboxes)
+  const [audience, setAudience] = useState<string | string[]>(
+    submission.audience ?? (isWorkshop ? '' : [])
+  );
+
+  // Save state
+  const [saving,    setSaving]    = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'success' | 'error'>('idle');
+
+  // ─ Audience toggle helper (multi-select) ─────────────────────────────────
+  const toggleAudience = (value: string) => {
+    setAudience(prev => {
+      const arr = Array.isArray(prev) ? prev : [];
+      return arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value];
+    });
+  };
+
+  // ─ Save handler ──────────────────────────────────────────────────────────
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveState('idle');
+    try {
+      const patch: Partial<Submission> = {
+        title:       title.trim(),
+        description: description.trim(),
+        companyName: companyName.trim() || undefined,
+        pillar,
+        audience,
+      };
+
+      if (isInfoSession) {
+        patch.preferredDate  = preferredDate ? new Date(preferredDate) : undefined;
+        patch.preferredTimes = preferredTimes.filter(Boolean);
+        // preferredDate2 / preferredTime2 not applicable for info sessions
+      } else {
+        patch.preferredDate  = preferredDate  ? new Date(preferredDate)  : undefined;
+        patch.preferredTime  = preferredTime.trim()  || undefined;
+        patch.preferredDate2 = preferredDate2 ? new Date(preferredDate2) : undefined;
+        patch.preferredTime2 = preferredTime2.trim() || undefined;
+      }
+
+      await updateSubmission({ ...submission, ...patch });
+      setSaveState('success');
+      setTimeout(() => setSaveState('idle'), 3000);
+    } catch {
+      setSaveState('error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="border-dashed border-amber-500/50 bg-amber-500/5">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Pencil className="h-4 w-4 text-amber-600" />
+          <CardTitle className="text-base font-semibold text-amber-700">Content Corrections</CardTitle>
+        </div>
+        <CardDescription>
+          Correct partner-submitted fields. Changes are written to Firestore immediately on save.
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="space-y-6">
+
+        {/* ── Session Details ── */}
+        <div className="space-y-4">
+          <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Session Details</p>
+
+          {/* Company Name */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Company Name <span className="text-muted-foreground font-normal">(Optional)</span></label>
+            <Input
+              value={companyName}
+              onChange={e => setCompanyName(e.target.value)}
+              placeholder="e.g. Acme Corp"
+            />
+          </div>
+
+          {/* Title */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Session Title</label>
+            <Input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Session title"
+            />
+          </div>
+
+          {/* Description */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Description</label>
+            <Textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Session description"
+              className="min-h-[120px] resize-y"
+            />
+          </div>
+
+          {/* Pillar */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Pillar</label>
+            <select
+              value={pillar}
+              onChange={e => setPillar(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">Select a pillar…</option>
+              {submissionFormConfig.pillars.map(p => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="border-t" />
+
+        {/* ── Schedule Preferences ── */}
+        <div className="space-y-4">
+          <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Schedule Preferences</p>
+
+          {isInfoSession ? (
+            // Info sessions: one date, two time slots from preferredTimes[]
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Date</label>
+                <input
+                  type="date"
+                  value={formatDateForInput(preferredDate ? new Date(preferredDate) : undefined) || preferredDate}
+                  onChange={e => setPreferredDate(e.target.value)}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">1st Choice Time</label>
+                <Input
+                  value={preferredTimes[0]}
+                  onChange={e => setPreferredTimes([e.target.value, preferredTimes[1]])}
+                  placeholder="e.g. 9:00 AM"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">2nd Choice Time</label>
+                <Input
+                  value={preferredTimes[1]}
+                  onChange={e => setPreferredTimes([preferredTimes[0], e.target.value])}
+                  placeholder="e.g. 11:00 AM"
+                />
+              </div>
+            </div>
+          ) : (
+            // Workshop & Reception: two date+time pairs
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">1st Choice Date</label>
+                <input
+                  type="date"
+                  value={preferredDate}
+                  onChange={e => setPreferredDate(e.target.value)}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">1st Choice Time</label>
+                <Input
+                  value={preferredTime}
+                  onChange={e => setPreferredTime(e.target.value)}
+                  placeholder="e.g. 9:00 AM"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">2nd Choice Date</label>
+                <input
+                  type="date"
+                  value={preferredDate2}
+                  onChange={e => setPreferredDate2(e.target.value)}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">2nd Choice Time</label>
+                <Input
+                  value={preferredTime2}
+                  onChange={e => setPreferredTime2(e.target.value)}
+                  placeholder="e.g. 11:00 AM"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t" />
+
+        {/* ── Primary Audience ── */}
+        <div className="space-y-4">
+          <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Primary Audience</p>
+
+          {isWorkshop ? (
+            // Workshop — single select radio
+            <RadioGroup
+              value={typeof audience === 'string' ? audience : ''}
+              onValueChange={val => setAudience(val)}
+              className="grid gap-2 sm:grid-cols-2"
+            >
+              {submissionFormConfig.audiences.map(a => (
+                <div key={a.value} className="flex items-center gap-3 rounded-md border p-3 cursor-pointer hover:bg-accent">
+                  <RadioGroupItem value={a.value} id={`correction-aud-${a.value}`} />
+                  <Label htmlFor={`correction-aud-${a.value}`} className="cursor-pointer font-normal">
+                    {a.label}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          ) : (
+            // Info session / Reception — multi-select checkboxes
+            <div className="grid gap-2 sm:grid-cols-2">
+              {submissionFormConfig.audiences.map(a => {
+                const checked = Array.isArray(audience) && audience.includes(a.value);
+                return (
+                  <label
+                    key={a.value}
+                    className={cn(
+                      'flex items-center gap-3 rounded-md border p-3 cursor-pointer hover:bg-accent transition-colors',
+                      checked && 'border-primary bg-primary/5',
+                    )}
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={() => toggleAudience(a.value)}
+                    />
+                    <span className="text-sm font-normal">{a.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="border-t" />
+
+        {/* ── Save row ── */}
+        <div className="flex items-center justify-end gap-3">
+          {saveState === 'success' && (
+            <span className="text-sm text-green-600 font-medium">Changes saved ✓</span>
+          )}
+          {saveState === 'error' && (
+            <span className="text-sm text-red-600 font-medium">Save failed — please try again</span>
+          )}
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+            Save Changes
+          </Button>
+        </div>
+
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Task Pill ────────────────────────────────────────────────────────────────
 
 function TaskPill({
@@ -613,7 +921,7 @@ function SubmissionSummaryCard({ submission }: { submission: Submission }) {
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Session Type · Pillar</p>
             <p className="text-sm capitalize">{submission.sessionType.replace('-', ' ')}{submission.pillar ? ` · ${submission.pillar}` : ''}</p>
           </div>
-          {isReceptionOrInfo && submission.companyName && (
+          {submission.companyName && (
             <div className="space-y-1">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company Name</p>
               <p className="text-sm">{submission.companyName}</p>
@@ -760,6 +1068,7 @@ function Phase1View({
 
       {/* Admin panel — admin only */}
       {isAdmin && <AdminPanel submission={submission} />}
+      {isAdmin && <AdminCorrectionPanel submission={submission} />}
     </div>
   );
 }
@@ -838,6 +1147,7 @@ function Phase2View({ submission, isAdmin, isClient }: { submission: Submission;
 
       {/* Admin panel — admin only */}
       {isAdmin && <AdminPanel submission={submission} />}
+      {isAdmin && <AdminCorrectionPanel submission={submission} />}
     </div>
   );
 }
@@ -915,6 +1225,7 @@ function Phase3View({ submission, isAdmin, isClient }: { submission: Submission;
 
       {/* Admin panel — admin only */}
       {isAdmin && <AdminPanel submission={submission} />}
+      {isAdmin && <AdminCorrectionPanel submission={submission} />}
 
     </div>
   );
@@ -985,6 +1296,7 @@ function Phase4View({ submission, isAdmin }: { submission: Submission; isAdmin: 
 
       {/* Admin panel — admin only */}
       {isAdmin && <AdminPanel submission={submission} />}
+      {isAdmin && <AdminCorrectionPanel submission={submission} />}
 
     </div>
   );
