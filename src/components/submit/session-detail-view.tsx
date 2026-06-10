@@ -35,18 +35,21 @@ import {
   Loader2,
   CreditCard,
   Pencil,
+  Building2,
+  AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import AVPackageSelector from './av-package-selector';
 import PresenterSection from './presenter-section';
 import { AV_OPEN_DATE } from '@/lib/av-packages';
 import { useUser, useFirestore } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { getDoc, doc } from 'firebase/firestore';
+import { getDoc, doc, collection, getDocs, query, where } from 'firebase/firestore';
 import { sendStatusUpdateEmail, sendSessionApprovedEmail, sendPaymentConfirmedEmail, sendRoomAssignedEmail, sendPresenterUpdateEmail } from '@/lib/actions';
+import { availableSlots } from '@/lib/schedule';
 
 // ─── Phase config — single source of truth for labels, icons, colours ────────
 
@@ -137,22 +140,6 @@ function AdminPanel({ submission }: { submission: Submission }) {
     }
   };
 
-  // ─ Room Assignment ───────────────────────────────────────────────────────
-  const [roomValue, setRoomValue] = useState(submission.roomAssignment ?? '');
-  const [roomSaving, setRoomSaving] = useState(false);
-
-  const saveRoom = async () => {
-    setRoomSaving(true);
-    try {
-      await updateSubmission({ ...submission, roomAssignment: roomValue.trim() || undefined });
-      toast({ title: 'Room assignment saved' });
-    } catch {
-      toast({ variant: 'destructive', title: 'Save failed', description: 'Could not save room assignment.' });
-    } finally {
-      setRoomSaving(false);
-    }
-  };
-
   // ─ Authorized Emails ─────────────────────────────────────────────────
   const [emailInput, setEmailInput] = useState('');
   const [emailSaving, setEmailSaving] = useState(false);
@@ -240,33 +227,6 @@ function AdminPanel({ submission }: { submission: Submission }) {
         <CardDescription>These fields are only visible to internal team members.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-
-        {/* Room Assignment */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium flex items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-            Room Assignment
-          </label>
-          <p className="text-xs text-muted-foreground">
-            Free-text — e.g. "Workshop 2 (W206ABC) — Monday August 10, 3:00 PM"
-          </p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={roomValue}
-              onChange={e => setRoomValue(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && saveRoom()}
-              placeholder="Enter room and time..."
-              className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            <Button size="sm" onClick={saveRoom} disabled={roomSaving}>
-              {roomSaving ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            The partner will not be notified until this session is moved to Phase 4.
-          </p>
-        </div>
 
         {/* Authorized Emails */}
         <div className="space-y-2">
@@ -800,6 +760,367 @@ function AdminCorrectionPanel({ submission }: { submission: Submission }) {
   );
 }
 
+type RoomDoc = {
+  roomId: string;
+  label: string;
+  wing: string;
+  sessionTypes: string[];
+  capacity: { theater: number; banquet: number; classroom: number };
+};
+
+// Tombstoned slots — removed from availableSlots but kept here so Tim can
+// place sessions that were already confirmed into these closed time blocks.
+const TOMBSTONED_SLOTS: { date: string; sessionType: Submission['sessionType']; time: string }[] = [
+  { date: '2026-08-10T12:00:00.000Z', sessionType: 'workshop', time: '11:30 AM - 12:30 PM' },
+  { date: '2026-08-11T12:00:00.000Z', sessionType: 'workshop', time: '11:00 AM - 12:00 PM' },
+];
+
+/** Formats an ISO date string to a consistent human-readable label, e.g. "Monday, Aug 10". */
+function formatDayLabel(isoDate: string): string {
+  return new Date(isoDate).toLocaleDateString('en-US', {
+    weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC',
+  });
+}
+
+/** Converts a time string like "11:30 AM - 12:30 PM" to minutes since midnight for sorting. */
+function timeToMinutes(timeStr: string): number {
+  const start = timeStr.split(' - ')[0].trim();
+  const [clock, period] = start.split(' ');
+  const [h, m] = clock.split(':').map(Number);
+  const h24 = period === 'PM' && h !== 12 ? h + 12 : period === 'AM' && h === 12 ? 0 : h;
+  return h24 * 60 + m;
+}
+
+/**
+ * Parses a previously-saved roomAssignment string back into its components.
+ * New format: "{roomId} — {label} — {dayLabel} @ {time} ({capacity} {capacityLabel})"
+ * Returns empty strings for any field that cannot be parsed (e.g. old-format strings).
+ */
+function parseRoomAssignment(str: string | undefined): { roomId: string; dayLabel: string; time: string } {
+  if (!str) return { roomId: '', dayLabel: '', time: '' };
+  const parts = str.split(' — ');
+  const roomId = parts[0]?.trim() ?? '';
+  // parts[2] onward contains: "dayLabel @ time (cap)"
+  const remainder = parts.slice(2).join(' — ').trim();
+  const atIdx = remainder.indexOf(' @ ');
+  if (atIdx < 0) return { roomId, dayLabel: '', time: '' };
+  const dayLabel = remainder.slice(0, atIdx).trim();
+  const afterAt  = remainder.slice(atIdx + 3).trim(); // "02:00 PM - 03:00 PM (126 Classroom)"
+  const capIdx   = afterAt.lastIndexOf(' (');
+  const time     = (capIdx >= 0 ? afterAt.slice(0, capIdx) : afterAt).trim();
+  return { roomId, dayLabel, time };
+}
+
+function RoomAssignmentPanel({ submission }: { submission: Submission }) {
+  const firestore = useFirestore();
+  const { updateSubmission } = useSubmissions();
+  const { toast } = useToast();
+
+  const isReception   = submission.sessionType === 'reception';
+  const isInfoSession = submission.sessionType === 'info-session';
+
+  // ─ Parse existing roomAssignment for pre-population ────────────────────
+  const parsed = parseRoomAssignment(submission.roomAssignment);
+
+  // ─ Room list (fetched from Firestore) ──────────────────────────────
+  const [rooms,        setRooms]        = useState<RoomDoc[]>([]);
+  const [loadingRooms, setLoadingRooms] = useState(true);
+
+  useEffect(() => {
+    if (!firestore) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await getDocs(collection(firestore, 'rooms'));
+        const all  = snap.docs.map(d => d.data() as RoomDoc);
+        const filtered = all.filter(r =>
+          isReception
+            ? r.sessionTypes.includes('reception')
+            : r.sessionTypes.includes('workshop')
+        );
+        filtered.sort((a, b) => {
+          if (a.wing !== b.wing) return a.wing === 'West' ? -1 : 1;
+          return a.roomId.localeCompare(b.roomId);
+        });
+        if (!cancelled) setRooms(filtered);
+      } catch (err) {
+        console.error('[RoomAssignmentPanel] Failed to load rooms:', err);
+      } finally {
+        if (!cancelled) setLoadingRooms(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [firestore, isReception]);
+
+  // ─ Available days (derived from schedule.ts + tombstoned) ───────────────
+  const availableDays = useMemo(() => {
+    const st = submission.sessionType;
+    const fromActive     = availableSlots.filter(s => s.sessionTypes.includes(st)).map(s => s.date);
+    const fromTombstoned = TOMBSTONED_SLOTS.filter(t => t.sessionType === st).map(t => t.date);
+    return [...new Set([...fromActive, ...fromTombstoned])].sort();
+  }, [submission.sessionType]);
+
+  // ─ Selections (pre-populated from existing roomAssignment) ─────────────
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    if (!parsed.dayLabel) return '';
+    const allIsoDates = [
+      ...availableSlots.map(s => s.date),
+      ...TOMBSTONED_SLOTS.map(t => t.date),
+    ];
+    return [...new Set(allIsoDates)].find(iso => formatDayLabel(iso) === parsed.dayLabel) ?? '';
+  });
+
+  const [selectedTime,   setSelectedTime]   = useState<string>(parsed.time);
+  const [selectedRoomId, setSelectedRoomId] = useState<string>(parsed.roomId);
+
+  const selectedRoom = rooms.find(r => r.roomId === selectedRoomId) ?? null;
+
+  // ─ Time options for the selected day ───────────────────────────────
+  const timeOptions = useMemo(() => {
+    if (!selectedDate) return [];
+    const st = submission.sessionType;
+    const active = availableSlots
+      .filter(s => s.date === selectedDate && s.sessionTypes.includes(st))
+      .flatMap(s => s.times.map(t => ({ time: t.time, closed: false })));
+    const closed = TOMBSTONED_SLOTS
+      .filter(t => t.date === selectedDate && t.sessionType === st)
+      .map(t => ({ time: t.time, closed: true }));
+    return [...active, ...closed].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+  }, [selectedDate, submission.sessionType]);
+
+  // Capacity: classroom for workshop/info-session, banquet for reception
+  const capacityValue = selectedRoom
+    ? (isReception ? selectedRoom.capacity.banquet : selectedRoom.capacity.classroom)
+    : null;
+  const capacityLabel = isReception ? 'Banquet' : 'Classroom';
+
+  // ─ Partner preferences (read-only reference) ────────────────────────
+  const partnerFirst = formatDateSlot(
+    submission.preferredDate,
+    isInfoSession
+      ? (Array.isArray(submission.preferredTimes) ? submission.preferredTimes[0] : undefined)
+      : submission.preferredTime
+  );
+  const partnerSecond = isInfoSession
+    ? (Array.isArray(submission.preferredTimes) ? (submission.preferredTimes[1] ?? 'Not provided') : 'Not provided')
+    : formatDateSlot(submission.preferredDate2, submission.preferredTime2);
+
+  // ─ Cascade resets when upstream selections change ─────────────────────
+  const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedDate(e.target.value);
+    setSelectedTime('');
+    setSelectedRoomId('');
+    setConflict(null);
+  };
+
+  const handleTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedTime(e.target.value);
+    setSelectedRoomId('');
+    setConflict(null);
+  };
+
+  // ─ Conflict detection ──────────────────────────────────────────────────
+  const [conflict,         setConflict]         = useState<string | null>(null);
+  const [checkingConflict, setCheckingConflict] = useState(false);
+
+  const checkConflict = useCallback(async (roomId: string) => {
+    if (!firestore || !roomId) { setConflict(null); return; }
+    setCheckingConflict(true);
+    try {
+      const q = query(
+        collection(firestore, 'submissions'),
+        where('roomAssignment', '>=', roomId),
+        where('roomAssignment', '<',  roomId + '\uf8ff')
+      );
+      const snap   = await getDocs(q);
+      const others = snap.docs.filter(d => d.id !== submission.id);
+      if (others.length > 0) {
+        const other = others[0].data() as Submission;
+        setConflict(`"${other.title ?? others[0].id}" is already assigned to this room.`);
+      } else {
+        setConflict(null);
+      }
+    } catch (err) {
+      // Composite index may not exist yet — fail silently (non-blocking)
+      console.warn('[RoomAssignmentPanel] Conflict check skipped (index may be missing):', err);
+      setConflict(null);
+    } finally {
+      setCheckingConflict(false);
+    }
+  }, [firestore, submission.id]);
+
+  const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    setSelectedRoomId(id);
+    checkConflict(id);
+  };
+
+  // ─ Save ────────────────────────────────────────────────────────────────
+  const [saving,    setSaving]    = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleSave = async () => {
+    if (!selectedRoom || !selectedDate || !selectedTime) return;
+    setSaving(true);
+    setSaveState('idle');
+    try {
+      const dayLabel       = formatDayLabel(selectedDate);
+      const capPart        = capacityValue != null ? ` (${capacityValue} ${capacityLabel})` : '';
+      // Format: "W208 — Student Workshop #1 — Monday, Aug 10 @ 02:00 PM - 03:00 PM (126 Classroom)"
+      const roomAssignment = `${selectedRoom.roomId} — ${selectedRoom.label} — ${dayLabel} @ ${selectedTime}${capPart}`;
+      await updateSubmission({ ...submission, roomAssignment });
+      setSaveState('success');
+      toast({ title: 'Room assignment saved', description: roomAssignment });
+      setTimeout(() => setSaveState('idle'), 3000);
+    } catch {
+      setSaveState('error');
+      toast({ variant: 'destructive', title: 'Save failed', description: 'Could not save room assignment.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="border-dashed border-blue-500/50 bg-blue-500/5">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-blue-600" />
+          <CardTitle className="text-base font-semibold text-blue-700">Room Assignment</CardTitle>
+        </div>
+        <CardDescription>
+          Assign a room, day, and time slot. Partner preferences are shown for reference only.
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="space-y-5">
+
+        {/* ── Partner preferences (read-only reference) ── */}
+        <div className="rounded-md border border-border bg-muted/40 px-3 py-2.5 space-y-1.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Partner Preferences (for reference only)</p>
+          <div className="grid gap-1 sm:grid-cols-2 text-sm">
+            <div>
+              <span className="text-xs text-muted-foreground">1st choice: </span>
+              <span>{partnerFirst}</span>
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground">2nd choice: </span>
+              <span>{partnerSecond}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t" />
+
+        {/* ── Day selector ── */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Day</label>
+          <select
+            value={selectedDate}
+            onChange={handleDateChange}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">Select a day…</option>
+            {availableDays.map(iso => (
+              <option key={iso} value={iso}>{formatDayLabel(iso)}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* ── Time selector ── */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Time Slot</label>
+          <select
+            value={selectedTime}
+            onChange={handleTimeChange}
+            disabled={!selectedDate}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="">{selectedDate ? 'Select a time…' : 'Select a day first…'}</option>
+            {timeOptions.map(opt => (
+              <option key={opt.time} value={opt.time}>
+                {opt.time}{opt.closed ? ' (Closed to new bookings)' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* ── Room selector (active only after day + time are chosen) ── */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Room</label>
+          {loadingRooms ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading rooms…
+            </div>
+          ) : (
+            <select
+              value={selectedRoomId}
+              onChange={handleRoomChange}
+              disabled={!selectedDate || !selectedTime}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">
+                {selectedDate && selectedTime ? 'Select a room…' : 'Select day & time first…'}
+              </option>
+              {rooms.map(r => (
+                <option key={r.roomId} value={r.roomId}>
+                  {r.roomId} — {r.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {/* ── Auto-capacity display ── */}
+        {selectedRoom && capacityValue != null && (
+          <div className="flex items-center gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
+            <Users className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+            <span className="text-sm text-blue-800">
+              <span className="font-semibold">{capacityValue}</span>
+              {' '}seats ({capacityLabel} layout)
+            </span>
+          </div>
+        )}
+
+        {/* ── Conflict warning ── */}
+        {checkingConflict && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking for conflicts…
+          </div>
+        )}
+        {!checkingConflict && conflict && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-400/60 bg-amber-50 px-3 py-2">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+            <p className="text-sm text-amber-800">
+              <span className="font-semibold">Conflict detected:</span> {conflict}
+            </p>
+          </div>
+        )}
+
+        <div className="border-t" />
+
+        {/* ── Save row ── */}
+        <div className="flex items-center justify-end gap-3">
+          {saveState === 'success' && (
+            <span className="text-sm text-green-600 font-medium">Saved ✓</span>
+          )}
+          {saveState === 'error' && (
+            <span className="text-sm text-red-600 font-medium">Save failed — try again</span>
+          )}
+          <Button
+            onClick={handleSave}
+            disabled={saving || !selectedRoomId || !selectedDate || !selectedTime || loadingRooms}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            {saving && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+            Assign Room
+          </Button>
+        </div>
+
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Task Pill ────────────────────────────────────────────────────────────────
 
 function TaskPill({
@@ -1069,6 +1390,7 @@ function Phase1View({
       {/* Admin panel — admin only */}
       {isAdmin && <AdminPanel submission={submission} />}
       {isAdmin && <AdminCorrectionPanel submission={submission} />}
+      {isAdmin && <RoomAssignmentPanel submission={submission} />}
     </div>
   );
 }
@@ -1148,6 +1470,7 @@ function Phase2View({ submission, isAdmin, isClient }: { submission: Submission;
       {/* Admin panel — admin only */}
       {isAdmin && <AdminPanel submission={submission} />}
       {isAdmin && <AdminCorrectionPanel submission={submission} />}
+      {isAdmin && <RoomAssignmentPanel submission={submission} />}
     </div>
   );
 }
@@ -1214,6 +1537,7 @@ function Phase3View({ submission, isAdmin, isClient }: { submission: Submission;
       {/* Admin panel — admin only */}
       {isAdmin && <AdminPanel submission={submission} />}
       {isAdmin && <AdminCorrectionPanel submission={submission} />}
+      {isAdmin && <RoomAssignmentPanel submission={submission} />}
 
     </div>
   );
@@ -1285,6 +1609,7 @@ function Phase4View({ submission, isAdmin }: { submission: Submission; isAdmin: 
       {/* Admin panel — admin only */}
       {isAdmin && <AdminPanel submission={submission} />}
       {isAdmin && <AdminCorrectionPanel submission={submission} />}
+      {isAdmin && <RoomAssignmentPanel submission={submission} />}
 
     </div>
   );
