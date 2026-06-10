@@ -84,5 +84,12 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow update: if isSignedIn();
     }
+
+    // Room inventory — readable by any signed-in user (RoomAssignmentPanel dropdown),
+    // writable only by internal/admin (seeded by script, managed by ALPFA team)
+    match /rooms/{roomId} {
+      allow read: if isSignedIn();
+      allow write: if isInternalOrAdmin();
+    }
   }
 }
