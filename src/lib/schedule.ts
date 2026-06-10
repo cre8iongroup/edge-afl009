@@ -28,7 +28,7 @@ export const availableSlots: ScheduleDay[] = [
     date: '2026-08-10T12:00:00.000Z',
     sessionTypes: ['workshop'],
     times: [
-      { time: '11:30 AM - 12:30 PM', capacity: 10 },
+      // REMOVED 2026-06-10: { time: '11:30 AM - 12:30 PM', capacity: 10 } — slot discontinued prior to event
       { time: '02:00 PM - 03:00 PM', capacity: 10 },
       { time: '03:30 PM - 04:30 PM', capacity: 10 },
     ],
@@ -46,7 +46,7 @@ export const availableSlots: ScheduleDay[] = [
     date: '2026-08-11T12:00:00.000Z',
     sessionTypes: ['workshop'],
     times: [
-      { time: '11:00 AM - 12:00 PM', capacity: 10 },
+      // REMOVED 2026-06-10: { time: '11:00 AM - 12:00 PM', capacity: 10 } — slot discontinued prior to event
       { time: '03:00 PM - 04:00 PM', capacity: 10 },
     ],
   },
