@@ -924,19 +924,21 @@ function RoomAssignmentPanel({ submission }: { submission: Submission }) {
   const [checkingConflict, setCheckingConflict] = useState(false);
 
   const checkConflict = useCallback(async (roomId: string) => {
-    if (!firestore || !roomId) { setConflict(null); return; }
+    if (!firestore || !roomId || !selectedDate || !selectedTime || !selectedRoom) { setConflict(null); return; }
     setCheckingConflict(true);
     try {
+      const dayLabel  = formatDayLabel(selectedDate);
+      const exactSlot = `${roomId} — ${selectedRoom.label} — ${dayLabel} @ ${selectedTime}`;
       const q = query(
         collection(firestore, 'submissions'),
-        where('roomAssignment', '>=', roomId),
-        where('roomAssignment', '<',  roomId + '\uf8ff')
+        where('roomAssignment', '>=', exactSlot),
+        where('roomAssignment', '<',  exactSlot + '\uf8ff')
       );
       const snap   = await getDocs(q);
       const others = snap.docs.filter(d => d.id !== submission.id);
       if (others.length > 0) {
         const other = others[0].data() as Submission;
-        setConflict(`"${other.title ?? others[0].id}" is already assigned to this room.`);
+        setConflict(`"${other.title ?? others[0].id}" is already assigned to this room at this time.`);
       } else {
         setConflict(null);
       }
@@ -947,7 +949,7 @@ function RoomAssignmentPanel({ submission }: { submission: Submission }) {
     } finally {
       setCheckingConflict(false);
     }
-  }, [firestore, submission.id]);
+  }, [firestore, submission.id, selectedDate, selectedTime, selectedRoom]);
 
   const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
@@ -1063,7 +1065,7 @@ function RoomAssignmentPanel({ submission }: { submission: Submission }) {
               </option>
               {rooms.map(r => (
                 <option key={r.roomId} value={r.roomId}>
-                  {r.roomId} — {r.label}
+                  {r.roomId} — {isInfoSession ? 'Info Session Room' : r.label}
                 </option>
               ))}
             </select>

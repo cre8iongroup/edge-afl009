@@ -32,7 +32,7 @@ const ROOMS = [
   { roomId: 'E220E',  label: 'Reception 02', wing: 'East', sessionTypes: ['reception'], capacity: { theater: 170, banquet:  84, classroom: 105 } },
   { roomId: 'E220D',  label: 'Reception 04', wing: 'East', sessionTypes: ['reception'], capacity: { theater: 117, banquet:  56, classroom:  63 } },
   { roomId: 'E220BC', label: 'Reception 05', wing: 'East', sessionTypes: ['reception'], capacity: { theater: 117, banquet:  56, classroom:  63 } },
-  { roomId: 'E220A',  label: 'Reception 06', wing: 'East', sessionTypes: ['reception'], capacity: { theater: 117, banquet:  56, classroom:  63 } },
+  { roomId: 'E220A',  label: 'Reception 06', wing: 'East', sessionTypes: ['reception', 'info-session'], capacity: { theater: 117, banquet:  56, classroom:  63 } },
 ];
 
 // ── Step 1: Sign in ───────────────────────────────────────────────────────────
