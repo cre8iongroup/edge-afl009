@@ -793,15 +793,15 @@ function timeToMinutes(timeStr: string): number {
 
 /**
  * Parses a previously-saved roomAssignment string back into its components.
- * New format: "{roomId} — {label} — {dayLabel} @ {time} ({capacity} {capacityLabel})"
+ * Format: "{roomId} — {dayLabel} @ {time} ({capacity} {capacityLabel})"
  * Returns empty strings for any field that cannot be parsed (e.g. old-format strings).
  */
 function parseRoomAssignment(str: string | undefined): { roomId: string; dayLabel: string; time: string } {
   if (!str) return { roomId: '', dayLabel: '', time: '' };
   const parts = str.split(' — ');
   const roomId = parts[0]?.trim() ?? '';
-  // parts[2] onward contains: "dayLabel @ time (cap)"
-  const remainder = parts.slice(2).join(' — ').trim();
+  // parts[1] onward contains: "dayLabel @ time (cap)"
+  const remainder = parts.slice(1).join(' — ').trim();
   const atIdx = remainder.indexOf(' @ ');
   if (atIdx < 0) return { roomId, dayLabel: '', time: '' };
   const dayLabel = remainder.slice(0, atIdx).trim();
@@ -833,16 +833,8 @@ function RoomAssignmentPanel({ submission }: { submission: Submission }) {
       try {
         const snap = await getDocs(collection(firestore, 'rooms'));
         const all  = snap.docs.map(d => d.data() as RoomDoc);
-        const filtered = all.filter(r =>
-          isReception
-            ? r.sessionTypes.includes('reception')
-            : r.sessionTypes.includes('workshop')
-        );
-        filtered.sort((a, b) => {
-          if (a.wing !== b.wing) return a.wing === 'West' ? -1 : 1;
-          return a.roomId.localeCompare(b.roomId);
-        });
-        if (!cancelled) setRooms(filtered);
+        all.sort((a, b) => a.roomId.localeCompare(b.roomId));
+        if (!cancelled) setRooms(all);
       } catch (err) {
         console.error('[RoomAssignmentPanel] Failed to load rooms:', err);
       } finally {
@@ -850,7 +842,7 @@ function RoomAssignmentPanel({ submission }: { submission: Submission }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [firestore, isReception]);
+  }, [firestore]);
 
   // ─ Available days (derived from schedule.ts + tombstoned) ───────────────
   const availableDays = useMemo(() => {
@@ -924,11 +916,11 @@ function RoomAssignmentPanel({ submission }: { submission: Submission }) {
   const [checkingConflict, setCheckingConflict] = useState(false);
 
   const checkConflict = useCallback(async (roomId: string) => {
-    if (!firestore || !roomId || !selectedDate || !selectedTime || !selectedRoom) { setConflict(null); return; }
+    if (!firestore || !roomId || !selectedDate || !selectedTime) { setConflict(null); return; }
     setCheckingConflict(true);
     try {
       const dayLabel  = formatDayLabel(selectedDate);
-      const exactSlot = `${roomId} — ${selectedRoom.label} — ${dayLabel} @ ${selectedTime}`;
+      const exactSlot = `${roomId} — ${dayLabel} @ ${selectedTime}`;
       const q = query(
         collection(firestore, 'submissions'),
         where('roomAssignment', '>=', exactSlot),
@@ -949,7 +941,7 @@ function RoomAssignmentPanel({ submission }: { submission: Submission }) {
     } finally {
       setCheckingConflict(false);
     }
-  }, [firestore, submission.id, selectedDate, selectedTime, selectedRoom]);
+  }, [firestore, submission.id, selectedDate, selectedTime]);
 
   const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
@@ -968,8 +960,8 @@ function RoomAssignmentPanel({ submission }: { submission: Submission }) {
     try {
       const dayLabel       = formatDayLabel(selectedDate);
       const capPart        = capacityValue != null ? ` (${capacityValue} ${capacityLabel})` : '';
-      // Format: "W208 — Student Workshop #1 — Monday, Aug 10 @ 02:00 PM - 03:00 PM (126 Classroom)"
-      const roomAssignment = `${selectedRoom.roomId} — ${selectedRoom.label} — ${dayLabel} @ ${selectedTime}${capPart}`;
+      // Format: "W208 — Monday, Aug 10 @ 02:00 PM - 03:00 PM (126 Classroom)"
+      const roomAssignment = `${selectedRoom.roomId} — ${dayLabel} @ ${selectedTime}${capPart}`;
       await updateSubmission({ ...submission, roomAssignment });
       setSaveState('success');
       toast({ title: 'Room assignment saved', description: roomAssignment });
@@ -1065,7 +1057,7 @@ function RoomAssignmentPanel({ submission }: { submission: Submission }) {
               </option>
               {rooms.map(r => (
                 <option key={r.roomId} value={r.roomId}>
-                  {r.roomId} — {isInfoSession ? 'Info Session Room' : r.label}
+                  {r.roomId}
                 </option>
               ))}
             </select>
