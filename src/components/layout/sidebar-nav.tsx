@@ -11,6 +11,7 @@ import { LayoutDashboard, Users, FilePlus, Briefcase, Handshake, Presentation, L
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import React from 'react';
+import { isPortalClosed } from '@/lib/deadlines';
 
 export default function SidebarNav() {
   const { user } = useUser();
@@ -45,6 +46,9 @@ export default function SidebarNav() {
     {
       label: 'Submit Session',
       roles: ['regular', 'client', 'internal', 'admin'],
+      // Hidden post-deadline for regular role — partners can no longer submit or edit.
+      // internal/admin always see it regardless of date (bypassed in filter below).
+      hideWhenClosed: true,
       subItems: [
         { href: '/submission-guide', icon: BookText, label: 'Submission Guide' },
         { href: '/submit/workshop', icon: Briefcase, label: 'Workshop' },
@@ -63,11 +67,19 @@ export default function SidebarNav() {
   }
 
   const userRole = profile?.role || 'regular';
+  const isAdmin = ['internal', 'admin'].includes(userRole);
+  const portalClosed = isPortalClosed();
 
   return (
     <SidebarMenu>
       {navItems
-        .filter(item => item.roles.includes(userRole))
+        .filter(item => {
+          // 1. Role gate — always applied
+          if (!item.roles.includes(userRole)) return false;
+          // 2. Date gate — hide items flagged hideWhenClosed for non-admin users post-deadline
+          if (item.hideWhenClosed && portalClosed && !isAdmin) return false;
+          return true;
+        })
         .flatMap((item, index) => {
           if (item.subItems) {
             // Render the non-clickable header

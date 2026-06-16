@@ -793,21 +793,19 @@ function timeToMinutes(timeStr: string): number {
 
 /**
  * Parses a previously-saved roomAssignment string back into its components.
- * Format: "{roomId} — {dayLabel} @ {time} ({capacity} {capacityLabel})"
+ * Format: "{roomId} — {dayLabel} @ {time}"
  * Returns empty strings for any field that cannot be parsed (e.g. old-format strings).
  */
 function parseRoomAssignment(str: string | undefined): { roomId: string; dayLabel: string; time: string } {
   if (!str) return { roomId: '', dayLabel: '', time: '' };
   const parts = str.split(' — ');
   const roomId = parts[0]?.trim() ?? '';
-  // parts[1] onward contains: "dayLabel @ time (cap)"
+  // parts[1] onward contains: "dayLabel @ time"
   const remainder = parts.slice(1).join(' — ').trim();
   const atIdx = remainder.indexOf(' @ ');
   if (atIdx < 0) return { roomId, dayLabel: '', time: '' };
   const dayLabel = remainder.slice(0, atIdx).trim();
-  const afterAt  = remainder.slice(atIdx + 3).trim(); // "02:00 PM - 03:00 PM (126 Classroom)"
-  const capIdx   = afterAt.lastIndexOf(' (');
-  const time     = (capIdx >= 0 ? afterAt.slice(0, capIdx) : afterAt).trim();
+  const time     = remainder.slice(atIdx + 3).trim();
   return { roomId, dayLabel, time };
 }
 
@@ -880,11 +878,6 @@ function RoomAssignmentPanel({ submission }: { submission: Submission }) {
     return [...active, ...closed].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
   }, [selectedDate, submission.sessionType]);
 
-  // Capacity: classroom for workshop/info-session, banquet for reception
-  const capacityValue = selectedRoom
-    ? (isReception ? selectedRoom.capacity.banquet : selectedRoom.capacity.classroom)
-    : null;
-  const capacityLabel = isReception ? 'Banquet' : 'Classroom';
 
   // ─ Partner preferences (read-only reference) ────────────────────────
   const partnerFirst = formatDateSlot(
@@ -959,9 +952,8 @@ function RoomAssignmentPanel({ submission }: { submission: Submission }) {
     setSaveState('idle');
     try {
       const dayLabel       = formatDayLabel(selectedDate);
-      const capPart        = capacityValue != null ? ` (${capacityValue} ${capacityLabel})` : '';
-      // Format: "W208 — Monday, Aug 10 @ 02:00 PM - 03:00 PM (126 Classroom)"
-      const roomAssignment = `${selectedRoom.roomId} — ${dayLabel} @ ${selectedTime}${capPart}`;
+      // Format: "W208 — Monday, Aug 10 @ 02:00 PM - 03:00 PM"
+      const roomAssignment = `${selectedRoom.roomId} — ${dayLabel} @ ${selectedTime}`;
       await updateSubmission({ ...submission, roomAssignment });
       setSaveState('success');
       toast({ title: 'Room assignment saved', description: roomAssignment });
@@ -1064,16 +1056,7 @@ function RoomAssignmentPanel({ submission }: { submission: Submission }) {
           )}
         </div>
 
-        {/* ── Auto-capacity display ── */}
-        {selectedRoom && capacityValue != null && (
-          <div className="flex items-center gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
-            <Users className="h-3.5 w-3.5 shrink-0 text-blue-500" />
-            <span className="text-sm text-blue-800">
-              <span className="font-semibold">{capacityValue}</span>
-              {' '}seats ({capacityLabel} layout)
-            </span>
-          </div>
-        )}
+
 
         {/* ── Conflict warning ── */}
         {checkingConflict && (
