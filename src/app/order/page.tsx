@@ -66,21 +66,43 @@ export default function OrderPage() {
   const [xeroResult, setXeroResult] = useState<{ invoiceNumber?: string } | null>(null);
   const [orderType, setOrderType] = useState<'manual' | 'free' | 'stripe' | null>(null);
 
-  // True if all pending sessions already have a paymentMethod — order was finalized in a prior session
+  // True when all pending sessions have been finalized — gated on the correct
+  // field per payment path:
+  //   stripe → requires paymentComplete === true (written by webhook after confirmed payment)
+  //   manual → paymentMethod === 'manual' (written by Xero action on success)
+  //   free   → paymentMethod === 'free'   (written by Xero action on success)
+  // Deliberately does NOT use paymentMethod != null for Stripe, since paymentMethod
+  // was previously written optimistically before redirect (now removed), and checking
+  // it would cause abandoned checkouts to show a false confirmation panel.
   const alreadyFinalized = pendingPaymentSessions.length > 0 &&
-    pendingPaymentSessions.every((s) => s.paymentMethod != null);
+    pendingPaymentSessions.every((s) =>
+      s.paymentComplete === true ||        // stripe: webhook confirmed
+      s.paymentMethod === 'manual' ||      // invoice: Xero action confirmed
+      s.paymentMethod === 'free'           // free: Xero action confirmed
+    );
 
   // Derive order type from state (in-session flow) or from Firestore data (returning user)
   const derivedOrderType = orderType ?? pendingPaymentSessions[0]?.paymentMethod ?? null;
 
-  // Detect Stripe success redirect (?success=true) and show confirmation panel
+  // Detect Stripe success redirect (?success=true) and show confirmation panel.
+  // Guard: only trust the URL param if Firestore already confirms at least one
+  // session has paymentComplete === true (written by the Stripe webhook).
+  // This prevents false confirmations from manual URL construction or abandoned
+  // checkouts where the webhook has not fired yet.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('success') === 'true') {
-      setOrderType('stripe');
-      setOrderFinalized(true);
+      const webhookConfirmed = pendingPaymentSessions.some(
+        (s) => s.paymentComplete === true
+      );
+      if (webhookConfirmed) {
+        setOrderType('stripe');
+        setOrderFinalized(true);
+      }
+      // If not yet confirmed, do nothing. The webhook may still be in flight;
+      // alreadyFinalized will pick it up once the Firestore listener updates.
     }
-  }, []);
+  }, [pendingPaymentSessions]);
 
   async function handleRequestInvoice() {
     setIsSubmitting(true);

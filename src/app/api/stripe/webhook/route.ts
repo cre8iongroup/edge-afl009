@@ -57,11 +57,15 @@ export async function POST(req: Request) {
 
   const db = getFirestore(adminApp);
 
-  // Write payment completion fields to each Firestore session doc
+  // Write payment completion fields to each Firestore session doc.
+  // paymentMethod: 'stripe' is intentionally written HERE (on confirmed webhook)
+  // and NOT during checkout initiation — prevents false "Payment Complete" confirmation
+  // if a partner abandons the Stripe checkout and returns to /order.
   await Promise.all(
     firestoreSessionIds.map((id) =>
       db.doc(`submissions/${id}`).update({
         paymentComplete: true,
+        paymentMethod: 'stripe',
         paymentStatus: 'complete',
         'avSelection.stripePaymentIntentId': paymentIntentId ?? null,
         'avSelection.stripePaidAt': paidAt,

@@ -50,13 +50,16 @@ export async function createStripeCheckoutSession(
       },
     });
 
-    // Optimistic Firestore writes — mark sessions as pending before redirect
+    // Mark sessions as checkout-initiated before redirect.
+    // paymentStatus: 'pending' and orderFinalizedAt are safe in-flight markers.
+    // paymentMethod is intentionally NOT written here — the webhook owns that
+    // field after confirmed payment. Writing it prematurely caused abandoned
+    // checkouts to show a false "Payment Complete" confirmation on return.
     const db = getFirestore(adminApp);
     const now = new Date().toISOString();
     await Promise.all(
       sessionIds.map((id) =>
         db.doc(`submissions/${id}`).update({
-          paymentMethod: 'stripe',
           paymentStatus: 'pending',
           orderFinalizedAt: now,
         })
