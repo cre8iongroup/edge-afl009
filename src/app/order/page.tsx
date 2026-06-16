@@ -12,10 +12,11 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, AlertTriangle, ShoppingCart, ExternalLink, CreditCard, FileText, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, ShoppingCart, ExternalLink, CreditCard, FileText, Loader2, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { createXeroInvoice } from '@/lib/xero-actions';
 import { createStripeCheckoutSession } from '@/lib/stripe-actions';
+import { isPortalClosed } from '@/lib/deadlines';
 
 const sessionTypeLabel: Record<string, string> = {
   workshop:      'Workshop',
@@ -65,6 +66,13 @@ export default function OrderPage() {
   const [orderFinalized, setOrderFinalized] = useState(false);
   const [xeroResult, setXeroResult] = useState<{ invoiceNumber?: string } | null>(null);
   const [orderType, setOrderType] = useState<'manual' | 'free' | 'stripe' | null>(null);
+
+  // Admin bypass — internal and admin roles are never affected by the date gate
+  const isAdmin = ['internal', 'admin'].includes(profile?.role ?? '');
+  // Show deadline-passed message instead of payment buttons for regular role post-deadline
+  // (only when the order is not already finalized/paid)
+  const portalClosed = isPortalClosed();
+  const showDeadlineBlock = portalClosed && !isAdmin;
 
   // True when all pending sessions have been finalized — gated on the correct
   // field per payment path:
@@ -355,7 +363,7 @@ export default function OrderPage() {
                   : 'Pricing is locked in when you place your order. Orders placed after May 29 will be charged at standard pricing.'}
               </p>
 
-              {/* Payment options — conditional on free vs paid order */}
+              {/* Payment options — conditional on finalized, deadline-passed, free, or paid */}
               {(orderFinalized || alreadyFinalized) ? (
                 <div className="flex flex-col items-center gap-3 rounded-lg border border-green-500/40 bg-green-500/10 p-5 text-center">
                   <CheckCircle2 className="h-6 w-6 text-green-600" />
@@ -380,6 +388,27 @@ export default function OrderPage() {
                         <span className="font-mono font-medium">{xeroResult.invoiceNumber}</span>
                       </p>
                     )}
+                  </div>
+                </div>
+              ) : showDeadlineBlock ? (
+                // Post-deadline gate — payment buttons replaced for regular role
+                <div className="flex flex-col items-center gap-4 rounded-lg border border-border bg-muted/40 p-5 text-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                    <Mail className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="font-semibold text-foreground">The order deadline has passed.</p>
+                    <p className="text-sm text-muted-foreground">
+                      If you have an outstanding payment or need to make changes to your order, please
+                      contact our team directly at{' '}
+                      <a
+                        href="mailto:edge@cre8iongroup.com"
+                        className="font-medium text-primary hover:underline"
+                      >
+                        edge@cre8iongroup.com
+                      </a>
+                      {' '}to complete your order. Late orders may be subject to additional fees.
+                    </p>
                   </div>
                 </div>
               ) : isFreeOrder ? (

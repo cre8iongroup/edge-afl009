@@ -1,5 +1,6 @@
 // ─── AV Package Configuration ────────────────────────────────────────────────
 // All base prices are in USD cents to avoid float math.
+import { PORTAL_CLOSE_DATE } from './deadlines';
 
 /** AV package selection opens on this date. Before this, partners see a coming-soon message. */
 export const AV_OPEN_DATE = new Date('2026-01-01T00:00:00');
@@ -372,7 +373,7 @@ export type PricingTier = {
  */
 export function getPricingTier(now: Date = new Date()): PricingTier {
   const standardStart = new Date(2026, 4, 30); // May 30 2026
-  const closeEnd      = new Date(2026, 5, 27); // Jun 27 00:00 → treats Jun 26 as last full day
+  const closeEnd      = PORTAL_CLOSE_DATE;      // Jun 27 00:00 → treats Jun 26 as last full day (see deadlines.ts)
 
   if (now >= closeEnd) {
     return {
