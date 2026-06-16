@@ -91,5 +91,12 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isInternalOrAdmin();
     }
+
+    // Scenic asset submissions — each partner writes their own document keyed by UID.
+    // Internal/admin can read all (for design team review).
+    match /scenic_assets/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isInternalOrAdmin());
+      allow write: if isSignedIn() && request.auth.uid == uid;
+    }
   }
 }

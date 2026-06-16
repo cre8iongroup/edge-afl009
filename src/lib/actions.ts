@@ -359,3 +359,75 @@ export async function addToZohoCampaigns(params: {
     return { success: false };
   }
 }
+
+// ─── Scenic Assets Submitted — Internal (IN-03) ───────────────────────────────
+
+export async function sendScenicAssetsSubmittedInternal(params: {
+  companyName: string;
+  partnerEmail: string;
+  sessionTitles: string[];
+  submittedAt: string;
+}) {
+  if (!INTERNAL_NOTIFY_EMAIL) return { success: true };
+
+  const { companyName, partnerEmail, sessionTitles, submittedAt } = params;
+
+  const submittedAtET = new Date(submittedAt).toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+
+  const sessionListItems = sessionTitles
+    .map((t) => `<li>${t}</li>`)
+    .join('');
+
+  const subject = `[ALPFA 2026] Scenic Assets Submitted — ${companyName}`;
+  const body = `
+    <p>A partner has submitted their scenic brand assets.</p>
+    <ul>
+      <li><strong>Company:</strong> ${companyName || '—'}</li>
+      <li><strong>Email:</strong> ${partnerEmail}</li>
+      <li><strong>Submitted at:</strong> ${submittedAtET} ET</li>
+    </ul>
+    <p><strong>Scenic Sessions:</strong></p>
+    <ul>${sessionListItems}</ul>
+    <p><a href="${baseUrl}/all-sessions">View sessions in admin panel &rarr;</a></p>
+  `;
+
+  try {
+    await sendEmail(INTERNAL_NOTIFY_EMAIL, subject, body);
+    console.log(`sendScenicAssetsSubmittedInternal: sent for ${companyName}`);
+    return { success: true };
+  } catch (error) {
+    console.error('sendScenicAssetsSubmittedInternal: error', error);
+    return { success: false, error: 'Could not send internal scenic notification.' };
+  }
+}
+
+// ─── Scenic Assets Submitted — Partner Confirmation (PN-05) ──────────────────
+
+export async function sendScenicAssetsSubmittedPartner(params: {
+  partnerEmail: string;
+}) {
+  const { partnerEmail } = params;
+  if (!partnerEmail) return { success: false, error: 'No partner email provided.' };
+
+  const subject = 'Your scenic assets have been received — ALPFA 2026';
+  const body = `
+    <p>Hi there,</p>
+    <p>Thank you for submitting your brand assets for the ALPFA 2026 National Convention.</p>
+    <p>Our team will review them and follow up shortly to confirm final details for your custom scenic elements.</p>
+    <p>If you have any questions in the meantime, reply directly to this email or reach us at <a href="mailto:edge@cre8iongroup.com">edge@cre8iongroup.com</a>.</p>
+    <p>— The cre8ion Team</p>
+  `;
+
+  try {
+    await sendEmail(partnerEmail, subject, body);
+    console.log(`sendScenicAssetsSubmittedPartner: sent to ${partnerEmail}`);
+    return { success: true };
+  } catch (error) {
+    console.error('sendScenicAssetsSubmittedPartner: error', error);
+    return { success: false, error: 'Could not send partner scenic confirmation.' };
+  }
+}

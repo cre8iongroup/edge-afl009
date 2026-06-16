@@ -13,5 +13,18 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/(jpeg|png)');
     }
 
+    // ─── Scenic brand assets ──────────────────────────────────────────────────
+    // Partners upload logo and brand guidelines keyed by their UID.
+    // Any authenticated user can read (design team access).
+    // Writes scoped to the owning partner (uid path segment must match auth.uid).
+    // MIME type is not enforced here — vector formats (SVG, EPS, AI) have
+    // inconsistent MIME types; extension validation is handled in the UI.
+    match /scenic/{uid}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.auth.uid == uid
+                   && request.resource.size <= 50 * 1024 * 1024;
+    }
+
   }
 }
