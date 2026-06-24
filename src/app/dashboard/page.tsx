@@ -17,7 +17,11 @@ export default function DashboardPage() {
   const { user } = useUser();
   const { submissions } = useSubmissions();
   const { profile } = useUserProfile(user?.uid);
-  const userSubmissions = submissions.filter(sub => sub.userId === user?.uid);
+  const userEmail = user?.email?.toLowerCase();
+  const userSubmissions = submissions.filter(sub =>
+    sub.userId === user?.uid ||
+    (userEmail && (sub.authorizedEmails ?? []).map(e => e.toLowerCase()).includes(userEmail))
+  );
 
   const displayName = profile?.name && profile.name !== 'New Member' ? profile.name : '';
   const isAdmin = ['internal', 'admin'].includes(profile?.role ?? '');
