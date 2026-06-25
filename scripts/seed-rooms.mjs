@@ -25,7 +25,7 @@ const ROOMS = [
   { roomId: 'E219A',  label: 'Professional Workshop #3', wing: 'East', sessionTypes: ['workshop', 'info-session'], capacity: { theater: 294, banquet: 100, classroom: 112 } },
   { roomId: 'E218',   label: 'Professional Workshop #4', wing: 'East', sessionTypes: ['workshop', 'info-session'], capacity: { theater: 147, banquet:  67, classroom:  50 } },
   { roomId: 'E217',   label: 'Professional Workshop #5', wing: 'East', sessionTypes: ['workshop', 'info-session'], capacity: { theater: 210, banquet: 100, classroom: 109 } },
-  { roomId: 'E221B',  label: 'Professional Workshop #6', wing: 'East', sessionTypes: ['workshop', 'info-session'], capacity: { theater:  81, banquet:  33, classroom:  44 } },
+  { roomId: 'E221A',  label: 'Professional Workshop #6', wing: 'East', sessionTypes: ['workshop', 'info-session'], capacity: { theater:  81, banquet:  33, classroom:  44 } },
 
   // ── Reception rooms (sessionTypes: reception only) ─────────────────────────
   { roomId: 'E220F',  label: 'Reception 01', wing: 'East', sessionTypes: ['reception'], capacity: { theater: 151, banquet:  56, classroom:  84 } },
