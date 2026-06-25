@@ -462,7 +462,7 @@ export async function sendAwardRemarksConfirmation(params: {
       <li><strong>Session:</strong> ${session}</li>
     </ul>
     <p><strong>Your Remarks:</strong></p>
-    <blockquote style="border-left: 3px solid #009FE3; padding-left: 12px; margin: 12px 0; color: #555;">${remarksHtml}</blockquote>
+    <div style="border-left: 3px solid #009FE3; padding: 12px 16px; margin: 12px 0; background: #f9f9f9; color: #333; font-size: 14px; line-height: 1.6; border-radius: 4px;">${remarksHtml}</div>
     <p>If you have any questions or issues, just reply to this email.</p>
     <p>— The cre8ion Team</p>
     <p style="font-size: 12px; color: #888;">Need help? Contact us at <a href="mailto:connect@cre8iongroup.com">connect@cre8iongroup.com</a></p>
