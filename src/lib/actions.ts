@@ -446,6 +446,9 @@ export async function sendAwardRemarksConfirmation(params: {
   const { firstName, lastName, email, phone, company, session, remarks } = params;
   if (!email) return { success: false, error: 'No email provided.' };
 
+  // Convert newlines to <br> so remarks render visibly in the HTML email
+  const remarksHtml = remarks.replace(/\n/g, '<br>');
+
   const subject = 'Your Award Remarks Submission — ALPFA Convention 2026';
   const body = `
     <p>Hi ${firstName},</p>
@@ -459,7 +462,7 @@ export async function sendAwardRemarksConfirmation(params: {
       <li><strong>Session:</strong> ${session}</li>
     </ul>
     <p><strong>Your Remarks:</strong></p>
-    <blockquote style="border-left: 3px solid #009FE3; padding-left: 12px; margin: 12px 0; color: #555;">${remarks}</blockquote>
+    <blockquote style="border-left: 3px solid #009FE3; padding-left: 12px; margin: 12px 0; color: #555;">${remarksHtml}</blockquote>
     <p>If you have any questions or issues, just reply to this email.</p>
     <p>— The cre8ion Team</p>
     <p style="font-size: 12px; color: #888;">Need help? Contact us at <a href="mailto:connect@cre8iongroup.com">connect@cre8iongroup.com</a></p>
@@ -487,7 +490,10 @@ export async function sendAwardRemarksProducerNotification(params: {
   remarks: string;
 }) {
   const { firstName, lastName, email, phone, company, session, remarks } = params;
-  const producerEmail = 'producers@cre8ion.com';
+  const producerEmail = 'producers@cre8iongroup.com';
+
+  // Convert newlines to <br> so remarks render visibly in the HTML email
+  const remarksHtml = remarks.replace(/\n/g, '<br>');
 
   const subject = `Award Remarks Submitted — ${firstName} ${lastName} (${session})`;
   const body = `
@@ -499,7 +505,7 @@ export async function sendAwardRemarksProducerNotification(params: {
       <li><strong>Company / ALPFA Chapter:</strong> ${company}</li>
     </ul>
     <p><strong>Remarks:</strong></p>
-    <div style="border: 1px solid #ddd; border-radius: 6px; padding: 16px; margin: 12px 0; background: #f9f9f9; color: #333; font-size: 14px; line-height: 1.6;">${remarks}</div>
+    <div style="border: 1px solid #ddd; border-radius: 6px; padding: 16px; margin: 12px 0; background: #f9f9f9; color: #333; font-size: 14px; line-height: 1.6;">${remarksHtml}</div>
     <p style="font-size: 12px; color: #888;">To view all submission data, go here: <a href="https://docs.google.com/spreadsheets/d/1gyOOhjwoV8FqTnBw6MPNKlA4RfDIwSfhMgpq7AGTjqE/edit">Award Remarks Spreadsheet</a></p>
   `;
 
