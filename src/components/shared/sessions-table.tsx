@@ -326,6 +326,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
   const [avOrderedFilter, setAvOrderedFilter]   = useState<AVFilter>('all');
   const [avPaidFilter, setAvPaidFilter]         = useState<AVFilter>('all');
   const [proxyFilter, setProxyFilter]           = useState<ProxyFilter>('all');
+  const [cpeFilter, setCpeFilter]               = useState(false);
 
   const hasActiveFilters =
     companyFilter !== '' ||
@@ -336,7 +337,8 @@ export default function SessionsTable({ role }: SessionsTableProps) {
     roomFilter !== '' ||
     avOrderedFilter !== 'all' ||
     avPaidFilter !== 'all' ||
-    proxyFilter !== 'all';
+    proxyFilter !== 'all' ||
+    cpeFilter;
 
   const clearAllFilters = () => {
     setCompanyFilter('');
@@ -348,6 +350,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
     setAvOrderedFilter('all');
     setAvPaidFilter('all');
     setProxyFilter('all');
+    setCpeFilter(false);
   };
 
   // ── Toggle helpers ──────────────────────────────────────────────────────────
@@ -437,8 +440,9 @@ export default function SessionsTable({ role }: SessionsTableProps) {
       if (proxyFilter === 'yes' && !sub.isProxy) return false;
       if (proxyFilter === 'no' && sub.isProxy) return false;
     }
+    if (cpeFilter && !sub.cpe) return false;
     return true;
-  }), [sorted, companyFilter, typeFilter, audienceFilter, statusFilter, dateFilter, roomFilter, avOrderedFilter, avPaidFilter, proxyFilter, isAdmin]);
+  }), [sorted, companyFilter, typeFilter, audienceFilter, statusFilter, dateFilter, roomFilter, avOrderedFilter, avPaidFilter, proxyFilter, cpeFilter, isAdmin]);
 
   // ── Proxy invoice generation ─────────────────────────────────────────────────
   const handleGenerateProxyInvoice = async () => {
@@ -564,6 +568,25 @@ export default function SessionsTable({ role }: SessionsTableProps) {
         {/* AV Paid */}
         <ThreeWay label="AV Paid" value={avPaidFilter} onChange={setAvPaidFilter} />
 
+        {/* CPE */}
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">CPE</span>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setCpeFilter(p => !p)}
+              className={cn(
+                'px-2.5 py-1 rounded-md text-xs font-medium transition-colors border',
+                cpeFilter
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-background text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground',
+              )}
+            >
+              CPE
+            </button>
+          </div>
+        </div>
+
         {/* Proxy — admin only */}
         {isAdmin && (
           <ThreeWay label="Proxy" value={proxyFilter} onChange={v => setProxyFilter(v)} />
@@ -628,13 +651,15 @@ export default function SessionsTable({ role }: SessionsTableProps) {
                   <TableHead>Pillar</TableHead>
                   {/* Format */}
                   <TableHead>Format</TableHead>
+                  {/* CPE */}
+                  <TableHead className="text-center">CPE</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={isAdmin ? 15 : 14}
+                      colSpan={isAdmin ? 16 : 15}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       {hasActiveFilters
@@ -791,6 +816,15 @@ export default function SessionsTable({ role }: SessionsTableProps) {
 
                         {/* Format */}
                         <TableCell className="text-sm">{item.format}</TableCell>
+
+                        {/* CPE */}
+                        <TableCell className="text-center">
+                          {item.cpe && (
+                            <Badge variant="secondary" className="text-xs px-1.5 py-0 font-normal">
+                              CPE
+                            </Badge>
+                          )}
+                        </TableCell>
                       </TableRow>
                     );
                   })
