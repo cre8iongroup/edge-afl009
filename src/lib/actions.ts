@@ -431,3 +431,85 @@ export async function sendScenicAssetsSubmittedPartner(params: {
     return { success: false, error: 'Could not send partner scenic confirmation.' };
   }
 }
+
+// ─── Award Remarks Submitted — Submitter Confirmation ─────────────────────────
+
+export async function sendAwardRemarksConfirmation(params: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  company: string;
+  session: string;
+  remarks: string;
+}) {
+  const { firstName, lastName, email, phone, company, session, remarks } = params;
+  if (!email) return { success: false, error: 'No email provided.' };
+
+  const subject = 'Your Award Remarks Submission — ALPFA Convention 2026';
+  const body = `
+    <p>Hi ${firstName},</p>
+    <p>Thank you for submitting your award remarks for the ALPFA 2026 National Convention. We've received your submission and it's being reviewed by our production team.</p>
+    <p><strong>Here's a summary of what you submitted:</strong></p>
+    <ul>
+      <li><strong>Name:</strong> ${firstName} ${lastName}</li>
+      <li><strong>Email:</strong> ${email}</li>
+      <li><strong>Phone:</strong> ${phone}</li>
+      <li><strong>Company / ALPFA Chapter:</strong> ${company}</li>
+      <li><strong>Session:</strong> ${session}</li>
+    </ul>
+    <p><strong>Your Remarks:</strong></p>
+    <blockquote style="border-left: 3px solid #009FE3; padding-left: 12px; margin: 12px 0; color: #555;">${remarks}</blockquote>
+    <p>If you have any questions or issues, just reply to this email.</p>
+    <p>— The cre8ion Team</p>
+    <p style="font-size: 12px; color: #888;">Need help? Contact us at <a href="mailto:connect@cre8iongroup.com">connect@cre8iongroup.com</a></p>
+  `;
+
+  try {
+    await sendEmail(email, subject, body);
+    console.log(`sendAwardRemarksConfirmation: sent to ${email}`);
+    return { success: true };
+  } catch (error) {
+    console.error('sendAwardRemarksConfirmation: error', error);
+    return { success: false, error: 'Could not send award remarks confirmation.' };
+  }
+}
+
+// ─── Award Remarks Submitted — Producer Notification ──────────────────────────
+
+export async function sendAwardRemarksProducerNotification(params: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  company: string;
+  session: string;
+  remarks: string;
+}) {
+  const { firstName, lastName, email, phone, company, session, remarks } = params;
+  const producerEmail = 'producers@cre8ion.com';
+
+  const subject = `Award Remarks Submitted — ${firstName} ${lastName} (${session})`;
+  const body = `
+    <p>${firstName} ${lastName} submitted their award remarks for the <strong>${session}</strong> session.</p>
+    <p><strong>Contact Details:</strong></p>
+    <ul>
+      <li><strong>Email:</strong> <a href="mailto:${email}">${email}</a></li>
+      <li><strong>Phone:</strong> ${phone}</li>
+      <li><strong>Company / ALPFA Chapter:</strong> ${company}</li>
+    </ul>
+    <p><strong>Remarks:</strong></p>
+    <div style="border: 1px solid #ddd; border-radius: 6px; padding: 16px; margin: 12px 0; background: #f9f9f9; color: #333; font-size: 14px; line-height: 1.6;">${remarks}</div>
+    <p style="font-size: 12px; color: #888;">To view all submission data, go here: <a href="https://docs.google.com/spreadsheets/d/1gyOOhjwoV8FqTnBw6MPNKlA4RfDIwSfhMgpq7AGTjqE/edit">Award Remarks Spreadsheet</a></p>
+  `;
+
+  try {
+    await sendEmail(producerEmail, subject, body, email);
+    console.log(`sendAwardRemarksProducerNotification: sent to ${producerEmail}`);
+    return { success: true };
+  } catch (error) {
+    console.error('sendAwardRemarksProducerNotification: error', error);
+    return { success: false, error: 'Could not send producer notification.' };
+  }
+}
+

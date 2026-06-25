@@ -13,12 +13,13 @@ const client = SEND_MAIL_TOKEN ? new SendMailClient({
   url: "api.zeptomail.com/",
 }) : null;
 
-export async function sendEmail(to: string, subject: string, htmlBody: string) {
+export async function sendEmail(to: string, subject: string, htmlBody: string, replyTo?: string) {
   if (!client || !FROM_EMAIL) {
     console.log(`
       --- EMAIL SIMULATION ---
       To: ${to}
       From: ${FROM_EMAIL || 'not-configured@example.com'}
+      Reply-To: ${replyTo || '(none)'}
       Subject: ${subject}
       Body: ${htmlBody.substring(0, 100)}...
       --- END SIMULATION ---
@@ -28,7 +29,7 @@ export async function sendEmail(to: string, subject: string, htmlBody: string) {
   }
 
   try {
-    await client.sendMail({
+    const mailOptions: Record<string, unknown> = {
       from: {
         address: FROM_EMAIL,
         name: "ALPFA Convention Portal",
@@ -42,7 +43,13 @@ export async function sendEmail(to: string, subject: string, htmlBody: string) {
       ],
       subject,
       htmlbody: htmlBody,
-    });
+    };
+
+    if (replyTo) {
+      mailOptions.reply_to = { address: replyTo };
+    }
+
+    await client.sendMail(mailOptions);
     return { success: true };
   } catch (error) {
     console.error("Error sending email via ZeptoMail:", error);
