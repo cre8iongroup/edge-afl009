@@ -56,7 +56,7 @@ export default function OrderPage() {
 
   // Detect if any pending session was confirmed under a different pricing tier
   const hasPricingMismatch = pendingPaymentSessions.some(
-    (s) => s.avSelection && s.avSelection.pricingTier !== pricingTier.name
+    (s) => s.avSelection && s.avSelection.pricingTier !== pricingTier.name && !(isAdmin && pricingTier.name === 'Closed')
   );
 
   // All pending sessions are $0 — free confirmation flow
@@ -288,7 +288,7 @@ export default function OrderPage() {
                           </p>
                           <p>
                             {av.pricingTier}
-                            {av.pricingTier !== pricingTier.name && (
+                            {av.pricingTier !== pricingTier.name && !(isAdmin && pricingTier.name === 'Closed') && (
                               <span className="ml-1.5 text-xs text-amber-600 font-medium">
                                 (now {pricingTier.name})
                               </span>

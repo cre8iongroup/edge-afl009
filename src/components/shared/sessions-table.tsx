@@ -320,6 +320,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
   const [companyFilter, setCompanyFilter]       = useState('');
   const [typeFilter, setTypeFilter]             = useState<string[]>([]);
   const [audienceFilter, setAudienceFilter]     = useState<string[]>([]);
+  const [pillarFilter, setPillarFilter]         = useState<string[]>([]);
   const [statusFilter, setStatusFilter]         = useState<string[]>([]);
   const [dateFilter, setDateFilter]             = useState('');
   const [roomFilter, setRoomFilter]             = useState('');
@@ -332,6 +333,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
     companyFilter !== '' ||
     typeFilter.length > 0 ||
     audienceFilter.length > 0 ||
+    pillarFilter.length > 0 ||
     statusFilter.length > 0 ||
     dateFilter !== '' ||
     roomFilter !== '' ||
@@ -344,6 +346,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
     setCompanyFilter('');
     setTypeFilter([]);
     setAudienceFilter([]);
+    setPillarFilter([]);
     setStatusFilter([]);
     setDateFilter('');
     setRoomFilter('');
@@ -356,6 +359,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
   // ── Toggle helpers ──────────────────────────────────────────────────────────
   const toggleType     = (v: string) => setTypeFilter(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
   const toggleAudience = (v: string) => setAudienceFilter(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
+  const togglePillar   = (v: string) => setPillarFilter(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
   const toggleStatus   = (v: string) => setStatusFilter(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
   const toggleSelect = (id: string) => setSelectedIds(prev => {
     const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
@@ -423,6 +427,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
         : audienceFilter.includes(aud as string);
       if (!matches) return false;
     }
+    if (pillarFilter.length > 0 && !pillarFilter.includes(sub.pillar ?? '')) return false;
     if (statusFilter.length > 0 && !statusFilter.includes(sub.status)) return false;
     if (dateFilter) {
       if (resolveDateKey(sub) !== dateFilter) return false;
@@ -442,7 +447,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
     }
     if (cpeFilter && !sub.cpe) return false;
     return true;
-  }), [sorted, companyFilter, typeFilter, audienceFilter, statusFilter, dateFilter, roomFilter, avOrderedFilter, avPaidFilter, proxyFilter, cpeFilter, isAdmin]);
+  }), [sorted, companyFilter, typeFilter, audienceFilter, pillarFilter, statusFilter, dateFilter, roomFilter, avOrderedFilter, avPaidFilter, proxyFilter, cpeFilter, isAdmin]);
 
   // ── Proxy invoice generation ─────────────────────────────────────────────────
   const handleGenerateProxyInvoice = async () => {
@@ -517,6 +522,14 @@ export default function SessionsTable({ role }: SessionsTableProps) {
           options={submissionFormConfig.audiences.map(a => ({ value: a.value, label: a.label }))}
           selected={audienceFilter}
           onToggle={toggleAudience}
+        />
+
+        {/* Pillar */}
+        <ToggleGroup
+          label="Pillar"
+          options={submissionFormConfig.pillars.map(p => ({ value: p.value, label: p.label }))}
+          selected={pillarFilter}
+          onToggle={togglePillar}
         />
 
         {/* Status */}
