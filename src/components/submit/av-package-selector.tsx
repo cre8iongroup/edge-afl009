@@ -13,6 +13,8 @@ import {
   type AVPackage,
 } from '@/lib/av-packages';
 import { useSubmissions } from '@/components/submissions-provider';
+import { useUser } from '@/firebase';
+import { useUserProfile } from '@/hooks/use-user-profile';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -128,6 +130,9 @@ type AVPackageSelectorProps = {
 
 function AVPackageSelectorInner({ submission }: AVPackageSelectorProps) {
   const { updateSubmission } = useSubmissions();
+  const { user } = useUser();
+  const { profile } = useUserProfile(user?.uid);
+  const isAdmin = ['internal', 'admin'].includes(profile?.role ?? '');
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -299,12 +304,12 @@ function AVPackageSelectorInner({ submission }: AVPackageSelectorProps) {
         </div>
       </div>
 
-      {pricingTier.isClosed ? (
+      {pricingTier.isClosed && !isAdmin ? (
         <Card className="border-red-500/30 bg-red-500/5">
           <CardContent className="flex items-center gap-3 p-5">
             <Lock className="h-5 w-5 text-red-500" />
             <p className="text-sm text-red-600 font-medium">
-              AV package registration is closed. Please contact the ALPFA team for assistance.
+              AV package registration is closed. Please contact cre8ion for assistance.
             </p>
           </CardContent>
         </Card>
