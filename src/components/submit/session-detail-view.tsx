@@ -1522,7 +1522,7 @@ function Phase3View({ submission, isAdmin, isClient }: { submission: Submission;
 
 // ─── Phase 4: Confirmed ───────────────────────────────────────────────────────
 
-function Phase4View({ submission, isAdmin }: { submission: Submission; isAdmin: boolean }) {
+function Phase4View({ submission, isAdmin, isClient }: { submission: Submission; isAdmin: boolean; isClient: boolean }) {
   const cfg = phaseConfig.phase_4;
   const Icon = cfg.icon;
   return (
@@ -1579,6 +1579,21 @@ function Phase4View({ submission, isAdmin }: { submission: Submission; isAdmin: 
             <CardDescription className="text-center text-sm text-muted-foreground">
               Your room and time assignment details will appear here once finalized by the ALPFA team.
             </CardDescription>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AV Package — locked read-only view (hidden from client users) */}
+      {!isClient && (
+        <Card className="border-green-500/40">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+              <CardTitle className="text-base font-semibold text-green-700">AV Package &amp; Payment</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <AVPackageSelector submission={submission} />
           </CardContent>
         </Card>
       )}
@@ -1804,7 +1819,7 @@ export default function SessionDetailView({
       )}
       {submission.status === 'phase_2' && <Phase2View submission={submission} isAdmin={isAdmin} isClient={isClient} />}
       {submission.status === 'phase_3' && <Phase3View submission={submission} isAdmin={isAdmin} isClient={isClient} />}
-      {submission.status === 'phase_4' && <Phase4View submission={submission} isAdmin={isAdmin} />}
+      {submission.status === 'phase_4' && <Phase4View submission={submission} isAdmin={isAdmin} isClient={isClient} />}
     </div>
   );
 }
