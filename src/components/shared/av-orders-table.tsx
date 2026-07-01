@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { Submission } from '@/lib/types';
 import { useSubmissions } from '@/components/submissions-provider';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 import {
   Table,
@@ -29,6 +30,8 @@ import {
   X,
   CheckCheck,
   Search,
+  Copy,
+  Check,
 } from 'lucide-react';
 import {
   getAVStatus,
@@ -64,6 +67,34 @@ function formatDollars(cents: number): string {
 
 function truncate(text: string, max = 50): string {
   return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
+/** Returns deduplicated contact emails for a session (POC + delegates). */
+function getSessionEmails(sub: Submission): string[] {
+  const emails: string[] = [];
+  const seen = new Set<string>();
+
+  const pocEmail = sub.pocEmail || sub.presenterPocEmail || '';
+  if (pocEmail) {
+    const key = pocEmail.toLowerCase().trim();
+    if (!seen.has(key)) {
+      seen.add(key);
+      emails.push(pocEmail.trim());
+    }
+  }
+
+  if (sub.authorizedEmails) {
+    for (const e of sub.authorizedEmails) {
+      if (!e) continue;
+      const key = e.toLowerCase().trim();
+      if (!seen.has(key)) {
+        seen.add(key);
+        emails.push(e.trim());
+      }
+    }
+  }
+
+  return emails;
 }
 
 // ─── ThreeWay toggle (same pattern as sessions-table.tsx) ─────────────────────
@@ -112,6 +143,9 @@ export default function AVOrdersTable() {
   const { submissions } = useSubmissions();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const [copiedIds, setCopiedIds] = useState<Set<string>>(new Set());
+  const copiedTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   // ── Read initial filter values from URL params ──────────────────────────────
 
@@ -378,13 +412,40 @@ export default function AVOrdersTable() {
                   <TableHead>Package</TableHead>
                   <TableHead className="text-right">Order Total</TableHead>
                   <TableHead className="text-center">AV Status</TableHead>
+                  <TableHead>
+                    <div className="flex items-center gap-1.5">
+                      Contact Emails
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label="Copy all visible contact emails"
+                        onClick={() => {
+                          const allEmails: string[] = [];
+                          const seen = new Set<string>();
+                          for (const item of sorted) {
+                            for (const e of getSessionEmails(item)) {
+                              const key = e.toLowerCase();
+                              if (!seen.has(key)) {
+                                seen.add(key);
+                                allEmails.push(e);
+                              }
+                            }
+                          }
+                          navigator.clipboard.writeText(allEmails.join(', '));
+                          toast({ title: `Copied ${allEmails.length} emails` });
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sorted.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={8}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       {hasActiveFilters
@@ -464,6 +525,60 @@ export default function AVOrdersTable() {
                               {status.tooltip}
                             </TooltipContent>
                           </Tooltip>
+                        </TableCell>
+
+                        {/* Contact Emails */}
+                        <TableCell onClick={e => e.stopPropagation()}>
+                          {(() => {
+                            const pocEmail = item.pocEmail || item.presenterPocEmail || '';
+                            const delegates = (item.authorizedEmails ?? []).filter(Boolean);
+                            const hasEmails = pocEmail || delegates.length > 0;
+                            const isCopied = copiedIds.has(item.id);
+
+                            return (
+                              <div className="flex items-start gap-2">
+                                <div className="flex flex-col gap-0.5 min-w-0">
+                                  {pocEmail ? (
+                                    <span className="text-xs truncate" title={pocEmail}>{pocEmail}</span>
+                                  ) : null}
+                                  {delegates.map(d => (
+                                    <span key={d} className="text-xs text-muted-foreground truncate" title={d}>{d}</span>
+                                  ))}
+                                  {!hasEmails && <span className="text-xs text-muted-foreground">—</span>}
+                                </div>
+                                {hasEmails && (
+                                  <button
+                                    type="button"
+                                    className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                                    aria-label="Copy session emails"
+                                    onClick={() => {
+                                      const emails = getSessionEmails(item);
+                                      navigator.clipboard.writeText(emails.join(', '));
+                                      setCopiedIds(prev => new Set(prev).add(item.id));
+                                      // Clear any existing timer for this item
+                                      const existing = copiedTimers.current.get(item.id);
+                                      if (existing) clearTimeout(existing);
+                                      copiedTimers.current.set(
+                                        item.id,
+                                        setTimeout(() => {
+                                          setCopiedIds(prev => {
+                                            const next = new Set(prev);
+                                            next.delete(item.id);
+                                            return next;
+                                          });
+                                          copiedTimers.current.delete(item.id);
+                                        }, 1500),
+                                      );
+                                    }}
+                                  >
+                                    {isCopied
+                                      ? <Check className="h-3.5 w-3.5 text-green-600" />
+                                      : <Copy className="h-3.5 w-3.5" />}
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                       </TableRow>
                     );
