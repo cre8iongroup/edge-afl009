@@ -10,7 +10,7 @@ import { sendPresenterUpdateEmail } from '@/lib/actions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { isAfterJuly1 } from '@/lib/utils';
+import { PORTAL_CLOSE_DATE } from '@/lib/deadlines';
 import {
   UserPlus,
   Pencil,
@@ -29,10 +29,13 @@ const MAX_BIO_WORDS = 150;
 const MIN_HEADSHOT_BYTES = 75 * 1024;          // 75 KB
 const MAX_HEADSHOT_BYTES = 10 * 1024 * 1024;  // 10 MB
 const ACCEPTED_MIME = ['image/jpeg', 'image/png'];
-const LOCK_DATE = new Date(new Date().getFullYear(), 6, 1); // July 1
+/** Presenter editing locks at PORTAL_CLOSE_DATE. The last open day is the day before. */
+const LOCK_DATE = PORTAL_CLOSE_DATE;
+const LAST_OPEN_DAY = new Date(LOCK_DATE.getTime() - 86_400_000); // day before gate fires
+const LAST_OPEN_DAY_LABEL = LAST_OPEN_DAY.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 
 function isLocked(): boolean {
-  return isAfterJuly1();
+  return new Date() >= LOCK_DATE;
 }
 
 function countWords(text: string): number {
@@ -638,7 +641,7 @@ export default function PresenterSection({ submission }: PresenterSectionProps) 
       {/* Empty state when locked with no presenters */}
       {locked && drafts.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-4">
-          No presenters were added before the July 6 deadline.
+          No presenters were added before the {LAST_OPEN_DAY_LABEL} deadline.
         </p>
       )}
 
@@ -656,7 +659,7 @@ export default function PresenterSection({ submission }: PresenterSectionProps) 
 
       {/* Footer note */}
       <p className="text-xs text-muted-foreground pt-1">
-        Presenter information can be updated until July 6, {LOCK_DATE.getFullYear()}.{' '}
+        Presenter information can be updated until {LAST_OPEN_DAY_LABEL}, {LOCK_DATE.getFullYear()}.{' '}
         After that date, contact{' '}
         <a
           href="mailto:connect@cre8iongroup.com"
