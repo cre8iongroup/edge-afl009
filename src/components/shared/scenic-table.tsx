@@ -4,6 +4,8 @@ import { useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { Submission } from '@/lib/types';
 import { useSubmissions } from '@/components/submissions-provider';
+import { useFirestore } from '@/firebase';
+import { doc, updateDoc, deleteField } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
 import {
@@ -14,28 +16,28 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Briefcase,
   Presentation,
   Handshake,
   X,
-  CheckCheck,
   Search,
 } from 'lucide-react';
 import {
-  getAVStatus,
-  AV_STATUS_SORT_ORDER,
-  AV_STATUS_LABELS,
-  type AVStatusVariant,
-} from '@/lib/av-status';
+  getScenicItems,
+  SCENIC_STATUS_OPTIONS,
+  SCENIC_STATUS_SORT_ORDER,
+  type ScenicItems,
+} from '@/lib/scenic-items';
+import { useToast } from '@/hooks/use-toast';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -45,98 +47,46 @@ const SESSION_TYPE_CONFIG: Record<Submission['sessionType'], { icon: React.Eleme
   'info-session': { icon: Presentation, label: 'Info Session' },
 };
 
-type ProxyFilter = 'all' | 'yes' | 'no';
-
-/** Maps AVStatusVariant to Tailwind classes for the badge. */
-const VARIANT_CLASSES: Record<AVStatusVariant, string> = {
-  success:     'border-green-500/50 text-green-600 bg-green-500/10',
-  warning:     'border-amber-500/50 text-amber-600 bg-amber-500/10',
-  destructive: 'border-red-500/50 text-red-600 bg-red-500/10',
-  muted:       'border-border text-muted-foreground bg-muted/40',
-  default:     '',
+const STATUS_CLASSES: Record<string, string> = {
+  'To Do':                 'border-amber-500/50 text-amber-600 bg-amber-500/10',
+  'Needs Partner Logo':    'border-red-500/50 text-red-600 bg-red-500/10',
+  'In Progress':           'border-blue-500/50 text-blue-600 bg-blue-500/10',
+  'Ready for Convention':  'border-green-500/50 text-green-600 bg-green-500/10',
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// Scenic status filter options — the four statuses plus 'Unset'
+const SCENIC_FILTER_LABELS = [...SCENIC_STATUS_OPTIONS, 'Unset'] as const;
 
-function formatDollars(cents: number): string {
-  return `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function truncate(text: string, max = 50): string {
   return text.length > max ? `${text.slice(0, max)}…` : text;
 }
 
-// ─── ThreeWay toggle (same pattern as sessions-table.tsx) ─────────────────────
-
-function ThreeWay({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: ProxyFilter;
-  onChange: (v: ProxyFilter) => void;
-}) {
-  const opts: { value: ProxyFilter; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'yes', label: 'Yes' },
-    { value: 'no',  label: 'No' },
-  ];
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
-      <div className="flex gap-1">
-        {opts.map(o => (
-          <button
-            key={o.value}
-            type="button"
-            onClick={() => onChange(o.value)}
-            className={cn(
-              'px-2.5 py-1 rounded-md text-xs font-medium transition-colors border',
-              value === o.value
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-background text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground',
-            )}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function AVOrdersTable() {
+export default function ScenicTable() {
   const { submissions } = useSubmissions();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const firestore = useFirestore();
+  const { toast } = useToast();
 
   // ── Read initial filter values from URL params ──────────────────────────────
 
-  const validStatusLabels = new Set<string>(AV_STATUS_LABELS);
+  const validFilterLabels = new Set<string>(SCENIC_FILTER_LABELS);
   const validSessionTypes = new Set(['workshop', 'reception', 'info-session']);
-  const validProxyValues  = new Set<ProxyFilter>(['all', 'yes', 'no']);
 
   function parseArrayParam(param: string | null, validSet: Set<string>): string[] {
     if (!param) return [];
     return param.split(',').map(s => s.trim()).filter(s => validSet.has(s));
   }
 
-  function parseProxyParam(param: string | null): ProxyFilter {
-    if (param && validProxyValues.has(param as ProxyFilter)) return param as ProxyFilter;
-    return 'all';
-  }
-
-  const [statusFilter, setStatusFilter] = useState<string[]>(() =>
-    parseArrayParam(searchParams.get('status'), validStatusLabels),
+  const [scenicStatusFilter, setScenicStatusFilter] = useState<string[]>(() =>
+    parseArrayParam(searchParams.get('scenicStatus'), validFilterLabels),
   );
   const [typeFilter, setTypeFilter] = useState<string[]>(() =>
     parseArrayParam(searchParams.get('type'), validSessionTypes),
-  );
-  const [proxyFilter, setProxyFilter] = useState<ProxyFilter>(() =>
-    parseProxyParam(searchParams.get('proxy')),
   );
   const [companyFilter, setCompanyFilter] = useState(() =>
     searchParams.get('company') ?? '',
@@ -145,31 +95,21 @@ export default function AVOrdersTable() {
   // ── Sync filters to URL ─────────────────────────────────────────────────────
 
   const pushFiltersToUrl = useCallback(
-    (nextStatus: string[], nextType: string[], nextProxy: ProxyFilter, nextCompany: string) => {
+    (nextScenicStatus: string[], nextType: string[], nextCompany: string) => {
       const params = new URLSearchParams(searchParams.toString());
 
-      // Status
-      if (nextStatus.length > 0) {
-        params.set('status', nextStatus.join(','));
+      if (nextScenicStatus.length > 0) {
+        params.set('scenicStatus', nextScenicStatus.join(','));
       } else {
-        params.delete('status');
+        params.delete('scenicStatus');
       }
 
-      // Type
       if (nextType.length > 0) {
         params.set('type', nextType.join(','));
       } else {
         params.delete('type');
       }
 
-      // Proxy
-      if (nextProxy !== 'all') {
-        params.set('proxy', nextProxy);
-      } else {
-        params.delete('proxy');
-      }
-
-      // Company
       if (nextCompany.trim()) {
         params.set('company', nextCompany.trim());
       } else {
@@ -183,76 +123,105 @@ export default function AVOrdersTable() {
   );
 
   const hasActiveFilters =
-    statusFilter.length > 0 ||
+    scenicStatusFilter.length > 0 ||
     typeFilter.length > 0 ||
-    proxyFilter !== 'all' ||
     companyFilter !== '';
 
   const clearAllFilters = () => {
-    setStatusFilter([]);
+    setScenicStatusFilter([]);
     setTypeFilter([]);
-    setProxyFilter('all');
     setCompanyFilter('');
-    pushFiltersToUrl([], [], 'all', '');
+    pushFiltersToUrl([], [], '');
   };
 
-  const toggleStatus = (v: string) => {
-    const next = statusFilter.includes(v) ? statusFilter.filter(x => x !== v) : [...statusFilter, v];
-    setStatusFilter(next);
-    pushFiltersToUrl(next, typeFilter, proxyFilter, companyFilter);
+  const toggleScenicStatus = (v: string) => {
+    const next = scenicStatusFilter.includes(v) ? scenicStatusFilter.filter(x => x !== v) : [...scenicStatusFilter, v];
+    setScenicStatusFilter(next);
+    pushFiltersToUrl(next, typeFilter, companyFilter);
   };
 
   const toggleType = (v: string) => {
     const next = typeFilter.includes(v) ? typeFilter.filter(x => x !== v) : [...typeFilter, v];
     setTypeFilter(next);
-    pushFiltersToUrl(statusFilter, next, proxyFilter, companyFilter);
+    pushFiltersToUrl(scenicStatusFilter, next, companyFilter);
   };
 
-  // ── Enrich with AV status and sort ──────────────────────────────────────────
+  // ── Scenic status write to Firestore ────────────────────────────────────────
+
+  const handleScenicStatusChange = async (submissionId: string, value: string) => {
+    if (!firestore) return;
+    const docRef = doc(firestore, 'submissions', submissionId);
+    try {
+      if (value === '__unset__') {
+        await updateDoc(docRef, { scenicStatus: deleteField() });
+        toast({ title: 'Scenic status cleared' });
+      } else {
+        await updateDoc(docRef, { scenicStatus: value });
+        toast({ title: `Scenic status set to ${value}` });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Save failed', description: 'Could not update scenic status.' });
+    }
+  };
+
+  // ── Enrich: filter to AV-ordered sessions, compute scenic items ─────────────
 
   const enriched = useMemo(() =>
-    submissions.map(sub => ({
-      ...sub,
-      _avStatus: getAVStatus(sub),
-    })),
+    submissions
+      .filter(sub => sub.avSelected === true)
+      .map(sub => ({
+        ...sub,
+        _scenic: getScenicItems(sub),
+        _statusLabel: sub.scenicStatus || 'Unset',
+      })),
     [submissions],
   );
 
   const filtered = useMemo(() =>
     enriched.filter(sub => {
       if (companyFilter && !sub.companyName?.toLowerCase().includes(companyFilter.toLowerCase())) return false;
-      if (statusFilter.length > 0 && !statusFilter.includes(sub._avStatus.label)) return false;
+      if (scenicStatusFilter.length > 0) {
+        const label = sub.scenicStatus || 'Unset';
+        if (!scenicStatusFilter.includes(label)) return false;
+      }
       if (typeFilter.length > 0 && !typeFilter.includes(sub.sessionType)) return false;
-      if (proxyFilter === 'yes' && !sub.isProxy) return false;
-      if (proxyFilter === 'no' && sub.isProxy) return false;
       return true;
     }),
-    [enriched, companyFilter, statusFilter, typeFilter, proxyFilter],
+    [enriched, companyFilter, scenicStatusFilter, typeFilter],
   );
 
   const sorted = useMemo(() =>
     [...filtered].sort((a, b) => {
-      const aOrder = AV_STATUS_SORT_ORDER[a._avStatus.label] ?? 99;
-      const bOrder = AV_STATUS_SORT_ORDER[b._avStatus.label] ?? 99;
+      // Unset / no scenic items get priority 0 (surface first)
+      const aHasItems = a._scenic.included.length > 0 || a._scenic.addOns.length > 0;
+      const bHasItems = b._scenic.included.length > 0 || b._scenic.addOns.length > 0;
+
+      const aOrder = !a.scenicStatus ? 0
+        : !aHasItems ? 0
+        : SCENIC_STATUS_SORT_ORDER[a.scenicStatus] ?? 99;
+      const bOrder = !b.scenicStatus ? 0
+        : !bHasItems ? 0
+        : SCENIC_STATUS_SORT_ORDER[b.scenicStatus] ?? 99;
+
       if (aOrder !== bOrder) return aOrder - bOrder;
-      // Secondary sort: company name alphabetical
       return (a.companyName ?? '').localeCompare(b.companyName ?? '');
     }),
     [filtered],
   );
 
-  // ── Status count badges ─────────────────────────────────────────────────────
+  // ── Status counts ───────────────────────────────────────────────────────────
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const sub of enriched) {
-      counts[sub._avStatus.label] = (counts[sub._avStatus.label] || 0) + 1;
+      const label = sub.scenicStatus || 'Unset';
+      counts[label] = (counts[label] || 0) + 1;
     }
     return counts;
   }, [enriched]);
 
   return (
-    <TooltipProvider delayDuration={200}>
+    <>
       {/* ── Filter Bar ── */}
       <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-muted/30 px-4 py-3">
 
@@ -267,7 +236,7 @@ export default function AVOrdersTable() {
               onChange={e => {
                 const val = e.target.value;
                 setCompanyFilter(val);
-                pushFiltersToUrl(statusFilter, typeFilter, proxyFilter, val);
+                pushFiltersToUrl(scenicStatusFilter, typeFilter, val);
               }}
               placeholder="Company…"
               className="h-8 pl-8 pr-7 text-sm w-44 rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -277,7 +246,7 @@ export default function AVOrdersTable() {
                 type="button"
                 onClick={() => {
                   setCompanyFilter('');
-                  pushFiltersToUrl(statusFilter, typeFilter, proxyFilter, '');
+                  pushFiltersToUrl(scenicStatusFilter, typeFilter, '');
                 }}
                 className="absolute right-2 text-muted-foreground hover:text-foreground"
                 aria-label="Clear company filter"
@@ -288,18 +257,18 @@ export default function AVOrdersTable() {
           </div>
         </div>
 
-        {/* AV Status multi-toggle */}
+        {/* Scenic Status multi-toggle */}
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">AV Status</span>
+          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Scenic Status</span>
           <div className="flex flex-wrap gap-1">
-            {AV_STATUS_LABELS.map(label => (
+            {SCENIC_FILTER_LABELS.map(label => (
               <button
                 key={label}
                 type="button"
-                onClick={() => toggleStatus(label)}
+                onClick={() => toggleScenicStatus(label)}
                 className={cn(
                   'px-2.5 py-1 rounded-md text-xs font-medium transition-colors border whitespace-nowrap',
-                  statusFilter.includes(label)
+                  scenicStatusFilter.includes(label)
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-background text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground',
                 )}
@@ -332,12 +301,6 @@ export default function AVOrdersTable() {
             ))}
           </div>
         </div>
-
-        {/* Proxy */}
-        <ThreeWay label="Proxy" value={proxyFilter} onChange={(v) => {
-          setProxyFilter(v);
-          pushFiltersToUrl(statusFilter, typeFilter, v, companyFilter);
-        }} />
 
         {/* Clear */}
         {hasActiveFilters && (
@@ -374,36 +337,34 @@ export default function AVOrdersTable() {
                   <TableHead>Company</TableHead>
                   <TableHead>Session Title</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead className="text-center">Proxy</TableHead>
-                  <TableHead>Package</TableHead>
-                  <TableHead className="text-right">Order Total</TableHead>
-                  <TableHead className="text-center">AV Status</TableHead>
+                  <TableHead className="min-w-[260px]">Scenic Items</TableHead>
+                  <TableHead className="min-w-[180px]">Scenic Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sorted.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={5}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       {hasActiveFilters
                         ? 'No sessions match the active filters.'
-                        : 'No sessions found.'}
+                        : 'No sessions with AV orders found.'}
                     </TableCell>
                   </TableRow>
                 ) : (
                   sorted.map(item => {
                     const TypeIcon = SESSION_TYPE_CONFIG[item.sessionType]?.icon || Briefcase;
                     const typeLabel = SESSION_TYPE_CONFIG[item.sessionType]?.label || 'Workshop';
-                    const av = item.avSelection;
-                    const status = item._avStatus;
+                    const scenic = item._scenic;
+                    const hasItems = scenic.included.length > 0 || scenic.addOns.length > 0;
 
                     return (
                       <TableRow
                         key={item.id}
                         className="cursor-pointer"
-                        onClick={() => router.push(`/submit/${item.sessionType}/${item.id}?from=av-orders`)}
+                        onClick={() => router.push(`/submit/${item.sessionType}/${item.id}?from=scenic`)}
                       >
                         {/* Company */}
                         <TableCell className="text-sm font-medium">
@@ -423,47 +384,51 @@ export default function AVOrdersTable() {
                           </div>
                         </TableCell>
 
-                        {/* Proxy */}
-                        <TableCell className="text-center">
-                          {item.isProxy ? (
-                            <CheckCheck className="h-4 w-4 text-muted-foreground mx-auto" />
+                        {/* Scenic Items */}
+                        <TableCell>
+                          {!hasItems ? (
+                            <span className="text-sm text-amber-600 font-medium">
+                              No Scenic Items — Follow Up
+                            </span>
                           ) : (
-                            <span className="text-muted-foreground text-sm">—</span>
+                            <div className="flex flex-col gap-0.5">
+                              {scenic.included.map(item => (
+                                <span key={item} className="text-xs">
+                                  {item} <span className="text-muted-foreground">(Included)</span>
+                                </span>
+                              ))}
+                              {scenic.addOns.map(item => (
+                                <span key={item} className="text-xs">
+                                  {item}
+                                </span>
+                              ))}
+                            </div>
                           )}
                         </TableCell>
 
-                        {/* Package */}
-                        <TableCell className="text-sm">
-                          {av?.packageName || <span className="text-muted-foreground">—</span>}
-                        </TableCell>
-
-                        {/* Order Total */}
-                        <TableCell className="text-right text-sm tabular-nums">
-                          {av && av.orderTotal > 0
-                            ? formatDollars(av.orderTotal)
-                            : <span className="text-muted-foreground">—</span>}
-                        </TableCell>
-
-                        {/* AV Status badge with tooltip */}
-                        <TableCell className="text-center" onClick={e => e.stopPropagation()}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span>
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    'whitespace-nowrap cursor-help',
-                                    VARIANT_CLASSES[status.variant],
-                                  )}
-                                >
-                                  {status.label}
-                                </Badge>
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent side="left" className="max-w-xs text-xs leading-relaxed">
-                              {status.tooltip}
-                            </TooltipContent>
-                          </Tooltip>
+                        {/* Scenic Status */}
+                        <TableCell onClick={e => e.stopPropagation()}>
+                          <Select
+                            value={item.scenicStatus || '__unset__'}
+                            onValueChange={(v) => handleScenicStatusChange(item.id, v)}
+                          >
+                            <SelectTrigger className={cn(
+                              'h-8 text-xs font-medium w-[170px] border',
+                              item.scenicStatus
+                                ? STATUS_CLASSES[item.scenicStatus] ?? ''
+                                : 'border-border text-muted-foreground',
+                            )}>
+                              <SelectValue placeholder="To Do" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__unset__">
+                                <span className="text-muted-foreground">To Do</span>
+                              </SelectItem>
+                              {SCENIC_STATUS_OPTIONS.map(label => (
+                                <SelectItem key={label} value={label}>{label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                       </TableRow>
                     );
@@ -474,6 +439,6 @@ export default function AVOrdersTable() {
           </div>
         </CardContent>
       </Card>
-    </TooltipProvider>
+    </>
   );
 }

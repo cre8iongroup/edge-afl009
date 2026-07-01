@@ -36,11 +36,39 @@ export const AV_STATUS_LABELS = [
 ] as const;
 
 /**
+ * Maps the six known AV status labels to their badge variant.
+ * Used both for computed results and admin-set overrides.
+ */
+const LABEL_VARIANT_MAP: Record<string, AVStatusVariant> = {
+  'Not Started':        'muted',
+  'Add-Ons Due':        'destructive',
+  'No Charge':          'success',
+  'Paid':               'success',
+  'Invoice Requested':  'warning',
+  'Not Submitted':      'destructive',
+};
+
+/**
  * Derives the operational AV status for a given session submission.
- * Evaluation order matters — ADD-ONS DUE must be checked before NO CHARGE,
- * and INVOICE REQUESTED must be checked before NOT SUBMITTED.
+ *
+ * If submission.avStatus is set (admin override), it is returned directly
+ * with the matching variant. Otherwise the status is computed from the
+ * AV order and payment fields.
+ *
+ * Evaluation order matters — PAID and INVOICE REQUESTED are checked before
+ * ADD-ONS DUE so that active payment intent takes priority over package
+ * structure. ADD-ONS DUE is checked before NO CHARGE to catch the edge case.
  */
 export function getAVStatus(submission: Submission): AVStatusResult {
+  // ── Admin override — manually set avStatus takes priority ──────────────
+  if (submission.avStatus && typeof submission.avStatus === 'string' && submission.avStatus.trim()) {
+    return {
+      label: submission.avStatus,
+      tooltip: 'AV status manually set by admin.',
+      variant: LABEL_VARIANT_MAP[submission.avStatus] ?? 'default',
+    };
+  }
+
   const { avSelected, avSelection, paymentComplete, paymentStatus, paymentMethod } = submission;
 
   // 1. NOT STARTED — no AV order placed at all
@@ -54,8 +82,33 @@ export function getAVStatus(submission: Submission): AVStatusResult {
 
   // From here: avSelected === true AND avSelection exists
 
-  // 2. ADD-ONS DUE — free base package with paid add-ons, payment incomplete
-  //    (must be checked BEFORE No Charge to catch the edge case)
+  // 2. PAID — payment confirmed (any order total)
+  if (paymentStatus === 'complete') {
+    return {
+      label: avSelection.orderTotal === 0 ? 'No Charge' : 'Paid',
+      tooltip: avSelection.orderTotal === 0
+        ? 'Free package confirmed, no payment required. No action needed.'
+        : 'Payment confirmed. No action needed.',
+      variant: 'success',
+    };
+  }
+
+  // 3. INVOICE REQUESTED — manual payment requested, awaiting confirmation
+  //    (fires before ADD-ONS DUE so payment intent takes priority)
+  if (
+    paymentMethod === 'manual' &&
+    paymentStatus === 'awaiting_manual'
+  ) {
+    return {
+      label: 'Invoice Requested',
+      tooltip:
+        'Partner requested a manual invoice. Confirm the invoice was generated in Xero and follow up on payment receipt.',
+      variant: 'warning',
+    };
+  }
+
+  // 4. ADD-ONS DUE — free base package with paid add-ons, payment incomplete
+  //    (checked before NO CHARGE to catch the edge case)
   if (
     avSelection.finalPrice === 0 &&
     avSelection.addOnsTotal > 0 &&
@@ -69,7 +122,7 @@ export function getAVStatus(submission: Submission): AVStatusResult {
     };
   }
 
-  // 3. NO CHARGE — zero-cost order, payment confirmed
+  // 5. NO CHARGE — zero-cost order, payment not yet marked complete
   if (avSelection.orderTotal === 0 && paymentComplete === true) {
     return {
       label: 'No Charge',
@@ -78,34 +131,8 @@ export function getAVStatus(submission: Submission): AVStatusResult {
     };
   }
 
-  // From here: orderTotal > 0 (real balance)
-
-  // 4. PAID — real balance, payment confirmed
-  if (avSelection.orderTotal > 0 && paymentStatus === 'complete') {
-    return {
-      label: 'Paid',
-      tooltip: 'Payment confirmed. No action needed.',
-      variant: 'success',
-    };
-  }
-
-  // 5. INVOICE REQUESTED — manual payment requested, awaiting confirmation
-  //    (must be checked BEFORE Not Submitted)
-  if (
-    avSelection.orderTotal > 0 &&
-    paymentMethod === 'manual' &&
-    paymentStatus === 'awaiting_manual'
-  ) {
-    return {
-      label: 'Invoice Requested',
-      tooltip:
-        'Partner requested a manual invoice. Confirm the invoice was generated in Xero and follow up on payment receipt.',
-      variant: 'warning',
-    };
-  }
-
-  // 6. NOT SUBMITTED — fallback for real balance, payment incomplete
-  if (avSelection.orderTotal > 0 && paymentComplete !== true) {
+  // 6. NOT SUBMITTED — catch-all for remaining unpaid
+  if (paymentComplete !== true) {
     return {
       label: 'Not Submitted',
       tooltip:

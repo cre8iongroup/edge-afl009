@@ -73,6 +73,12 @@ export default function SidebarNav() {
       roles: ['internal', 'admin'],
     },
     {
+      href: '/scenic',
+      icon: Palette,
+      label: 'Scenic Orders',
+      roles: ['internal', 'admin'],
+    },
+    {
       label: 'Submit Session',
       roles: ['regular', 'client', 'internal', 'admin'],
       // Hidden post-deadline for regular role — partners can no longer submit or edit.
