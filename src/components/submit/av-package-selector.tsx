@@ -67,29 +67,61 @@ function AVLockedView({
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="space-y-4">
+
+        {/* Section 1 — Package */}
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Package</p>
-          <p className="text-sm font-semibold">{avSelection.packageName}</p>
+          <div className="flex items-baseline justify-between">
+            <p className="text-sm font-semibold">{avSelection.packageName}</p>
+            <p className="text-sm tabular-nums font-medium">
+              {avSelection.finalPrice === 0 ? 'Free' : formatPrice(avSelection.finalPrice)}
+            </p>
+          </div>
         </div>
-        <div className="space-y-1">
+
+        {/* Section 2 — Add-Ons */}
+        {avSelection.addOns.length > 0 && (
+          <div className="space-y-1.5 border-t pt-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Add-Ons</p>
+            {avSelection.addOns.map((label) => {
+              const addOnDef = getAddOnsForSessionType(avSelection.sessionType).find(a => a.label === label);
+              const priceCents = addOnDef?.deltaByPackage?.[avSelection.packageId] ?? addOnDef?.price ?? null;
+              return (
+                <div key={label} className="flex items-baseline justify-between text-sm">
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className="tabular-nums text-muted-foreground">
+                    {priceCents !== null ? `+${formatPrice(priceCents)}` : '—'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Pricing Tier */}
+        <div className="space-y-1 border-t pt-3">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pricing Tier</p>
           <p className="text-sm">{avSelection.pricingTier}</p>
         </div>
+
+        {/* Section 3 — What You're Getting (consolidated) */}
         {consolidatedItems.length > 0 && (
-          <div className="space-y-1 sm:col-span-2">
+          <div className="space-y-1 border-t pt-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">What You're Getting</p>
-            <p className="text-sm">{consolidatedItems.join(', ')}</p>
+            <p className="text-sm text-muted-foreground">{consolidatedItems.join(', ')}</p>
           </div>
         )}
-        <div className="space-y-1 sm:col-span-2 border-t pt-3">
+
+        {/* Order Total */}
+        <div className="space-y-1 border-t pt-3">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Order Total</p>
           <p className="text-lg font-bold">{formatPrice(avSelection.orderTotal)}</p>
         </div>
 
-        {/* ─── Stripe payment reference — renders only after Block 2 webhook writes these fields ─── */}
+        {/* Stripe payment reference */}
         {avSelection.stripePaymentIntentId && (
-          <div className="space-y-1 sm:col-span-2 border-t pt-3">
+          <div className="space-y-1 border-t pt-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Payment Reference</p>
             <p className="text-sm font-mono text-muted-foreground">{avSelection.stripePaymentIntentId}</p>
             {avSelection.stripeReceiptUrl && (

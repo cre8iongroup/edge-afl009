@@ -391,8 +391,8 @@ export function getPricingTier(now: Date = new Date()): PricingTier {
       name: 'Standard',
       multiplier: 1.0,
       label: 'Standard Pricing',
-      description: 'Submit by June 26 — AV orders close after this date.',
-      deadlineLabel: 'Orders close June 26',
+      description: 'Submit by July 7 — AV orders close after this date.',
+      deadlineLabel: 'Orders close July 7',
       isClosed: false,
     };
   }

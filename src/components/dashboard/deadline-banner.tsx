@@ -30,7 +30,7 @@ export default function DeadlineBanner() {
         <span className="font-semibold">Please note updated deadlines:&nbsp;</span>
         All presenter headshots and bios are due by{' '}
         <span className="font-semibold">June 22</span>. All session orders must be
-        finalized by <span className="font-semibold">June 26</span>. Any orders not
+        finalized by <span className="font-semibold">July 7</span>. Any orders not
         placed by the deadline risk forfeiture of your session placement.
       </p>
 
