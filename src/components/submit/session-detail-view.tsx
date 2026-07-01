@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -47,7 +48,8 @@ import PresenterSection from './presenter-section';
 import { AV_OPEN_DATE } from '@/lib/av-packages';
 import { useUser, useFirestore } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { getDoc, doc, collection, getDocs, query, where } from 'firebase/firestore';
+import { AV_STATUS_LABELS } from '@/lib/av-status';
+import { getDoc, doc, collection, getDocs, query, where, updateDoc, deleteField } from 'firebase/firestore';
 import { sendStatusUpdateEmail, sendSessionApprovedEmail, sendPaymentConfirmedEmail, sendRoomAssignedEmail, sendPresenterUpdateEmail } from '@/lib/actions';
 import { availableSlots } from '@/lib/schedule';
 
@@ -120,6 +122,34 @@ function AdminPanel({ submission }: { submission: Submission }) {
   const { updateSubmission } = useSubmissions();
   const { toast } = useToast();
   const { user } = useUser();
+  const firestore = useFirestore();
+
+  // ─ AV Status Override ───────────────────────────────────────────────
+  const [avStatusValue, setAvStatusValue] = useState(submission.avStatus ?? '');
+  const [avStatusSaving, setAvStatusSaving] = useState(false);
+
+  const handleAvStatusChange = async (value: string) => {
+    const isAuto = value === '__auto__';
+    setAvStatusValue(isAuto ? '' : value);
+    setAvStatusSaving(true);
+    try {
+      if (isAuto) {
+        // Delete the field from Firestore so getAVStatus() computes it
+        if (firestore) {
+          const docRef = doc(firestore, 'submissions', submission.id);
+          await updateDoc(docRef, { avStatus: deleteField() });
+        }
+      } else {
+        await updateSubmission({ ...submission, avStatus: value });
+      }
+      toast({ title: isAuto ? 'AV status reset to auto-computed' : `AV status set to ${value}` });
+    } catch {
+      setAvStatusValue(submission.avStatus ?? '');
+      toast({ variant: 'destructive', title: 'Save failed', description: 'Could not update AV status.' });
+    } finally {
+      setAvStatusSaving(false);
+    }
+  };
 
   // ─ Community tag ───────────────────────────────────────────────────────
   const [communityValue, setCommunityValue] = useState(submission.community ?? false);
@@ -227,6 +257,34 @@ function AdminPanel({ submission }: { submission: Submission }) {
         <CardDescription>These fields are only visible to internal team members.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+
+        {/* AV Status Override */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium flex items-center gap-1.5">
+            <Monitor className="h-3.5 w-3.5 text-muted-foreground" />
+            AV Status
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Manually set the AV status for this session. Use this to verify and categorize sessions during admin review.
+          </p>
+          <Select
+            value={avStatusValue || '__auto__'}
+            onValueChange={handleAvStatusChange}
+            disabled={avStatusSaving}
+          >
+            <SelectTrigger className="w-full max-w-xs">
+              <SelectValue placeholder="Auto (computed)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__auto__">
+                <span className="text-muted-foreground">Auto (computed)</span>
+              </SelectItem>
+              {AV_STATUS_LABELS.map(label => (
+                <SelectItem key={label} value={label}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         {/* Authorized Emails */}
         <div className="space-y-2">
@@ -1766,11 +1824,11 @@ export default function SessionDetailView({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <Link
-            href={from === 'review' ? '/review' : from === 'all-sessions' ? '/all-sessions' : '/dashboard'}
+            href={from === 'review' ? '/review' : from === 'all-sessions' ? '/all-sessions' : from === 'av-orders' ? '/av-orders' : from === 'scenic' ? '/scenic' : '/dashboard'}
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            {from === 'review' ? 'Back to Review Sessions' : from === 'all-sessions' ? 'Back to All Sessions' : 'Back to Dashboard'}
+            {from === 'review' ? 'Back to Review Sessions' : from === 'all-sessions' ? 'Back to All Sessions' : from === 'av-orders' ? 'Back to AV Orders' : from === 'scenic' ? 'Back to Scenic Orders' : 'Back to Dashboard'}
           </Link>
           <h1 className="font-headline text-3xl font-semibold">{submission.title}</h1>
           <p className="text-muted-foreground capitalize">{submission.sessionType.replace('-', ' ')} Submission</p>

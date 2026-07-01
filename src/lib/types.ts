@@ -46,6 +46,8 @@ export type Submission = {
   presenters?: Presenter[];         // Phase 2 full presenter profiles
   avSelected?: boolean;
   avSelection?: AVSelection;
+  avStatus?: string;              // admin-set AV status override — when set, getAVStatus() returns this instead of computing
+  scenicStatus?: string;          // admin-set scenic production status (To Do, Needs Partner Logo, In Progress, Ready for Convention)
   paymentComplete?: boolean;
   paymentMethod?: 'stripe' | 'manual' | 'free' | null;
   paymentStatus?: 'pending' | 'awaiting_manual' | 'complete';

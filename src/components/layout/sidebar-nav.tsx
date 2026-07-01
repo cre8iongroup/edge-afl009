@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/sidebar';
 import { useUser } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { LayoutDashboard, Users, FilePlus, Briefcase, Handshake, Presentation, Loader2, BookText, ClipboardCheck, Receipt, Palette } from 'lucide-react';
+import { LayoutDashboard, Users, FilePlus, Briefcase, Handshake, Presentation, Loader2, BookText, ClipboardCheck, ClipboardList, Receipt, Palette } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import React from 'react';
@@ -64,6 +64,18 @@ export default function SidebarNav() {
       href: '/all-sessions',
       icon: Users,
       label: 'All Sessions',
+      roles: ['internal', 'admin'],
+    },
+    {
+      href: '/av-orders',
+      icon: ClipboardList,
+      label: 'AV Orders',
+      roles: ['internal', 'admin'],
+    },
+    {
+      href: '/scenic',
+      icon: Palette,
+      label: 'Scenic Orders',
       roles: ['internal', 'admin'],
     },
     {
