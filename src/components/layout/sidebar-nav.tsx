@@ -73,7 +73,7 @@ export default function SidebarNav() {
       roles: ['internal', 'admin'],
     },
     {
-      href: '/scenic',
+      href: '/scenic-orders',
       icon: Palette,
       label: 'Scenic Orders',
       roles: ['internal', 'admin'],
