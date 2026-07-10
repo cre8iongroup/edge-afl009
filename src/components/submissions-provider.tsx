@@ -28,7 +28,7 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
 
     const submissionsCol = collection(firestore, 'submissions') as CollectionReference<Submission>;
 
-    if (['admin', 'internal', 'client'].includes(profile.role)) {
+    if (['admin', 'internal', 'client', 'superadmin'].includes(profile.role)) {
       return submissionsCol;
     } else {
       return query(submissionsCol, where('userId', '==', user.uid));
@@ -41,7 +41,7 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
   const delegateQuery = useMemoFirebase(() => {
     if (!firestore || !user || !profile) return null;
     // admin/internal/client already get everything from ownedQuery
-    if (['admin', 'internal', 'client'].includes(profile.role)) return null;
+    if (['admin', 'internal', 'client', 'superadmin'].includes(profile.role)) return null;
     // Only run if we have an email to query against
     if (!user.email) return null;
 

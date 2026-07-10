@@ -68,7 +68,7 @@ export default function OrderPage() {
   const [orderType, setOrderType] = useState<'manual' | 'free' | 'stripe' | null>(null);
 
   // Admin bypass — internal and admin roles are never affected by the date gate
-  const isAdmin = ['internal', 'admin'].includes(profile?.role ?? '');
+  const isAdmin = ['internal', 'admin', 'superadmin'].includes(profile?.role ?? '');
   // Show deadline-passed message instead of payment buttons for regular role post-deadline
   // (only when the order is not already finalized/paid)
   const portalClosed = isPortalClosed();

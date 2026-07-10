@@ -11,7 +11,7 @@ import SessionsTable from '@/components/shared/sessions-table';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const ALLOWED_ROLES = ['internal', 'admin', 'client'] as const;
+const ALLOWED_ROLES = ['internal', 'admin', 'client', 'superadmin'] as const;
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 

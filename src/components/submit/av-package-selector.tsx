@@ -164,7 +164,7 @@ function AVPackageSelectorInner({ submission }: AVPackageSelectorProps) {
   const { updateSubmission } = useSubmissions();
   const { user } = useUser();
   const { profile } = useUserProfile(user?.uid);
-  const isAdmin = ['internal', 'admin'].includes(profile?.role ?? '');
+  const isAdmin = ['internal', 'admin', 'superadmin'].includes(profile?.role ?? '');
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();

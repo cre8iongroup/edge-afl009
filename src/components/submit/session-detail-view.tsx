@@ -1680,7 +1680,7 @@ export default function SessionDetailView({
   const { updateSubmission } = useSubmissions();
   const { toast } = useToast();
   const router = useRouter();
-  const isAdmin = ['internal', 'admin'].includes(profile?.role ?? '');
+  const isAdmin = ['internal', 'admin', 'superadmin'].includes(profile?.role ?? '');
   const isClient = profile?.role === 'client';
 
   const [approvingId, setApprovingId] = useState<string | null>(null);

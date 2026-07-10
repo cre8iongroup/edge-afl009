@@ -24,7 +24,7 @@ export default function DashboardPage() {
   );
 
   const displayName = profile?.name && profile.name !== 'New Member' ? profile.name : '';
-  const isAdmin = ['internal', 'admin'].includes(profile?.role ?? '');
+  const isAdmin = ['internal', 'admin', 'superadmin'].includes(profile?.role ?? '');
   const portalClosed = isPortalClosed();
 
   return (
