@@ -63,49 +63,6 @@ type ProxyFilter = 'all' | 'yes' | 'no';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Formats a date + optional time string into e.g. "Aug 9 · 9:00 AM".
- * Handles JS Date, Firestore Timestamp, ISO string, and undefined gracefully.
- */
-function formatChoice(date?: Date | string | { toDate(): Date } | null, time?: string | null): string {
-  if (!date && !time) return '—';
-  const parts: string[] = [];
-  if (date) {
-    try {
-      const d =
-        typeof date === 'object' && 'toDate' in date && typeof (date as { toDate(): Date }).toDate === 'function'
-          ? (date as { toDate(): Date }).toDate()
-          : typeof date === 'string'
-            ? new Date(date)
-            : (date as Date);
-      parts.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }));
-    } catch {
-      parts.push(String(date));
-    }
-  }
-  if (time) parts.push(time);
-  return parts.join(' · ') || '—';
-}
-
-/**
- * Derives the 1st and 2nd choice date/time strings for a submission,
- * handling all three session types.
- */
-function resolveChoices(sub: Submission): { first: string; second: string } {
-  if (sub.sessionType === 'info-session') {
-    const times = sub.preferredTimes ?? [];
-    return {
-      first:  formatChoice(sub.preferredDate, times[0] ?? null),
-      second: times[1] ? times[1] : '—',
-    };
-  }
-  // workshop & reception
-  return {
-    first:  formatChoice(sub.preferredDate,  sub.preferredTime),
-    second: formatChoice(sub.preferredDate2, sub.preferredTime2),
-  };
-}
-
-/**
  * Resolves the speaker name from a submission.
  * Prefers the first presenter in the phase-2 array, falls back to legacy field.
  */
@@ -648,10 +605,6 @@ export default function SessionsTable({ role }: SessionsTableProps) {
                   <TableHead>Audience</TableHead>
                   {/* Status */}
                   <TableHead className="text-center">Status</TableHead>
-                  {/* 1st Choice */}
-                  <TableHead>1st Choice</TableHead>
-                  {/* 2nd Choice */}
-                  <TableHead>2nd Choice</TableHead>
                   {/* Room */}
                   <TableHead>Room</TableHead>
                   {/* Speaker */}
@@ -672,7 +625,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
                 {filtered.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={isAdmin ? 16 : 15}
+                      colSpan={isAdmin ? 14 : 13}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       {hasActiveFilters
@@ -687,7 +640,6 @@ export default function SessionsTable({ role }: SessionsTableProps) {
                     const typeLabel = SESSION_TYPE_CONFIG[item.sessionType]?.label || 'Workshop';
                     const userName  = (item._user.name && item._user.name !== 'New Member') ? item._user.name : item._user.email;
                     const fallback  = userName?.charAt(0) || '';
-                    const choices   = resolveChoices(item);
                     const speaker   = resolveSpeaker(item);
                     const partnerEmail = item.pocEmail ?? item.presenterPocEmail ?? null;
                     const avOrdered = item.avSelected === true;
@@ -780,16 +732,6 @@ export default function SessionsTable({ role }: SessionsTableProps) {
                             <span className={cn('inline-block h-2 w-2 rounded-full shrink-0', statusCfg.dot)} />
                             {statusCfg.label}
                           </Badge>
-                        </TableCell>
-
-                        {/* 1st Choice */}
-                        <TableCell className="text-sm whitespace-nowrap">
-                          {choices.first}
-                        </TableCell>
-
-                        {/* 2nd Choice */}
-                        <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
-                          {choices.second}
                         </TableCell>
 
                         {/* Room */}
