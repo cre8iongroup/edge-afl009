@@ -12,7 +12,7 @@ export default function AllSessionsPage() {
   const { profile, isLoading: isProfileLoading } = useUserProfile(user?.uid);
   const router = useRouter();
 
-  const canViewPage = !isUserLoading && !isProfileLoading && user && profile && ['internal', 'admin'].includes(profile.role);
+  const canViewPage = !isUserLoading && !isProfileLoading && user && profile && ['internal', 'admin', 'superadmin'].includes(profile.role);
 
   useEffect(() => {
     if (!isUserLoading && !isProfileLoading) {
@@ -20,7 +20,7 @@ export default function AllSessionsPage() {
         router.push('/');
         return;
       }
-      if (!profile || !['internal', 'admin'].includes(profile.role)) {
+      if (!profile || !['internal', 'admin', 'superadmin'].includes(profile.role)) {
         router.push('/dashboard');
       }
     }

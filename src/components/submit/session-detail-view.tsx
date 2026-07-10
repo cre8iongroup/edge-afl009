@@ -45,6 +45,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import AVPackageSelector from './av-package-selector';
 import PresenterSection from './presenter-section';
+import AiNotesSection from './ai-notes-section';
 import { AV_OPEN_DATE } from '@/lib/av-packages';
 import { useUser, useFirestore } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
@@ -1476,6 +1477,9 @@ function Phase2View({ submission, isAdmin, isClient }: { submission: Submission;
 
       <SubmissionSummaryCard submission={submission} />
 
+      {/* AI Session Notes — feature-flagged; hidden from client role */}
+      {!isClient && <AiNotesSection submission={submission} />}
+
       <div className="flex flex-col gap-4">
 
         {/* Task 1 — Presenters (workshop & info-session only) */}
@@ -1534,6 +1538,9 @@ function Phase3View({ submission, isAdmin, isClient }: { submission: Submission;
 
       {/* Submission Summary */}
       <SubmissionSummaryCard submission={submission} />
+
+      {/* AI Session Notes — feature-flagged; hidden from client role */}
+      {!isClient && <AiNotesSection submission={submission} />}
 
       {/* Presenters — editable until July 6 (hidden for receptions) */}
       {!isReception && (
@@ -1598,6 +1605,9 @@ function Phase4View({ submission, isAdmin, isClient }: { submission: Submission;
       </Card>
 
       <SubmissionSummaryCard submission={submission} />
+
+      {/* AI Session Notes — feature-flagged; hidden from client role */}
+      {!isClient && <AiNotesSection submission={submission} />}
 
       {submission.presenters && submission.presenters.length > 0 && (
         <Card>
@@ -1680,7 +1690,7 @@ export default function SessionDetailView({
   const { updateSubmission } = useSubmissions();
   const { toast } = useToast();
   const router = useRouter();
-  const isAdmin = ['internal', 'admin'].includes(profile?.role ?? '');
+  const isAdmin = ['internal', 'admin', 'superadmin'].includes(profile?.role ?? '');
   const isClient = profile?.role === 'client';
 
   const [approvingId, setApprovingId] = useState<string | null>(null);

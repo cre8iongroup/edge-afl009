@@ -21,7 +21,7 @@ service cloud.firestore {
 
     // Checks if the requesting user is an admin or internal user.
     function isInternalOrAdmin() {
-      return isSignedIn() && requestorRole() in ['internal', 'admin'];
+      return isSignedIn() && requestorRole() in ['internal', 'admin', 'superadmin'];
     }
 
     // Checks if the requesting user is a superadmin.

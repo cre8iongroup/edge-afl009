@@ -37,7 +37,7 @@ export default function SidebarNav() {
       href: '/dashboard',
       icon: LayoutDashboard,
       label: 'Dashboard',
-      roles: ['regular', 'client', 'internal', 'admin'],
+      roles: ['regular', 'client', 'internal', 'admin', 'superadmin'],
     },
     {
       href: '/order',
@@ -49,7 +49,7 @@ export default function SidebarNav() {
       href: '/scenic',
       icon: Palette,
       label: 'Scenic Assets',
-      roles: ['regular', 'admin'],
+      roles: ['regular', 'admin', 'superadmin'],
       hideWhenClosed: true,
       closedFn: isScenicClosed,
       isNew: true,
@@ -58,25 +58,25 @@ export default function SidebarNav() {
       href: '/review',
       icon: ClipboardCheck,
       label: 'Review Sessions',
-      roles: ['internal', 'admin', 'client'],
+      roles: ['internal', 'admin', 'client', 'superadmin'],
     },
     {
       href: '/all-sessions',
       icon: Users,
       label: 'All Sessions',
-      roles: ['internal', 'admin'],
+      roles: ['internal', 'admin', 'superadmin'],
     },
     {
       href: '/av-orders',
       icon: ClipboardList,
       label: 'AV Orders',
-      roles: ['internal', 'admin'],
+      roles: ['internal', 'admin', 'superadmin'],
     },
     {
       href: '/scenic-orders',
       icon: Palette,
       label: 'Scenic Orders',
-      roles: ['internal', 'admin'],
+      roles: ['internal', 'admin', 'superadmin'],
     },
     {
       href: '/system',
@@ -86,7 +86,7 @@ export default function SidebarNav() {
     },
     {
       label: 'Submit Session',
-      roles: ['regular', 'client', 'internal', 'admin'],
+      roles: ['regular', 'client', 'internal', 'admin', 'superadmin'],
       // Hidden post-deadline for regular role — partners can no longer submit or edit.
       // internal/admin always see it regardless of date (bypassed in filter below).
       hideWhenClosed: true,
@@ -108,7 +108,7 @@ export default function SidebarNav() {
   }
 
   const userRole = profile?.role || 'regular';
-  const isAdmin = ['internal', 'admin'].includes(userRole);
+  const isAdmin = ['internal', 'admin', 'superadmin'].includes(userRole);
   const scenicClosed = isScenicClosed();
 
   return (
