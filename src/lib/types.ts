@@ -3,7 +3,7 @@ export type UserProfile = {
   name: string;
   email: string;
   avatar: string;
-  role: 'client' | 'internal' | 'regular' | 'admin';
+  role: 'client' | 'internal' | 'regular' | 'admin' | 'superadmin';
 };
 
 export type Presenter = {

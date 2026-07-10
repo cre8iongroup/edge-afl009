@@ -24,6 +24,11 @@ service cloud.firestore {
       return isSignedIn() && requestorRole() in ['internal', 'admin'];
     }
 
+    // Checks if the requesting user is a superadmin.
+    function isSuperAdmin() {
+      return isSignedIn() && requestorRole() == 'superadmin';
+    }
+
     // Checks if the requesting user is a client.
     function isClient() {
       return isSignedIn() && requestorRole() == 'client';
@@ -97,6 +102,12 @@ service cloud.firestore {
     match /scenic_assets/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isInternalOrAdmin());
       allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Feature flags — readable by any signed-in user, writable only by superadmin.
+    match /feature_flags/{flagId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
     }
   }
 }

@@ -1824,11 +1824,11 @@ export default function SessionDetailView({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <Link
-            href={from === 'review' ? '/review' : from === 'all-sessions' ? '/all-sessions' : from === 'av-orders' ? '/av-orders' : from === 'scenic' ? '/scenic' : '/dashboard'}
+            href={from === 'review' ? '/review' : from === 'all-sessions' ? '/all-sessions' : from === 'av-orders' ? '/av-orders' : from === 'scenic-orders' ? '/scenic-orders' : '/dashboard'}
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            {from === 'review' ? 'Back to Review Sessions' : from === 'all-sessions' ? 'Back to All Sessions' : from === 'av-orders' ? 'Back to AV Orders' : from === 'scenic' ? 'Back to Scenic Orders' : 'Back to Dashboard'}
+            {from === 'review' ? 'Back to Review Sessions' : from === 'all-sessions' ? 'Back to All Sessions' : from === 'av-orders' ? 'Back to AV Orders' : from === 'scenic-orders' ? 'Back to Scenic Orders' : 'Back to Dashboard'}
           </Link>
           <h1 className="font-headline text-3xl font-semibold">{submission.title}</h1>
           <p className="text-muted-foreground capitalize">{submission.sessionType.replace('-', ' ')} Submission</p>

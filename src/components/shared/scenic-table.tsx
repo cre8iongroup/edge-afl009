@@ -364,7 +364,7 @@ export default function ScenicTable() {
                       <TableRow
                         key={item.id}
                         className="cursor-pointer"
-                        onClick={() => router.push(`/submit/${item.sessionType}/${item.id}?from=scenic`)}
+                        onClick={() => router.push(`/submit/${item.sessionType}/${item.id}?from=scenic-orders`)}
                       >
                         {/* Company */}
                         <TableCell className="text-sm font-medium">

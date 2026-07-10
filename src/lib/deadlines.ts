@@ -5,8 +5,8 @@
 /** Portal closes after this instant. July 8 00:00 = July 7 is the last full day. */
 export const PORTAL_CLOSE_DATE = new Date(2026, 6, 8);
 
-/** Scenic asset uploads (headshots, logos) remain open until this instant. June 30 EOD. */
-export const SCENIC_CLOSE_DATE = new Date(2026, 6, 1);
+/** Scenic asset uploads (headshots, logos) remain open until this instant. July 10 EOD. */
+export const SCENIC_CLOSE_DATE = new Date(2026, 6, 11);
 
 /** Display-only: deadline shown in the pre-deadline banner. */
 export const PRESENTER_DEADLINE = new Date(2026, 5, 22); // June 22
