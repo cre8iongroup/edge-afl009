@@ -11,6 +11,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PORTAL_CLOSE_DATE } from '@/lib/deadlines';
+import { useUser } from '@/firebase';
+import { useUserProfile } from '@/hooks/use-user-profile';
 import {
   UserPlus,
   Pencil,
@@ -486,7 +488,10 @@ export default function PresenterSection({ submission }: PresenterSectionProps) 
   const { updateSubmission } = useSubmissions();
   const storage = useStorage();
   const { toast } = useToast();
-  const locked = isLocked();
+  const { user } = useUser();
+  const { profile } = useUserProfile(user?.uid);
+  const isAdmin = ['internal', 'admin', 'superadmin'].includes(profile?.role ?? '');
+  const locked = isLocked() && !isAdmin;
 
   // Initialise local drafts from Firestore data (or empty first card)
   const [drafts, setDrafts] = useState<DraftPresenter[]>(() => {
