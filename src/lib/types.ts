@@ -85,6 +85,12 @@ export type Submission = {
   authorizedEmails?: string[];    // additional emails granted read/edit access; original owner always retains access
   community?: boolean;            // workshop-only community tag set by admin
   isProxy?: boolean;              // session submitted by admin on behalf of partner
+  // ─── AI Session Notes ────────────────────────────────────────────────────────
+  aiNotesOptOut?: boolean;        // false/undefined = opted in (default); true = opted out
+  aiNotesConsentLog?: Array<{     // append-only consent history — never overwrite
+    action: 'opted_out' | 'opted_in';
+    timestamp: string;            // ISO
+  }>;
 };
 
     
