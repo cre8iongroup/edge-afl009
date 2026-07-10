@@ -1590,6 +1590,7 @@ function Phase3View({ submission, isAdmin, isClient }: { submission: Submission;
 function Phase4View({ submission, isAdmin, isClient }: { submission: Submission; isAdmin: boolean; isClient: boolean }) {
   const cfg = phaseConfig.phase_4;
   const Icon = cfg.icon;
+  const isReception = submission.sessionType === 'reception';
   return (
     <div className="space-y-6">
       <Card className={cfg.bannerClassName}>
@@ -1609,25 +1610,43 @@ function Phase4View({ submission, isAdmin, isClient }: { submission: Submission;
       {/* AI Session Notes — feature-flagged; hidden from client role */}
       {!isClient && <AiNotesSection submission={submission} />}
 
-      {submission.presenters && submission.presenters.length > 0 && (
-        <Card>
+      {/* Presenters — editable for admin/internal/superadmin; read-only for partners */}
+      {isAdmin && !isReception ? (
+        <Card className="border-green-500/40">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">Presenters</CardTitle>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+              <CardTitle className="text-base font-semibold text-green-700">Presenters</CardTitle>
+            </div>
+            <CardDescription className="text-sm text-muted-foreground">
+              Edit presenter details and headshots for this confirmed session.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {submission.presenters.map((p) => (
-              <div key={p.id} className="flex items-center gap-3 rounded-md border p-3">
-                {p.headshotUrl && (
-                  <img src={p.headshotUrl} alt={p.name} className="h-9 w-9 rounded-full object-cover shrink-0" />
-                )}
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{p.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{p.title} · {p.company}</p>
-                </div>
-              </div>
-            ))}
+          <CardContent>
+            <PresenterSection submission={submission} />
           </CardContent>
         </Card>
+      ) : (
+        submission.presenters && submission.presenters.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">Presenters</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {submission.presenters.map((p) => (
+                <div key={p.id} className="flex items-center gap-3 rounded-md border p-3">
+                  {p.headshotUrl && (
+                    <img src={p.headshotUrl} alt={p.name} className="h-9 w-9 rounded-full object-cover shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{p.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{p.title} · {p.company}</p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )
       )}
 
       {/* Room & time assignment */}
