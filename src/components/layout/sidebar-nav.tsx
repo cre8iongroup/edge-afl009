@@ -7,7 +7,8 @@ import {
 } from '@/components/ui/sidebar';
 import { useUser } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { LayoutDashboard, Users, FilePlus, Briefcase, Handshake, Presentation, Loader2, BookText, ClipboardCheck, ClipboardList, Receipt, Palette, Settings } from 'lucide-react';
+import { usePageAllowlist } from '@/hooks/use-page-allowlist';
+import { LayoutDashboard, Users, Briefcase, Handshake, Presentation, Loader2, BookText, ClipboardCheck, ClipboardList, Receipt, Palette, Settings, FileText } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import React from 'react';
@@ -16,6 +17,8 @@ import { isPortalClosed, isScenicClosed } from '@/lib/deadlines';
 export default function SidebarNav() {
   const { user } = useUser();
   const { profile, isLoading } = useUserProfile(user?.uid);
+  const { allowed: aiNotesStatusAllowed, isLoading: aiNotesAllowlistLoading } =
+    usePageAllowlist('ai_notes_status');
   const pathname = usePathname();
 
   // ── Nav item type ────────────────────────────────────────────────────────
@@ -23,12 +26,15 @@ export default function SidebarNav() {
     href?: string;
     icon?: React.ElementType;
     label: string;
+    /** Empty = role gate skipped (use requireAllowlist instead). */
     roles: string[];
     hideWhenClosed?: boolean;
     /** Custom closed predicate. Falls back to isPortalClosed() when absent. */
     closedFn?: () => boolean;
     /** When true, renders a "New" badge that auto-hides when closedFn() returns true. */
     isNew?: boolean;
+    /** When set, item is shown only if that page allowlist includes the user email. */
+    requireAllowlist?: 'ai_notes_status';
     subItems?: { href: string; icon: React.ElementType; label: string }[];
   };
 
@@ -79,6 +85,13 @@ export default function SidebarNav() {
       roles: ['internal', 'admin', 'superadmin'],
     },
     {
+      href: '/ai-notes-status',
+      icon: FileText,
+      label: 'AI Notes Status',
+      roles: [],
+      requireAllowlist: 'ai_notes_status',
+    },
+    {
       href: '/system',
       icon: Settings,
       label: 'System',
@@ -115,9 +128,14 @@ export default function SidebarNav() {
     <SidebarMenu>
       {navItems
         .filter(item => {
-          // 1. Role gate — always applied
+          // 1. Email allowlist gate (page-specific; independent of role)
+          if (item.requireAllowlist === 'ai_notes_status') {
+            if (aiNotesAllowlistLoading || !aiNotesStatusAllowed) return false;
+            return true;
+          }
+          // 2. Role gate
           if (!item.roles.includes(userRole)) return false;
-          // 2. Date gate — hide items flagged hideWhenClosed for non-admin users post-deadline.
+          // 3. Date gate — hide items flagged hideWhenClosed for non-admin users post-deadline.
           //    Uses item.closedFn() when present, falls back to isPortalClosed().
           if (item.hideWhenClosed && !isAdmin) {
             const closed = item.closedFn ? item.closedFn() : isPortalClosed();
