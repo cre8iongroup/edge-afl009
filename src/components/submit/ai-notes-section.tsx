@@ -20,10 +20,46 @@ import { FileText, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
-// PLACEHOLDER — pending final language from Gissela, not yet approved.
-const CONSENT_COPY = `Note: Live AI translation & captioning runs on every session for accessibility and is not affected by this choice. This checkbox controls AI note-taking only.
-
-By leaving this box checked, I consent to the AI-powered capture, transcription, and summarization of this session, including spoken remarks, questions, responses, and discussion points. I understand these notes, transcripts, and summaries will be shared with ALPFA members and may be used by ALPFA in promotional, marketing, or educational materials. ALPFA handles these materials in accordance with applicable data privacy regulations and its internal data governance policies, and access to any session audio is limited to authorized personnel on a need-to-know basis. I understand I may opt this session out of note-taking until 72 hours before it begins, after which the selection is final.`;
+// FINAL — approved by Esperanza, July 14, 2026.
+// Known gap: copy states a 72-hour pre-session opt-out cutoff, but the app does not
+// enforce that lock for this show year — intentional, not a bug.
+function ConsentCopy() {
+  return (
+    <>
+      <p>
+        Note: Live AI translation &amp; captioning runs on every session for accessibility and is
+        not affected by this choice. This checkbox controls AI note-taking only.
+      </p>
+      <p>
+        By leaving this box checked, I consent to the AI-powered capture, transcription, and
+        summarization of this session, including spoken remarks, questions, responses, and
+        discussion points. I understand these notes, transcripts, and summaries will be shared with
+        ALPFA members and may be used by ALPFA in promotional, marketing, or educational materials.
+        ALPFA handles these materials in accordance with its{' '}
+        <a
+          href="https://alpfa.org/cms/wp-content/uploads/2026/04/2026-05-Final_Website-Terms-of-Service.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline text-foreground"
+        >
+          Terms of Service
+        </a>
+        ,{' '}
+        <a
+          href="https://alpfa.org/cms/wp-content/uploads/2026/04/2026-05-Final_Website-Privacy-Policy.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline text-foreground"
+        >
+          Privacy Policy
+        </a>
+        , and applicable data privacy regulations, and access to any session audio is limited to
+        authorized personnel on a need-to-know basis. I understand I may opt this session out of
+        note-taking until 72 hours before it begins, after which the selection is final.
+      </p>
+    </>
+  );
+}
 
 function formatLocalTimestamp(iso: string): string {
   try {
@@ -148,8 +184,8 @@ export default function AiNotesSection({ submission }: { submission: Submission 
               {pendingAction === 'opted_out' ? 'Opt out of AI notes?' : 'Opt back in to AI notes?'}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-3 text-sm text-muted-foreground whitespace-pre-wrap">
-                {CONSENT_COPY}
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <ConsentCopy />
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
