@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Presenter, Submission } from '@/lib/types';
 import { useSubmissions } from '@/components/submissions-provider';
 import { getAVStatus, type AVStatusResult } from '@/lib/av-status';
@@ -244,6 +244,195 @@ async function downloadHeadshotJpeg(url: string, filename: string) {
   URL.revokeObjectURL(objectUrl);
 }
 
+function truncateLabel(text: string, max = 48): string {
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
+/**
+ * Exact-match company select — adapted from sessions-table CompanyCombobox.
+ * Typing filters the option list; selecting commits an exact companyName value.
+ * Typing alone does not apply a substring filter to the table.
+ */
+function CompanyExactCombobox({
+  options,
+  value,
+  onChange,
+}: {
+  options: string[];
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [inputVal, setInputVal] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setInputVal(value);
+  }, [value]);
+
+  const filtered = useMemo(() => {
+    if (!inputVal) return options;
+    const lower = inputVal.toLowerCase();
+    return options.filter(o => o.toLowerCase().includes(lower));
+  }, [inputVal, options]);
+
+  const handleSelect = (opt: string) => {
+    setInputVal(opt);
+    onChange(opt);
+    setOpen(false);
+  };
+
+  const handleClear = () => {
+    setInputVal('');
+    onChange('');
+    setOpen(false);
+    inputRef.current?.focus();
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <div className="relative flex items-center">
+          <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            ref={inputRef}
+            value={inputVal}
+            onChange={e => {
+              setInputVal(e.target.value);
+              if (!open) setOpen(true);
+              // Clearing the box clears the exact-match filter; typing does not
+              // apply a partial match until an option is selected.
+              if (!e.target.value) onChange('');
+            }}
+            onFocus={() => setOpen(true)}
+            placeholder="Company…"
+            className="h-8 pl-8 pr-7 text-sm w-44"
+          />
+          {inputVal && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute right-2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear company filter"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </PopoverTrigger>
+      {filtered.length > 0 && (
+        <PopoverContent
+          className="w-56 p-1 max-h-60 overflow-y-auto"
+          align="start"
+          onOpenAutoFocus={e => e.preventDefault()}
+        >
+          {filtered.map(opt => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => handleSelect(opt)}
+              className={cn(
+                'w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground',
+                value === opt && 'bg-accent text-accent-foreground font-medium',
+              )}
+            >
+              {opt}
+            </button>
+          ))}
+        </PopoverContent>
+      )}
+    </Popover>
+  );
+}
+
+/**
+ * Session title typeahead — live substring filter on every keystroke.
+ * Selecting a suggestion fills the input with the full title; filtering
+ * stays substring-based so the user can shorten afterward.
+ */
+function TitleTypeahead({
+  options,
+  value,
+  onChange,
+}: {
+  options: string[];
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = useMemo(() => {
+    if (!value.trim()) return options;
+    const lower = value.toLowerCase();
+    return options.filter(o => o.toLowerCase().includes(lower));
+  }, [value, options]);
+
+  const handleSelect = (opt: string) => {
+    onChange(opt);
+    setOpen(false);
+  };
+
+  const handleClear = () => {
+    onChange('');
+    setOpen(false);
+    inputRef.current?.focus();
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <div className="relative flex items-center">
+          <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            ref={inputRef}
+            value={value}
+            onChange={e => {
+              onChange(e.target.value);
+              if (!open) setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            placeholder="Title…"
+            className="h-8 pl-8 pr-7 text-sm w-52"
+          />
+          {value && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute right-2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear title filter"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </PopoverTrigger>
+      {filtered.length > 0 && (
+        <PopoverContent
+          className="w-72 p-1 max-h-60 overflow-y-auto"
+          align="start"
+          onOpenAutoFocus={e => e.preventDefault()}
+        >
+          {filtered.map(opt => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => handleSelect(opt)}
+              title={opt}
+              className={cn(
+                'w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground',
+                value === opt && 'bg-accent text-accent-foreground font-medium',
+              )}
+            >
+              {truncateLabel(opt)}
+            </button>
+          ))}
+        </PopoverContent>
+      )}
+    </Popover>
+  );
+}
+
 // ─── Main table ───────────────────────────────────────────────────────────────
 
 export default function AuditTable() {
@@ -275,13 +464,31 @@ export default function AuditTable() {
 
   const rows = useMemo(() => flattenSubmissions(submissions), [submissions]);
 
+  const companyOptions = useMemo(
+    () =>
+      [...new Set(rows.map(r => r.company).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [rows],
+  );
+
+  const titleOptions = useMemo(
+    () =>
+      [...new Set(rows.map(r => r.title).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [rows],
+  );
+
   const filtered = useMemo(() => {
-    const companyNeedle = companyFilter.trim().toLowerCase();
+    const companyExact = companyFilter.trim().toLowerCase();
     const titleNeedle = titleFilter.trim().toLowerCase();
 
     return rows.filter(row => {
       if (outstandingOnly && !row.outstanding) return false;
-      if (companyNeedle && !row.company.toLowerCase().includes(companyNeedle)) return false;
+      // Company: exact match only (set via combobox select)
+      if (companyExact && row.company.toLowerCase() !== companyExact) return false;
+      // Title: substring match (typeahead fills the box; user may shorten)
       if (titleNeedle && !row.title.toLowerCase().includes(titleNeedle)) return false;
       return true;
     });
@@ -344,30 +551,22 @@ export default function AuditTable() {
             <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Company
             </span>
-            <div className="relative flex items-center">
-              <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-              <Input
-                value={companyFilter}
-                onChange={e => setCompanyFilter(e.target.value)}
-                placeholder="Company…"
-                className="h-8 pl-8 w-44"
-              />
-            </div>
+            <CompanyExactCombobox
+              options={companyOptions}
+              value={companyFilter}
+              onChange={setCompanyFilter}
+            />
           </div>
 
           <div className="flex flex-col gap-1">
             <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Session title
             </span>
-            <div className="relative flex items-center">
-              <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-              <Input
-                value={titleFilter}
-                onChange={e => setTitleFilter(e.target.value)}
-                placeholder="Title…"
-                className="h-8 pl-8 w-52"
-              />
-            </div>
+            <TitleTypeahead
+              options={titleOptions}
+              value={titleFilter}
+              onChange={setTitleFilter}
+            />
           </div>
 
           <div className="flex flex-col gap-1">
