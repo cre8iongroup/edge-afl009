@@ -8,18 +8,43 @@ import {
 import { useUser } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { usePageAllowlist } from '@/hooks/use-page-allowlist';
-import { LayoutDashboard, Users, Briefcase, Handshake, Presentation, Loader2, BookText, ClipboardCheck, ClipboardList, Receipt, Palette, Settings, FileText } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Users,
+  Briefcase,
+  Handshake,
+  Presentation,
+  Loader2,
+  BookText,
+  ClipboardCheck,
+  ClipboardList,
+  Receipt,
+  Palette,
+  Settings,
+  FileText,
+  ClipboardPenLine,
+} from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import React from 'react';
 import { isPortalClosed, isScenicClosed } from '@/lib/deadlines';
 
+type PageAllowlistId = 'ai_notes_status' | 'audit';
+
 export default function SidebarNav() {
   const { user } = useUser();
   const { profile, isLoading } = useUserProfile(user?.uid);
-  const { allowed: aiNotesStatusAllowed, isLoading: aiNotesAllowlistLoading } =
-    usePageAllowlist('ai_notes_status');
+  const aiNotesAllowlist = usePageAllowlist('ai_notes_status');
+  const auditAllowlist = usePageAllowlist('audit');
   const pathname = usePathname();
+
+  const allowlistState: Record<
+    PageAllowlistId,
+    { allowed: boolean; isLoading: boolean }
+  > = {
+    ai_notes_status: aiNotesAllowlist,
+    audit: auditAllowlist,
+  };
 
   // ── Nav item type ────────────────────────────────────────────────────────
   type NavItem = {
@@ -34,7 +59,7 @@ export default function SidebarNav() {
     /** When true, renders a "New" badge that auto-hides when closedFn() returns true. */
     isNew?: boolean;
     /** When set, item is shown only if that page allowlist includes the user email. */
-    requireAllowlist?: 'ai_notes_status';
+    requireAllowlist?: PageAllowlistId;
     subItems?: { href: string; icon: React.ElementType; label: string }[];
   };
 
@@ -92,6 +117,13 @@ export default function SidebarNav() {
       requireAllowlist: 'ai_notes_status',
     },
     {
+      href: '/audit',
+      icon: ClipboardPenLine,
+      label: 'Audit',
+      roles: [],
+      requireAllowlist: 'audit',
+    },
+    {
       href: '/system',
       icon: Settings,
       label: 'System',
@@ -129,8 +161,9 @@ export default function SidebarNav() {
       {navItems
         .filter(item => {
           // 1. Email allowlist gate (page-specific; independent of role)
-          if (item.requireAllowlist === 'ai_notes_status') {
-            if (aiNotesAllowlistLoading || !aiNotesStatusAllowed) return false;
+          if (item.requireAllowlist) {
+            const state = allowlistState[item.requireAllowlist];
+            if (state.isLoading || !state.allowed) return false;
             return true;
           }
           // 2. Role gate

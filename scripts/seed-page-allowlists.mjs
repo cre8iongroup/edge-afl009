@@ -1,6 +1,5 @@
 /**
- * Seeds page_allowlists/ai_notes_status with an empty emails array
- * (creates the doc if missing; does not overwrite an existing list).
+ * Seeds page_allowlists docs (creates if missing; does not overwrite existing lists).
  *
  * Uses Firebase Admin SDK (bypasses Firestore security rules).
  * Run: node scripts/seed-page-allowlists.mjs
@@ -22,6 +21,8 @@ const PROJECT_ID = 'studio-244954263-1293f';
 
 const DOCS_TO_SEED = [
   { id: 'ai_notes_status', emails: [] },
+  // Verified against Firestore users: alex@cre8iongroup.com (superadmin).
+  { id: 'audit', emails: ['alex@cre8iongroup.com'] },
 ];
 
 // ── Initialize Firebase Admin SDK ─────────────────────────────────────────────
@@ -64,7 +65,7 @@ async function run() {
       continue;
     }
     await ref.set({ emails: item.emails });
-    console.log(`   ✅ ${item.id} = { emails: [] }`);
+    console.log(`   ✅ ${item.id} = { emails: ${JSON.stringify(item.emails)} }`);
   }
 
   console.log(`\n✅ Done.`);
