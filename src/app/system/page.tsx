@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react';
 import { collection, onSnapshot, doc, updateDoc, setDoc, CollectionReference } from 'firebase/firestore';
 import { Loader2, Plus, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import ClientErrorsPanel from '@/components/system/client-errors-panel';
 
 type FeatureFlag = {
   id: string;
@@ -283,6 +284,8 @@ export default function SystemPage() {
                 )}
               </CardContent>
             </Card>
+
+            <ClientErrorsPanel />
           </>
         )}
       </div>

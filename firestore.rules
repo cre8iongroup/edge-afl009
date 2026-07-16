@@ -116,5 +116,20 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isSuperAdmin();
     }
+
+    // Client error reports from error.tsx / global-error.tsx.
+    // Create: anyone (including signed-out — crashes can happen pre-login).
+    // Read: superadmin only (/system). No client update/delete.
+    match /client_errors/{errorId} {
+      allow create: if request.resource.data.keys().hasAll([
+          'source', 'message', 'timestamp'
+        ])
+        && request.resource.data.source is string
+        && request.resource.data.message is string
+        && request.resource.data.timestamp is string
+        && request.resource.data.message.size() < 2500;
+      allow read: if isSuperAdmin();
+      allow update, delete: if false;
+    }
   }
 }
