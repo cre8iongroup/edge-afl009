@@ -4,48 +4,29 @@ import AppLayout from '@/components/layout/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { useUser, useFirestore } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { usePageAllowlist } from '@/hooks/use-page-allowlist';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, doc, updateDoc, setDoc, CollectionReference } from 'firebase/firestore';
-import { Loader2, Plus, X } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { collection, onSnapshot, doc, updateDoc, CollectionReference } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
 import ClientErrorsPanel from '@/components/system/client-errors-panel';
+import PageAllowlistCard from '@/components/system/page-allowlist-card';
 
 type FeatureFlag = {
   id: string;
   enabled: boolean;
 };
 
-const AI_NOTES_ALLOWLIST_DOC = 'ai_notes_status';
-
-function normalizeEmail(email: string): string {
-  return email.toLowerCase().trim();
-}
-
 export default function SystemPage() {
   const { user, isUserLoading } = useUser();
   const { profile, isLoading: isProfileLoading } = useUserProfile(user?.uid);
   const router = useRouter();
   const firestore = useFirestore();
-  const { toast } = useToast();
 
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
   const [loadingFlags, setLoadingFlags] = useState(true);
   const [updatingFlag, setUpdatingFlag] = useState<string | null>(null);
-
-  const {
-    emails: allowlistEmails,
-    exists: allowlistExists,
-    isLoading: allowlistLoading,
-  } = usePageAllowlist(AI_NOTES_ALLOWLIST_DOC);
-
-  const [newEmail, setNewEmail] = useState('');
-  const [savingAllowlist, setSavingAllowlist] = useState(false);
 
   const canViewPage = !isUserLoading && !isProfileLoading && user && profile && profile.role === 'superadmin';
 
@@ -95,54 +76,6 @@ export default function SystemPage() {
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
-  };
-
-  const persistAllowlist = async (nextEmails: string[]) => {
-    if (!firestore) return;
-    setSavingAllowlist(true);
-    try {
-      const ref = doc(firestore, 'page_allowlists', AI_NOTES_ALLOWLIST_DOC);
-      if (allowlistExists) {
-        await updateDoc(ref, { emails: nextEmails });
-      } else {
-        await setDoc(ref, { emails: nextEmails });
-      }
-    } catch (err) {
-      console.error('Failed to update allowlist:', err);
-      toast({
-        variant: 'destructive',
-        title: 'Save failed',
-        description: 'Could not update the AI Notes Status allowlist.',
-      });
-    } finally {
-      setSavingAllowlist(false);
-    }
-  };
-
-  const handleAddEmail = async () => {
-    const email = normalizeEmail(newEmail);
-    if (!email || !email.includes('@')) {
-      toast({
-        variant: 'destructive',
-        title: 'Invalid email',
-        description: 'Enter a valid email address.',
-      });
-      return;
-    }
-    const already = allowlistEmails.some(e => normalizeEmail(e) === email);
-    if (already) {
-      toast({ title: 'Already on the list', description: email });
-      return;
-    }
-    await persistAllowlist([...allowlistEmails.map(normalizeEmail), email]);
-    setNewEmail('');
-  };
-
-  const handleRemoveEmail = async (email: string) => {
-    const target = normalizeEmail(email);
-    await persistAllowlist(
-      allowlistEmails.map(normalizeEmail).filter(e => e !== target),
-    );
   };
 
   if (isUserLoading || isProfileLoading) {
@@ -210,80 +143,17 @@ export default function SystemPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>AI Notes Status — Page Access</CardTitle>
-                <CardDescription>
-                  Emails allowed to view /ai-notes-status. Access is allowlist-only (not role-based).
-                  Stored at page_allowlists/ai_notes_status.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {allowlistLoading ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Loading allowlist…</span>
-                  </div>
-                ) : (
-                  <>
-                    {allowlistEmails.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No emails on the allowlist yet.</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {allowlistEmails.map(email => (
-                          <li
-                            key={email}
-                            className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
-                          >
-                            <span>{email}</span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                              disabled={savingAllowlist}
-                              onClick={() => void handleRemoveEmail(email)}
-                              aria-label={`Remove ${email}`}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+            <PageAllowlistCard
+              docId="ai_notes_status"
+              title="AI Notes Status — Page Access"
+              description="Emails allowed to view /ai-notes-status. Access is allowlist-only (not role-based). Stored at page_allowlists/ai_notes_status."
+            />
 
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                      <Input
-                        type="email"
-                        value={newEmail}
-                        onChange={e => setNewEmail(e.target.value)}
-                        placeholder="email@example.com"
-                        className="sm:max-w-xs"
-                        disabled={savingAllowlist}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            void handleAddEmail();
-                          }
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        onClick={() => void handleAddEmail()}
-                        disabled={savingAllowlist || !newEmail.trim()}
-                      >
-                        {savingAllowlist ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Plus className="mr-2 h-4 w-4" />
-                        )}
-                        Add email
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            <PageAllowlistCard
+              docId="audit"
+              title="Audit — Page Access"
+              description="Emails allowed to view /audit. Access is allowlist-only (not role-based). Stored at page_allowlists/audit."
+            />
 
             <ClientErrorsPanel />
           </>
