@@ -17,6 +17,27 @@ const INTERNAL_SUBMISSIONS_EMAIL = process.env.INTERNAL_SUBMISSIONS_EMAIL;
 const INTERNAL_NOTIFY_EMAIL = process.env.INTERNAL_NOTIFY_EMAIL;
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
+type InternalNotifyEvent =
+  | 'submitted'
+  | 'approved'
+  | 'payment_confirmed'
+  | 'presenter_update';
+
+/** Single source of truth for which internal inboxes get which event emails. */
+function getInternalRecipients(event: InternalNotifyEvent): string[] {
+  const both = [INTERNAL_SUBMISSIONS_EMAIL, INTERNAL_NOTIFY_EMAIL].filter(
+    (email): email is string => Boolean(email)
+  );
+
+  switch (event) {
+    case 'submitted':
+    case 'approved':
+    case 'payment_confirmed':
+    case 'presenter_update':
+      return both;
+  }
+}
+
 // ─── POC helper ──────────────────────────────────────────────────────────────
 
 function getPocInfo(submission: Submission) {
@@ -125,7 +146,7 @@ export async function sendSessionSubmittedEmail(params: {
     <p>— The cre8ion Edge Team</p>
   `;
 
-  // Email B — internal alert to both submissions@ and connect@
+  // Email B — internal alert
   const internalSubject = `New session submission: ${title}`;
   const internalBody = `
     <p>A new session has been submitted.</p>
@@ -141,11 +162,8 @@ export async function sendSessionSubmittedEmail(params: {
   const sends: Promise<{ success: boolean; error?: string }>[] = [
     sendEmail(partnerEmail, partnerSubject, partnerBody),
   ];
-  if (INTERNAL_SUBMISSIONS_EMAIL) {
-    sends.push(sendEmail(INTERNAL_SUBMISSIONS_EMAIL, internalSubject, internalBody));
-  }
-  if (INTERNAL_NOTIFY_EMAIL) {
-    sends.push(sendEmail(INTERNAL_NOTIFY_EMAIL, internalSubject, internalBody));
+  for (const recipient of getInternalRecipients('submitted')) {
+    sends.push(sendEmail(recipient, internalSubject, internalBody));
   }
 
   try {
@@ -177,7 +195,7 @@ export async function sendSessionApprovedEmail(submission: Submission, partnerEm
     <p>— The cre8ion Team</p>
   `;
 
-  // Email B — internal notify only (not submissions@)
+  // Email B — internal alert
   const internalSubject = `Session approved: ${submission.title}`;
   const internalBody = `
     <p>A session has been approved and moved to Phase 2.</p>
@@ -191,8 +209,8 @@ export async function sendSessionApprovedEmail(submission: Submission, partnerEm
   const sends: Promise<{ success: boolean; error?: string }>[] = [
     sendEmail(partnerEmail, partnerSubject, partnerBody),
   ];
-  if (INTERNAL_NOTIFY_EMAIL) {
-    sends.push(sendEmail(INTERNAL_NOTIFY_EMAIL, internalSubject, internalBody));
+  for (const recipient of getInternalRecipients('approved')) {
+    sends.push(sendEmail(recipient, internalSubject, internalBody));
   }
 
   try {
@@ -244,7 +262,9 @@ export async function sendPaymentConfirmedEmail(submission: Submission) {
 
   const sends: Promise<{ success: boolean; error?: string }>[] = [];
   if (poc.email) sends.push(sendEmail(poc.email, partnerSubject, partnerBody));
-  if (INTERNAL_NOTIFY_EMAIL) sends.push(sendEmail(INTERNAL_NOTIFY_EMAIL, internalSubject, internalBody));
+  for (const recipient of getInternalRecipients('payment_confirmed')) {
+    sends.push(sendEmail(recipient, internalSubject, internalBody));
+  }
 
   try {
     await Promise.all(sends);
@@ -293,7 +313,8 @@ export async function sendPresenterUpdateEmail(
   submission: Submission,
   action: 'added' | 'removed'
 ) {
-  if (!INTERNAL_NOTIFY_EMAIL) return { success: true };
+  const recipients = getInternalRecipients('presenter_update');
+  if (recipients.length === 0) return { success: true };
 
   const poc = getPocInfo(submission);
   const adminUrl = `https://alpfa26.cre8ionedge.com/submit/${submission.sessionType}/${submission.id}?from=all-sessions`;
@@ -310,7 +331,7 @@ export async function sendPresenterUpdateEmail(
   `;
 
   try {
-    await sendEmail(INTERNAL_NOTIFY_EMAIL, subject, body);
+    await Promise.all(recipients.map((recipient) => sendEmail(recipient, subject, body)));
     console.log(`sendPresenterUpdateEmail: sent for "${submission.title}" — ${action}`);
     return { success: true };
   } catch (error) {
