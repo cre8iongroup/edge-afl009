@@ -142,6 +142,7 @@ export default function AiNotesSection({ submission }: { submission: Submission 
   };
 
   if (flagLoading || !flagEnabled) return null;
+  if (submission.sessionType === 'reception') return null;
 
   const optOutAt = latestOptOutTimestamp(submission.aiNotesConsentLog);
 

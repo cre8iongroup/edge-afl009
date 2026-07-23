@@ -33,7 +33,9 @@ import {
   X,
   CheckCheck,
   Search,
-  ChevronDown,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -42,6 +44,27 @@ interface SessionsTableProps {
   role: 'admin' | 'client';
 }
 
+type ColumnId =
+  | 'submitter'
+  | 'company'
+  | 'title'
+  | 'type'
+  | 'audience'
+  | 'status'
+  | 'room'
+  | 'speaker'
+  | 'av'
+  | 'paid'
+  | 'pillar'
+  | 'format'
+  | 'cpe';
+
+type SortDir = 'asc' | 'desc';
+
+type EnrichedSubmission = Submission & {
+  _user: { name: string; email: string; avatar: string };
+};
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<Submission['status'], { dot: string; label: string; className: string }> = {
@@ -49,6 +72,13 @@ const STATUS_CONFIG: Record<Submission['status'], { dot: string; label: string; 
   phase_2: { dot: 'bg-yellow-500', label: 'Needs Information',           className: 'text-yellow-500 border-yellow-500/50' },
   phase_3: { dot: 'bg-indigo-500', label: 'Awaiting Room Assignment',    className: 'text-indigo-500 border-indigo-500/50' },
   phase_4: { dot: 'bg-green-500',  label: 'Session Confirmed',           className: 'text-green-500 border-green-500/50' },
+};
+
+const STATUS_ORDER: Record<Submission['status'], number> = {
+  phase_1: 1,
+  phase_2: 2,
+  phase_3: 3,
+  phase_4: 4,
 };
 
 const SESSION_TYPE_CONFIG: Record<Submission['sessionType'], { icon: React.ElementType; label: string }> = {
@@ -72,6 +102,17 @@ function resolveSpeaker(sub: Submission): string {
   return '—';
 }
 
+function resolveSubmitterName(sub: EnrichedSubmission): string {
+  return (sub._user.name && sub._user.name !== 'New Member')
+    ? sub._user.name
+    : (sub._user.email || '');
+}
+
+function resolveAudienceLabel(sub: Submission): string {
+  if (Array.isArray(sub.audience)) return sub.audience.join(', ');
+  return sub.audience ?? '';
+}
+
 /**
  * Extracts the YYYY-MM-DD string from the 1st choice date, used for filter matching.
  */
@@ -89,6 +130,63 @@ function resolveDateKey(sub: Submission): string {
   } catch {
     return '';
   }
+}
+
+function compareRows(
+  a: EnrichedSubmission,
+  b: EnrichedSubmission,
+  key: ColumnId,
+  dir: SortDir,
+): number {
+  const mul = dir === 'asc' ? 1 : -1;
+  const str = (v: string) => v.toLowerCase();
+
+  let cmp = 0;
+  switch (key) {
+    case 'submitter':
+      cmp = str(resolveSubmitterName(a)).localeCompare(str(resolveSubmitterName(b)));
+      break;
+    case 'company':
+      cmp = str(a.companyName ?? '').localeCompare(str(b.companyName ?? ''));
+      break;
+    case 'title':
+      cmp = str(a.title ?? '').localeCompare(str(b.title ?? ''));
+      break;
+    case 'type':
+      cmp = str(SESSION_TYPE_CONFIG[a.sessionType]?.label ?? a.sessionType)
+        .localeCompare(str(SESSION_TYPE_CONFIG[b.sessionType]?.label ?? b.sessionType));
+      break;
+    case 'audience':
+      cmp = str(resolveAudienceLabel(a)).localeCompare(str(resolveAudienceLabel(b)));
+      break;
+    case 'status':
+      cmp = (STATUS_ORDER[a.status] ?? 0) - (STATUS_ORDER[b.status] ?? 0);
+      break;
+    case 'room':
+      cmp = str(a.roomAssignment ?? '').localeCompare(str(b.roomAssignment ?? ''));
+      break;
+    case 'speaker':
+      cmp = str(resolveSpeaker(a)).localeCompare(str(resolveSpeaker(b)));
+      break;
+    case 'av':
+      cmp = Number(a.avSelected === true) - Number(b.avSelected === true);
+      break;
+    case 'paid':
+      cmp = Number(a.paymentStatus === 'complete') - Number(b.paymentStatus === 'complete');
+      break;
+    case 'pillar':
+      cmp = str(a.pillar ?? '').localeCompare(str(b.pillar ?? ''));
+      break;
+    case 'format':
+      cmp = str(a.format ?? '').localeCompare(str(b.format ?? ''));
+      break;
+    case 'cpe':
+      cmp = Number(Boolean(a.cpe)) - Number(Boolean(b.cpe));
+      break;
+    default:
+      cmp = 0;
+  }
+  return cmp * mul;
 }
 
 // ─── Combobox ─────────────────────────────────────────────────────────────────
@@ -273,6 +371,10 @@ export default function SessionsTable({ role }: SessionsTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // ── Column sort state (null = keep default proxy-float order) ───────────────
+  const [sortKey, setSortKey] = useState<ColumnId | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
   // ── Filter state ────────────────────────────────────────────────────────────
   const [companyFilter, setCompanyFilter]       = useState('');
   const [typeFilter, setTypeFilter]             = useState<string[]>([]);
@@ -285,6 +387,15 @@ export default function SessionsTable({ role }: SessionsTableProps) {
   const [avPaidFilter, setAvPaidFilter]         = useState<AVFilter>('all');
   const [proxyFilter, setProxyFilter]           = useState<ProxyFilter>('all');
   const [cpeFilter, setCpeFilter]               = useState(false);
+
+  const toggleSort = (id: ColumnId) => {
+    if (sortKey === id) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(id);
+      setSortDir('asc');
+    }
+  };
 
   const hasActiveFilters =
     companyFilter !== '' ||
@@ -323,7 +434,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
   });
 
   // ── Enrich submissions with user data ───────────────────────────────────────
-  const enriched = useMemo(() =>
+  const enriched = useMemo((): EnrichedSubmission[] =>
     submissions.map(sub => {
       const user = users?.find(u => u.id === sub.userId);
       return {
@@ -335,46 +446,31 @@ export default function SessionsTable({ role }: SessionsTableProps) {
     }),
   [submissions, users]);
 
-  // ── Sort: proxy sessions float to top (admin), then by POC email ────────────
-  const sorted = useMemo(() => {
-    if (!isAdmin) return enriched;
-    return [...enriched].sort((a, b) => {
-      if (a.isProxy && !b.isProxy) return -1;
-      if (!a.isProxy && b.isProxy) return 1;
-      if (a.isProxy && b.isProxy) {
-        const ae = a.pocEmail ?? a.presenterPocEmail ?? '';
-        const be = b.pocEmail ?? b.presenterPocEmail ?? '';
-        return ae.localeCompare(be);
-      }
-      return 0;
-    });
-  }, [enriched, isAdmin]);
-
   // ── Derive filter option lists from the full (unfiltered) dataset ───────────
   const companyOptions = useMemo(() =>
-    [...new Set(sorted.map(s => s.companyName).filter((c): c is string => Boolean(c)))].sort(),
-  [sorted]);
+    [...new Set(enriched.map(s => s.companyName).filter((c): c is string => Boolean(c)))].sort(),
+  [enriched]);
 
   const dateOptions = useMemo(() => {
-    const keys = [...new Set(sorted.map(s => resolveDateKey(s)).filter(Boolean))].sort();
+    const keys = [...new Set(enriched.map(s => resolveDateKey(s)).filter(Boolean))].sort();
     return keys.map(k => {
       const d = new Date(`${k}T12:00:00Z`);
       return { value: k, label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }) };
     });
-  }, [sorted]);
+  }, [enriched]);
 
   const roomOptions = useMemo(() => {
-    const rooms = [...new Set(sorted.map(s => s.roomAssignment?.trim() || ''))];
+    const rooms = [...new Set(enriched.map(s => s.roomAssignment?.trim() || ''))];
     const named = rooms.filter(Boolean).sort();
     const hasUnassigned = rooms.includes('');
     return [
       ...(hasUnassigned ? [{ value: '__unassigned__', label: 'Unassigned' }] : []),
       ...named.map(r => ({ value: r, label: r })),
     ];
-  }, [sorted]);
+  }, [enriched]);
 
-  // ── Apply filters ───────────────────────────────────────────────────────────
-  const filtered = useMemo(() => sorted.filter(sub => {
+  // ── Apply filters (order preserved from enriched) ───────────────────────────
+  const filtered = useMemo(() => enriched.filter(sub => {
     if (companyFilter && sub.companyName?.toLowerCase() !== companyFilter.toLowerCase()) return false;
     if (typeFilter.length > 0 && !typeFilter.includes(sub.sessionType)) return false;
     if (audienceFilter.length > 0) {
@@ -404,7 +500,26 @@ export default function SessionsTable({ role }: SessionsTableProps) {
     }
     if (cpeFilter && !sub.cpe) return false;
     return true;
-  }), [sorted, companyFilter, typeFilter, audienceFilter, pillarFilter, statusFilter, dateFilter, roomFilter, avOrderedFilter, avPaidFilter, proxyFilter, cpeFilter, isAdmin]);
+  }), [enriched, companyFilter, typeFilter, audienceFilter, pillarFilter, statusFilter, dateFilter, roomFilter, avOrderedFilter, avPaidFilter, proxyFilter, cpeFilter, isAdmin]);
+
+  // ── Display order: default proxy-float, or active column sort ───────────────
+  const displayRows = useMemo(() => {
+    if (sortKey !== null) {
+      return [...filtered].sort((a, b) => compareRows(a, b, sortKey, sortDir));
+    }
+    // Default (unchanged): proxy sessions float to top (admin), then by POC email
+    if (!isAdmin) return filtered;
+    return [...filtered].sort((a, b) => {
+      if (a.isProxy && !b.isProxy) return -1;
+      if (!a.isProxy && b.isProxy) return 1;
+      if (a.isProxy && b.isProxy) {
+        const ae = a.pocEmail ?? a.presenterPocEmail ?? '';
+        const be = b.pocEmail ?? b.presenterPocEmail ?? '';
+        return ae.localeCompare(be);
+      }
+      return 0;
+    });
+  }, [filtered, sortKey, sortDir, isAdmin]);
 
   // ── Proxy invoice generation ─────────────────────────────────────────────────
   const handleGenerateProxyInvoice = async () => {
@@ -445,6 +560,36 @@ export default function SessionsTable({ role }: SessionsTableProps) {
 
   // ── Column definitions for header rendering ──────────────────────────────────
   const fromParam = isAdmin ? 'all-sessions' : 'review';
+
+  const renderSortIcon = (id: ColumnId) => {
+    if (sortKey === id) {
+      return sortDir === 'asc'
+        ? <ArrowUp className="h-3.5 w-3.5" />
+        : <ArrowDown className="h-3.5 w-3.5" />;
+    }
+    return <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />;
+  };
+
+  const SortableHead = ({
+    id,
+    children,
+    className,
+  }: {
+    id: ColumnId;
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <TableHead className={className}>
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 hover:text-foreground"
+        onClick={() => toggleSort(id)}
+      >
+        {children}
+        {renderSortIcon(id)}
+      </button>
+    </TableHead>
+  );
 
   return (
     <>
@@ -591,38 +736,25 @@ export default function SessionsTable({ role }: SessionsTableProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {/* Proxy select column — admin only */}
+                  {/* Proxy select column — admin only (not sortable) */}
                   {isAdmin && <TableHead className="w-10" />}
-                  {/* Submitter */}
-                  <TableHead>Submitter</TableHead>
-                  {/* Company */}
-                  <TableHead>Company</TableHead>
-                  {/* Title */}
-                  <TableHead>Title</TableHead>
-                  {/* Type */}
-                  <TableHead>Type</TableHead>
-                  {/* Audience */}
-                  <TableHead>Audience</TableHead>
-                  {/* Status */}
-                  <TableHead className="text-center">Status</TableHead>
-                  {/* Room */}
-                  <TableHead>Room</TableHead>
-                  {/* Speaker */}
-                  <TableHead>Speaker</TableHead>
-                  {/* AV Ordered */}
-                  <TableHead className="text-center">AV</TableHead>
-                  {/* AV Paid */}
-                  <TableHead className="text-center">Paid</TableHead>
-                  {/* Pillar */}
-                  <TableHead>Pillar</TableHead>
-                  {/* Format */}
-                  <TableHead>Format</TableHead>
-                  {/* CPE */}
-                  <TableHead className="text-center">CPE</TableHead>
+                  <SortableHead id="submitter">Submitter</SortableHead>
+                  <SortableHead id="company">Company</SortableHead>
+                  <SortableHead id="title">Title</SortableHead>
+                  <SortableHead id="type">Type</SortableHead>
+                  <SortableHead id="audience">Audience</SortableHead>
+                  <SortableHead id="status" className="text-center">Status</SortableHead>
+                  <SortableHead id="room">Room</SortableHead>
+                  <SortableHead id="speaker">Speaker</SortableHead>
+                  <SortableHead id="av" className="text-center">AV</SortableHead>
+                  <SortableHead id="paid" className="text-center">Paid</SortableHead>
+                  <SortableHead id="pillar">Pillar</SortableHead>
+                  <SortableHead id="format">Format</SortableHead>
+                  <SortableHead id="cpe" className="text-center">CPE</SortableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.length === 0 ? (
+                {displayRows.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={isAdmin ? 14 : 13}
@@ -634,7 +766,7 @@ export default function SessionsTable({ role }: SessionsTableProps) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map(item => {
+                  displayRows.map(item => {
                     const statusCfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.phase_1;
                     const TypeIcon  = SESSION_TYPE_CONFIG[item.sessionType]?.icon || Briefcase;
                     const typeLabel = SESSION_TYPE_CONFIG[item.sessionType]?.label || 'Workshop';
