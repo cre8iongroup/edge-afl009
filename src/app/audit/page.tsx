@@ -44,6 +44,8 @@ export default function AuditPage() {
           <h1 className="font-headline text-3xl font-semibold">Audit</h1>
           <p className="text-muted-foreground">
             Presenter assets and AV/payment completeness across all sessions.
+            AI Notes apply to workshops and info sessions only — receptions are
+            excluded.
           </p>
         </div>
         {canViewPage && <AuditTable />}
